@@ -1,0 +1,33 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "kopling/kopling",
+    "type": "project",
+    "description": "A default installation of the Kopling community software.",
+    "keywords": ["kopling", "community"],
+    "license": "MIT",
+    "require": {
+        "kopling/core": "@dev"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "repositories": {
+        "core": {
+            "type": "path",
+            "url": "./core"
+        }
+    }
+}
