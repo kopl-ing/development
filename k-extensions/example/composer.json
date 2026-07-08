@@ -1,0 +1,17 @@
+{
+    "name": "kopling/example",
+    "description": "Example extension for Kopling",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "extra": {
+        "kopling": {
+        }
+    }
+}

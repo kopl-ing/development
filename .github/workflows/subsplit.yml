@@ -1,0 +1,48 @@
+name: subsplit.yml
+on:
+  push:
+    # Only trigger for specific branches or changes in specific paths.
+    branches:
+      - 'main'
+    paths:
+      - k-core
+      - k-extensions/**
+    # Tag push events should be ignored, they will be handled with the create event below.
+    tags-ignore:
+      - '*'
+  create:
+    tags:
+      - '*'
+  delete:
+    tags:
+      - '*'
+jobs:
+  sync_commits:
+    runs-on: ubuntu-latest
+    name: Sync commits
+    if: github.repository == 'kopl-ing/development' # Execute this workflow job only on the main repository.
+    steps:
+      -   uses: actions/checkout@v2
+          with:
+            persist-credentials: false
+            fetch-depth: 0
+
+      # Add a personal access token to the repository secrets. This will allow the splitter action to push the new commits
+      -   uses: frankdejonge/use-github-token@1.0.2
+          with:
+            authentication: 'username:${{ secrets.GITHUB_SUBSPLIT_TOKEN }}'
+            user_name: 'GitHub Action subsplit'
+            user_email: 'actions@github.com'
+
+      # Cache the splitsh executable to speedup future runs
+      -   name: Cache splitsh-lite
+          uses: actions/cache@v2
+          with:
+            path: './splitsh'
+            key: '${{ runner.os }}-splitsh-v101'
+
+      # Sync commits and tags for the configured subtree splits
+      -   name: subtree split
+          uses: acrobat/subtree-splitter@v1.1.3
+          with:
+            config-path: .github/subsplit-config.json

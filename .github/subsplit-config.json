@@ -1,0 +1,14 @@
+{
+    "subtree-splits": [
+        {
+            "name": "core",
+            "directory": "k-core",
+            "target": "git@github.com:kopl-ing/core.git"
+        },
+        {
+            "name": "reactions",
+            "directory": "k-extensions/reactions",
+            "target": "git@github.com:kopl-ing/reactions.git"
+        }
+    ]
+}

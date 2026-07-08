@@ -1,0 +1,26 @@
+{
+    "name": "kopling/core",
+    "description": "The core of the Kopling community software",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+        "laravel/framework": "13.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Core\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kopling\\Core\\Provider\\ServiceProvider"
+            ]
+        }
+    }
+}

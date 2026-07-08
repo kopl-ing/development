@@ -5,8 +5,15 @@
     "description": "A default installation of the Kopling community software.",
     "keywords": ["kopling", "community"],
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
     "require": {
-        "kopling/core": "@dev"
+        "kopling/core": "@dev",
+        "kopling/reactions": "@dev"
     },
     "autoload-dev": {
         "psr-4": {
@@ -27,7 +34,11 @@
     "repositories": {
         "core": {
             "type": "path",
-            "url": "./core"
+            "url": "./k-core"
+        },
+        "extensions": {
+            "type": "path",
+            "url": "./k-extensions/*"
         }
     }
 }

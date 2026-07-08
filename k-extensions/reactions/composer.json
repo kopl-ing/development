@@ -1,0 +1,25 @@
+{
+    "name": "kopling/reactions",
+    "description": "Reactions for Kopling",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Reactions\\": "src/"
+        }
+    },
+    "extra": {
+        "kopling": {
+            "extensions": [
+                "reactions"
+            ]
+        }
+    }
+}
