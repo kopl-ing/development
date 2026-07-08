@@ -22,27 +22,27 @@ jobs:
     name: Sync commits
     if: github.repository == 'kopl-ing/development' # Execute this workflow job only on the main repository.
     steps:
-      -   uses: actions/checkout@v2
+      -   uses: actions/checkout@v7
           with:
             persist-credentials: false
             fetch-depth: 0
 
       # Add a personal access token to the repository secrets. This will allow the splitter action to push the new commits
-      -   uses: frankdejonge/use-github-token@1.0.2
+      -   uses: frankdejonge/use-github-token@1.1.0
           with:
             authentication: 'username:${{ secrets.SUBSPLIT_TOKEN }}'
-            user_name: 'GitHub Action subsplit'
-            user_email: 'actions@github.com'
+            user_name: 'Daniel Klabbers'
+            user_email: 'daniel+git@klabbers.email'
 
       # Cache the splitsh executable to speedup future runs
       -   name: Cache splitsh-lite
-          uses: actions/cache@v2
+          uses: actions/cache@v6
           with:
             path: './splitsh'
             key: '${{ runner.os }}-splitsh-v101'
 
       # Sync commits and tags for the configured subtree splits
       -   name: subtree split
-          uses: acrobat/subtree-splitter@v1.1.3
+          uses: acrobat/subtree-splitter@v1.1.5
           with:
             config-path: .github/subsplit-config.json
