@@ -127,7 +127,7 @@ class Manager
 
             foreach ($extension->permissions() as $permission) {
                 $permissions[] = new Permission(
-                    id: $this->id($package).'.'.$permission->id,
+                    id: $this->id($package).'::'.$permission->id,
                     label: $permission->label,
                     description: $permission->description,
                     callback: $permission->callback,

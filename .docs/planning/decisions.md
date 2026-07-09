@@ -377,9 +377,10 @@ match — not yet done, lives in the `kopling-landing` repo.
 `description`, optional `?\Closure $callback`). Extensions declare theirs via
 `Kopling\Core\Extension\Contract\HasPermissions::permissions(): array<Permission>`, writing only
 the local part of the id (e.g. `manage-things`) — `Manager::permissions()` prefixes it with the
-owning extension's `id()` (`kopling-example.manage-things`) before it's ever registered, the same
-prefixing `id()` already does for view/translation namespaces. Core's own permissions
-(`Kopling\Core\Authorization\CorePermissions::all()`) are written fully prefixed with `core.`
+owning extension's `id()`, joined with `::` (`kopling-example::manage-things`) before it's ever
+registered — the same separator `id()` already produces for view/translation namespaces. Core's
+own permissions
+(`Kopling\Core\Authorization\CorePermissions::all()`) are written fully prefixed with `core::`
 directly by core itself, since core isn't discovered through `Manager` and has no collision risk
 to guard against. `ServiceProvider::boot()` collects `[...CorePermissions::all(),
 ...$manager->permissions()]` and `Gate::define()`s each one. Storage: no `permissions` table —
@@ -418,8 +419,8 @@ Why above.
 
 **Status:** Decided & implemented. Proven via `k-extensions/example` (`RequestsStorageDriver` and
 `HasPermissions` both implemented on the same `Extension` class) and one core permission
-(`core.manage-people`). Verified end-to-end: grant/revoke through `Group`, `$person->can()`
-resolving correctly for both a `core.`-prefixed and an extension-prefixed permission
+(`core::manage-people`). Verified end-to-end: grant/revoke through `Group`, `$person->can()`
+resolving correctly for both a `core::`-prefixed and an extension-prefixed permission
 independently, and an unregistered permission safely denying. `label`/`description` now go
 through the extension's own `lang/` via Laravel's `__()` helper (`kopling-example::permissions.
 manage-things.label`) rather than being hardcoded strings — verified this resolves correctly,

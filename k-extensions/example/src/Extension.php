@@ -52,7 +52,7 @@ class Extension extends AbstractExtension implements RequestsStorageDriver, HasP
     }
 
     /**
-     * Written as just "manage-things" -- Manager prefixes it to "kopling-example.manage-things"
+     * Written as just "manage-things" -- Manager prefixes it to "kopling-example::manage-things"
      * before it's registered, so this author never has to think about another extension's names.
      * label/description go through this extension's own lang/ (Section 4), same as any other
      * translatable string -- never a hardcoded string in the language the author happened to

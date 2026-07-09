@@ -23,7 +23,7 @@ class Group extends Model
     }
 
     /**
-     * Checks the raw grant, e.g. "core.manage-people" or "kopling-example.do-a-thing" --
+     * Checks the raw grant, e.g. "core::manage-people" or "kopling-example::do-a-thing" --
      * there's no Permission row to relate to, permission definitions live in code.
      */
     public function hasPermission(string $id): bool
