@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Kopling\Example;
 
+use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Extension\AbstractExtension;
+use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
+use Kopling\Core\Storage\StorageAccess;
+use Kopling\Core\Storage\StoragePermission;
 use Kopling\Core\Storage\StorageRequest;
+use Kopling\Core\Storage\StorageRetention;
 
 /**
  * A dummy extension -- not meant to be installed for real functionality. It exists so every
@@ -14,7 +19,7 @@ use Kopling\Core\Storage\StorageRequest;
  * sibling directories (views/, css/, js/, migrations/, routes/, lang/, icon/) and
  * CLAUDE.md ("Extension conventions") for what each one does.
  */
-class Extension extends AbstractExtension implements RequestsStorageDriver
+class Extension extends AbstractExtension implements RequestsStorageDriver, HasPermissions
 {
     public static function name(): string
     {
@@ -28,12 +33,41 @@ class Extension extends AbstractExtension implements RequestsStorageDriver
 
     /**
      * Contracts are only needed for capabilities a directory convention can't express --
-     * this one is illustrative only, since StorageRequest itself isn't fleshed out yet.
+     * this one is illustrative only.
      *
      * @return array<StorageRequest>
      */
     public function storage(): array
     {
-        return [new StorageRequest()];
+        return [
+            new StorageRequest(
+                key: 'avatars',
+                label: 'Avatars',
+                description: 'Profile pictures uploaded by members.',
+                access: StorageAccess::Public,
+                retention: StorageRetention::Persistent,
+                permission: StoragePermission::ReadWrite,
+            ),
+        ];
+    }
+
+    /**
+     * Written as just "manage-things" -- Manager prefixes it to "kopling-example.manage-things"
+     * before it's registered, so this author never has to think about another extension's names.
+     * label/description go through this extension's own lang/ (Section 4), same as any other
+     * translatable string -- never a hardcoded string in the language the author happened to
+     * write the extension in.
+     *
+     * @return array<Permission>
+     */
+    public function permissions(): array
+    {
+        return [
+            new Permission(
+                id: 'manage-things',
+                label: __('kopling-example::permissions.manage-things.label'),
+                description: __('kopling-example::permissions.manage-things.description'),
+            ),
+        ];
     }
 }

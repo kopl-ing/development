@@ -314,3 +314,115 @@ middleware, or bindings" get registered as the codebase grows.
 Revisit the literal `/login` fallback once a real login route lands.
 
 **Status:** Decided & implemented.
+
+---
+
+## 2026-07-10 — `StorageRequest` capabilities: access / retention / permission, backend never named
+
+**Decision:** `Kopling\Core\Storage\StorageRequest` declares a named storage purpose
+(`key`, `label`, `description`) plus three independent, backed enums: `StorageAccess`
+(`Private` — no URL, app-mediated reads only; `Public` — stable permanent URL; `Signed` —
+private content exposed via short-lived signed URLs, i.e. Laravel's `temporaryUrl()`),
+`StorageRetention` (`Cache` — safe to purge, app regenerates it; `Persistent` — durable,
+never regenerated), and `StoragePermission` (`ReadOnly`; `ReadWrite`). Nothing on the class
+names a backend (local disk, S3, cloud, whatever) — that mapping is an admin-configured
+choice, entirely outside the extension's concern. `Kopling\Core\Extension\Manager::storageDrivers()`
+was also fixed to return `array<string, array<StorageRequest>>` keyed by `id($package)`
+(the same scheme already used for view/translation namespacing) instead of flattening every
+extension's requests into one anonymous array via `array_push(...)` — the flattened form lost
+which extension owned which request, information the future admin storage-mapping screen needs.
+
+**Why:** The charter's original draft list of capabilities (public URL, signed URL, streaming,
+cloud) was provisional, not decided, and "cloud" specifically conflates a request-side concern
+with a backend/admin-side one — whether a mapped drive happens to be local disk, S3, or
+something else is never something the requesting extension should know or declare. Access and
+retention are genuinely orthogonal (a `Public`+`Persistent` avatar and a `Private`+`Cache`
+thumbnail-render are both coherent, so neither collapses into a single "purpose" enum).
+`ReadOnly`/`ReadWrite` was added on top because Laravel/Flysystem has a real read-only disk
+wrapper for exactly this distinction, and it's security-relevant: an extension serving only
+vendored/pre-seeded assets has no business being granted write access to whatever drive it gets
+mapped to.
+
+**Rejected from consideration:** A "streaming" capability (in the original charter draft) —
+dropped, not a meaningful per-request differentiator across Flysystem adapters. A "node-locality"
+capability (does this purpose require storage shared across app instances, vs. tolerating a
+single node) — real concern on horizontally-scaled infra (a `local` disk is only visible to the
+node that wrote it), but rejected as a `StorageRequest` field since local-disk drivers can
+already be wrapped behind something replicated/shared at the admin-config level; treated as an
+admin/driver-mapping concern, not something the extension declares. A TTL/expiry field for
+`Signed` access — rejected, Laravel's `temporaryUrl($path, $expiration)` takes expiration at
+call time, not disk-configuration time, so freezing a default into the request is premature.
+File-size/MIME-type constraints — rejected outright, that's upload-request validation, unrelated
+to which drive a purpose resolves to.
+
+**Explicitly deferred, not yet decided:** Whatever resolves a `StorageRequest` to an actual
+configured drive (an admin-mapping screen + resolver, neither built yet) must never silently
+fall back to a different drive when a request is unmapped or its mapped drive is unavailable —
+on scalable/multi-node infra, a silent fallback would quietly break the app for a fraction of
+users rather than failing loudly for everyone. This constrains the not-yet-built resolver; it
+doesn't yet have an owning entry of its own since no resolver code exists.
+
+**Status:** `StorageAccess`, `StorageRetention`, `StoragePermission`, `StorageRequest`, and the
+`Manager::storageDrivers()` fix implemented. `k-extensions/example`'s `Extension::storage()`
+updated to construct a real request (an `avatars` purpose: `Public`, `Persistent`, `ReadWrite`).
+Admin storage-mapping UI and the request→drive resolver are not yet built. Charter's Storage line
+(`public/charter.html`) still reflects the old, provisional capability list and needs updating to
+match — not yet done, lives in the `kopling-landing` repo.
+
+---
+
+## 2026-07-10 — Permissions: granular named strings under `Kopling\Core\Authorization`, prefixed by extension id, no hardcoded admin flag
+
+**Decision:** `Kopling\Core\Authorization\Permission` is a plain value object (`id`, `label`,
+`description`, optional `?\Closure $callback`). Extensions declare theirs via
+`Kopling\Core\Extension\Contract\HasPermissions::permissions(): array<Permission>`, writing only
+the local part of the id (e.g. `manage-things`) — `Manager::permissions()` prefixes it with the
+owning extension's `id()` (`kopling-example.manage-things`) before it's ever registered, the same
+prefixing `id()` already does for view/translation namespaces. Core's own permissions
+(`Kopling\Core\Authorization\CorePermissions::all()`) are written fully prefixed with `core.`
+directly by core itself, since core isn't discovered through `Manager` and has no collision risk
+to guard against. `ServiceProvider::boot()` collects `[...CorePermissions::all(),
+...$manager->permissions()]` and `Gate::define()`s each one. Storage: no `permissions` table —
+`Person`/`Group` (see the entry above on those becoming the real auth model) already exist;
+`Group` gets `hasPermission()`/`givePermissionTo()`/`revokePermissionTo()` against a new
+`group_permission` pivot (`group_id` + a raw `permission` string, composite primary key, no FK to
+a permissions table since none exists); `Person::hasPermission()` joins through `group_person` to
+check across all of a person's groups. Every `Gate::define()`'d ability runs the same base check
+first — `$person->hasPermission($permission->id)` — and only calls `$permission->callback` (if
+present) as an *additional* condition layered on top; the callback can narrow access, never grant
+it on its own.
+
+**Why:** Named, granular permissions with roles/groups as nothing more than assignable bundles is
+the direct fix for a real, lived Flarum flaw — a single binary "administrator" flag with no way to
+grant partial admin access (see the charter, D29: "Portals & permissions"). Prefixing by extension
+id the same way views/translations already are means an author never has to think about another
+extension choosing the same permission name — `Manager` guarantees uniqueness structurally, not by
+convention someone has to remember. No `permissions` table exists because a permission's
+definition (label, description, callback) lives in code and is recomputed fresh every request via
+`Manager::permissions()` — storing it as its own DB row would mean reconciling that row every time
+an extension is installed, updated, or removed, for no benefit: the only fact that actually needs
+to persist is the grant (which group has which permission string), so that's the only thing the
+schema stores. The callback is deliberately a *narrowing* condition, never a replacement for the
+base grant check, for the same reason `final` is never used anywhere in this codebase (see the
+entry on the extension entry point) — an escape hatch that could bypass the grant check entirely
+would be exactly the kind of foot-gun the base check exists to prevent.
+
+**Alternatives considered:** A `permissions` database table, rows synced from code (the
+`spatie/laravel-permission` approach) — rejected for the reconciliation-on-every-change cost above,
+with nothing gained since Kopling doesn't need to query permission metadata relationally, only
+check grants. Namespaced/scoped permissions (a Kubernetes-RBAC-style per-community scope, discussed
+alongside Portals) — explicitly out of scope for now: Kopling isn't building for a multi-community
+platform at this stage, so the schema stays flat (one set of groups, not one set per community).
+The callback fully replacing the base check instead of narrowing it — rejected as a foot-gun, see
+Why above.
+
+**Status:** Decided & implemented. Proven via `k-extensions/example` (`RequestsStorageDriver` and
+`HasPermissions` both implemented on the same `Extension` class) and one core permission
+(`core.manage-people`). Verified end-to-end: grant/revoke through `Group`, `$person->can()`
+resolving correctly for both a `core.`-prefixed and an extension-prefixed permission
+independently, and an unregistered permission safely denying. `label`/`description` now go
+through the extension's own `lang/` via Laravel's `__()` helper (`kopling-example::permissions.
+manage-things.label`) rather than being hardcoded strings — verified this resolves correctly,
+since `ServiceProvider::boot()` already registers every extension's translations before it
+collects permissions. Not yet built: any admin UI for assigning permissions to groups (today,
+only the `Group::givePermissionTo()`/`revokePermissionTo()` PHP API exists).
