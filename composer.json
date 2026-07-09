@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "kopling/kopling",
+    "name": "kopling/development",
     "type": "project",
-    "description": "A default installation of the Kopling community software.",
+    "description": "The development environment for the Kopling community software.",
     "keywords": ["kopling", "community"],
     "license": "MIT",
     "authors": [

@@ -1,6 +1,5 @@
 name: subsplit.yml
 on:
-  workflow_dispatch:
   push:
     # Only trigger for specific branches or changes in specific paths.
     branches:
@@ -43,37 +42,8 @@ jobs:
             path: './splitsh'
             key: '${{ runner.os }}-splitsh-v101'
 
-      # acrobat/subtree-splitter only recognizes push/create/delete events internally (via
-      # process.env.GITHUB_EVENT_NAME), and GitHub Actions silently ignores any attempt to
-      # override a GITHUB_* variable through a step's `env:` key -- so a manual
-      # workflow_dispatch run can never take its "push" branch, no matter what we set. Run the
-      # action only for the trigger types it actually supports, and replicate its push-sync
-      # logic by hand for manual runs below.
       -   name: subtree split (automatic)
           if: github.event_name != 'workflow_dispatch'
           uses: acrobat/subtree-splitter@v1.1.5
           with:
             config-path: .github/subsplit-config.json
-
-      -   name: Download splitsh-lite
-          if: github.event_name == 'workflow_dispatch' && steps.cache-splitsh.outputs.cache-hit != 'true'
-          run: |
-            mkdir -p /tmp/splitsh
-            wget -O /tmp/splitsh/split-lite.tar.gz https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz
-            tar -zxpf /tmp/splitsh/split-lite.tar.gz --directory /tmp/splitsh/
-            chmod +x /tmp/splitsh/splitsh-lite
-            mv /tmp/splitsh/splitsh-lite ./splitsh
-
-      -   name: subtree split (manual)
-          if: github.event_name == 'workflow_dispatch'
-          run: |
-            set -euo pipefail
-            branch="${GITHUB_REF#refs/heads/}"
-            jq -c '.["subtree-splits"][]' .github/subsplit-config.json | while read -r entry; do
-              name=$(jq -r '.name' <<< "$entry")
-              dir=$(jq -r '.directory' <<< "$entry")
-              target=$(jq -r '.target' <<< "$entry")
-              git remote add "$name" "$target" 2>/dev/null || true
-              hash=$(./splitsh --prefix="$dir" --origin="refs/heads/$branch")
-              git push "$name" "${hash}:refs/heads/${branch}" -f
-            done
