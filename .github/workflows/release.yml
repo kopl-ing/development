@@ -1,0 +1,58 @@
+name: release.yml
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag to create (e.g. v1.2.0)'
+        required: true
+jobs:
+  prepare_release:
+    runs-on: ubuntu-latest
+    name: Compile k-core release assets and tag
+    if: github.repository == 'kopl-ing/development' # Execute this workflow job only on the main repository.
+    steps:
+      -   uses: actions/checkout@v7
+          with:
+            ref: main
+            persist-credentials: false
+            fetch-depth: 0
+
+      # Needed to commit the compiled k-core/dist assets and push the release tag.
+      -   uses: frankdejonge/use-github-token@1.1.0
+          with:
+            authentication: 'username:${{ secrets.SUBSPLIT_TOKEN }}'
+            user_name: 'Daniel Klabbers'
+            user_email: 'daniel+git@klabbers.email'
+
+      -   uses: actions/setup-node@v5
+          with:
+            node-version: 22
+
+      -   name: Install dependencies
+          run: npm ci
+
+      # k-core/dist is real, committed output. splitsh (see subsplit.yml) only carries
+      # whatever already exists inside k-core/ at a given commit -- it has no build step of
+      # its own -- so the compiled assets must land in the monorepo before the release tag
+      # is created. Node/Vite only ever run here, in CI, at release time: never on a Kopling
+      # site's host.
+      -   name: Compile k-core release assets
+          run: npm run build:core-dist
+
+      -   name: Commit compiled assets
+          run: |
+            git add k-core/dist
+            if git diff --cached --quiet; then
+              echo "No asset changes to commit."
+            else
+              git commit -m "chore(release): compile k-core assets for ${{ inputs.version }}"
+              git push origin HEAD:main
+            fi
+
+      # Pushing this tag is what triggers subsplit.yml's existing `create: tags:` handler,
+      # which mirrors k-core (now including the freshly compiled dist assets) and every other
+      # configured split into their readonly repos, tagged the same as this release.
+      -   name: Tag release
+          run: |
+            git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
+            git push origin "${{ inputs.version }}"
