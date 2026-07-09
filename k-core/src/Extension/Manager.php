@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extension;
 
+use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Storage\StorageRequest;
 
@@ -87,18 +89,52 @@ class Manager
     }
 
     /**
-     * @return array<StorageRequest>
+     * Storage requests declared by every extension, keyed the same way as `id()` namespaces
+     * views/translations -- so the admin storage-mapping screen can show which extension
+     * owns each request instead of one anonymous, flattened list.
+     *
+     * @return array<string, array<StorageRequest>>
      */
     public function storageDrivers(): array
     {
         $requests = [];
 
-        foreach ($this->extensions() as $extension) {
+        foreach ($this->extensions() as $package => $extension) {
             if ($extension instanceof RequestsStorageDriver) {
-                array_push($requests, ...$extension->storage());
+                $requests[$this->id($package)] = $extension->storage();
             }
         }
 
         return $requests;
+    }
+
+    /**
+     * Every permission declared by every extension, with `Permission::$id` already prefixed
+     * with the owning extension's `id()` -- an author writes just the local part
+     * ("manage-reactions"), never the prefix, so it can't drift or collide with another
+     * extension's names.
+     *
+     * @return array<Permission>
+     */
+    public function permissions(): array
+    {
+        $permissions = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof HasPermissions) {
+                continue;
+            }
+
+            foreach ($extension->permissions() as $permission) {
+                $permissions[] = new Permission(
+                    id: $this->id($package).'.'.$permission->id,
+                    label: $permission->label,
+                    description: $permission->description,
+                    callback: $permission->callback,
+                );
+            }
+        }
+
+        return $permissions;
     }
 }

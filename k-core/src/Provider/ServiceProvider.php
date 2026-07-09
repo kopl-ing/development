@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Kopling\Core\Provider;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as Provider;
+use Kopling\Core\Authorization\CorePermissions;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
 use Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated;
@@ -58,6 +60,20 @@ class ServiceProvider extends Provider
 
             // css/js conventions are exposed via Manager::conventions() but not yet linked
             // onto the page -- that needs the head-assets outlet mechanism, not built yet.
+        }
+
+        foreach ([...CorePermissions::all(), ...$manager->permissions()] as $permission) {
+            Gate::define($permission->id, function (Person $person, ...$args) use ($permission) {
+                if (! $person->hasPermission($permission->id)) {
+                    return false;
+                }
+
+                if ($permission->callback === null) {
+                    return true;
+                }
+
+                return (bool) ($permission->callback)($person, ...$args);
+            });
         }
     }
 }
