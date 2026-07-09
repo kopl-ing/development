@@ -6,7 +6,7 @@ on:
     branches:
       - 'main'
     paths:
-      - k-core
+      - k-core/**
       - k-extensions/**
     # Tag push events should be ignored, they will be handled with the create event below.
     tags-ignore:
@@ -43,7 +43,14 @@ jobs:
             key: '${{ runner.os }}-splitsh-v101'
 
       # Sync commits and tags for the configured subtree splits
+      # acrobat/subtree-splitter only recognizes push/create/delete events internally (via
+      # process.env.GITHUB_EVENT_NAME); a manual workflow_dispatch run matches none of its
+      # branches, so it sets up remotes and then silently does nothing. Force it to take the
+      # "push" branch on a manual run — GITHUB_REF is already the dispatched branch, which is
+      # all that branch needs.
       -   name: subtree split
           uses: acrobat/subtree-splitter@v1.1.5
+          env:
+            GITHUB_EVENT_NAME: ${{ github.event_name == 'workflow_dispatch' && 'push' || github.event_name }}
           with:
             config-path: .github/subsplit-config.json
