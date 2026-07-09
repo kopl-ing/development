@@ -8,6 +8,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as Provider;
 use Kopling\Core\Authorization\CorePermissions;
+use Kopling\Core\Console\Commands\DiscoverExtensions;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
 use Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated;
@@ -28,6 +29,10 @@ class ServiceProvider extends Provider
         });
 
         $this->app->singleton(Manager::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([DiscoverExtensions::class]);
+        }
     }
 
     public function boot(Manager $manager): void

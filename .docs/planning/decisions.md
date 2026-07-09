@@ -427,3 +427,34 @@ manage-things.label`) rather than being hardcoded strings — verified this reso
 since `ServiceProvider::boot()` already registers every extension's translations before it
 collects permissions. Not yet built: any admin UI for assigning permissions to groups (today,
 only the `Group::givePermissionTo()`/`revokePermissionTo()` PHP API exists).
+
+---
+
+## 2026-07-10 — `bootstrap/cache/kopling-extensions.php` and `database/database.sqlite` are fixed by composer hooks, not documented as manual steps
+
+**Decision:** `Kopling\Core\Console\Commands\DiscoverExtensions` (`php artisan
+kopling:extensions:discover`) rebuilds `Manifest`'s cache the same way Laravel's own built-in
+`Illuminate\Foundation\Console\PackageDiscoverCommand` (`package:discover`) rebuilds
+`packages.php` — resolve the manifest from the container, call `->build()` unconditionally, no
+file-deletion dance required. Root `composer.json`'s `post-autoload-dump` now runs it right after
+`package:discover`, and also runs a `@php -r` one-liner that creates `database/` and
+`database/database.sqlite` if either is missing (the standard modern-Laravel-skeleton pattern for
+exactly this), before either artisan call.
+
+**Why:** Both gaps were found the same way — hit repeatedly during the extension/permission work,
+worked around by hand each time (`rm -f bootstrap/cache/kopling-extensions.php` before nearly
+every test; `mkdir database && touch database/database.sqlite` once per fresh checkout) — and the
+first instinct was to write "remember to do this" into `CLAUDE.md` rather than ask whether the gap
+itself should just be closed. Both are cheap, standard fixes (an Artisan command mirroring a
+pattern Laravel already ships; a composer script Laravel's own skeleton already uses for exactly
+this purpose) — worth doing instead of asking every future session to remember a manual step.
+
+**Alternatives considered:** A raw `rm -f bootstrap/cache/kopling-extensions.php` shell command
+directly in the composer script — rejected in favor of a proper Artisan command, matching how
+`package:discover` itself works (resolve + rebuild, not delete + lazy-rebuild-on-next-access) and
+staying usable standalone (`php artisan kopling:extensions:discover`), not just from Composer.
+
+**Status:** Decided & implemented. Verified from a genuinely clean state: deleted both
+`bootstrap/cache/kopling-extensions.php` and the entire `database/` directory, ran `composer
+dump-autoload` cold, confirmed both were recreated correctly, then ran `php artisan migrate`
+successfully against the fresh SQLite file.

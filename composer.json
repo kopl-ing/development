@@ -38,7 +38,9 @@
     "scripts": {
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
+            "@php -r \"is_dir('database') || mkdir('database', 0755, true); file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan package:discover --ansi",
+            "@php artisan kopling:extensions:discover --ansi"
         ]
     },
     "minimum-stability": "stable",
@@ -52,5 +54,8 @@
             "type": "path",
             "url": "./k-extensions/*"
         }
+    },
+    "require-dev": {
+        "laravel/tinker": "^3.0"
     }
 }
