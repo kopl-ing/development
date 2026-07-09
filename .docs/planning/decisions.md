@@ -126,7 +126,7 @@ benefit, and unfamiliar to anyone who's built an ordinary Laravel package before
 explicit request for the flattest structure possible; a single-purpose extension doesn't have
 enough internal complexity to need that extra nesting the way `k-core` might.
 
-**Status:** Decided, not yet implemented — `k-extensions/example` scaffolding is still pending.
+**Status:** Decided & implemented — `k-extensions/example` (2026-07-09) is the working reference.
 
 ---
 
@@ -146,3 +146,93 @@ file exists so that engineering "why" survives for contributors and coding agent
 codebase specifically, without diluting the charter's own purpose.
 
 **Status:** Decided & implemented (this file, and the `CLAUDE.md` section describing the rule).
+
+---
+
+## 2026-07-09 — Extension entry point: a plain `AbstractExtension`, discovered by `"type": "kopling-extension"`, directory-convention auto-registration, contracts only for genuinely behavioral capabilities
+
+**Decision:** Every extension ships one required file, `src/Extension.php`, `class Extension
+extends Kopling\Core\Extension\AbstractExtension`, implementing static `name()`/`description()`.
+`AbstractExtension` has no relationship to `Illuminate\Support\ServiceProvider` at all — it's a
+plain, Kopling-owned class. Discovery: an extension's `composer.json` declares `"type":
+"kopling-extension"`; `Kopling\Core\Extension\Manifest` (a rewritten `PackageManifest` subclass)
+filters `installed.json` by that type and derives each extension's namespace + on-disk path,
+caching to `bootstrap/cache/kopling-extensions.php`. `Kopling\Core\Extension\Manager` instantiates
+each discovered `<namespace>Extension` and exposes `conventions($package)`: whichever of
+`migrations/`, `views/`, `css/`, `js/`, `routes/`, `lang/` exist under that package's own root, by
+directory presence alone — no interface to implement for any of these. `Kopling\Core\Provider\ServiceProvider::boot()`
+loops over every discovered extension and registers each found convention via Laravel's own
+`loadMigrationsFrom`/`loadViewsFrom`/`loadRoutesFrom`/`loadTranslationsFrom`, namespaced by the
+package's short name (`kopling/reactions` → `reactions`). Contracts
+(`Kopling\Core\Extension\Contract\*`, e.g. `RequestsStorageDriver`) exist only for capabilities a
+directory can't express — `Manager` discovers which an extension implements via `instanceof`,
+no separate declaration list needed.
+
+**Why:** "Mainstream tool inside, sovereign contract outside" argues for wrapping
+`ServiceProvider`, but a *ServiceProvider subclass extensions extend directly* would still leak
+Laravel's own API surface into extension code the moment an author reached for `$this->app`
+inside it — the opposite of the isolation the rule is for. Keeping `AbstractExtension` fully
+plain means the *only* things an extension author ever touches are `Kopling\Extend\*`
+(reserved for wrapped Laravel primitives, not yet populated) and `Kopling\Core\Extension\*`; all
+actual Laravel wiring happens inside `Manager`/`ServiceProvider`, code no extension ever writes.
+Directory-convention-over-configuration removes essentially all authoring ceremony for the common
+cases (migrations/views/routes/lang), matching "an extension is PHP and templates, full stop";
+contracts are reserved for the genuinely small set of things that can't be inferred from a
+filesystem check (declaring a storage driver capability being the first and, so far, only one).
+
+**Naming note:** the abstract base is `AbstractExtension`, not `Extension` — every extension's own
+class is named `Extension`, so if the base class shared that name, any extension file would need
+`use Kopling\Core\Extension\Extension as Something;` to avoid two symbols named `Extension` in one
+file. The `Abstract*` prefix is the standard escape from that collision.
+
+**Coding convention introduced by this decision, applies project-wide:** never mark a method or
+class `final`. It directly undercuts the charter's own escape-hatch philosophy ("Outlets compose;
+overrides don't" — the override path only stays real if nothing is ever sealed shut).
+
+**Alternatives considered:** Flarum's `extend.php` returning a plain array of "Extender" value
+objects — rejected, an uncached, un-autoloadable, un-typed shape is a worse fit here than a real
+namespaced class, and the introspectability it buys (core can see what an extension does without
+executing it) is fully available another way. A generic declarative array of typed extender
+objects returned from one method on `Extension` — considered as a middle ground, then dropped in
+favor of small capability interfaces (`ProvidesRoutes`-style, one per concern) once directory
+conventions turned out to cover everything except genuinely behavioral capabilities — interfaces
+plus `instanceof` give the same introspectability with less indirection and better IDE/PHPStan
+support. `Extension extends ServiceProvider` — rejected, see Why above. Reusing Laravel's own
+`PackageManifest`/`bootstrap/cache/packages.php` directly instead of a parallel `Manifest` —
+rejected: traced Laravel's actual `PackageManifest::build()` and confirmed its trailing
+`->filter()` silently drops any package with an empty `extra.laravel` value, so it structurally
+cannot answer "find me every package of a given Composer `type`."
+
+**Status:** Decided & implemented. First working reference: `k-extensions/reactions` (updated) and
+`k-extensions/example` (built as the canonical dummy, exercising every convention + the one
+existing contract). `css`/`js` conventions are detected but not yet linked onto the page — still
+waiting on the `head.assets` outlet (separate, not-yet-made decision).
+
+---
+
+## 2026-07-09 — Extension view/translation namespaces include the vendor, not just the package name
+
+**Decision:** Corrects the entry above. `Kopling\Core\Extension\Manager::id($package)` derives an
+extension's view/translation namespace as the *full* Composer package name with `/` replaced by
+`-` (`kopling/example` → `kopling-example`), not the package name alone with the vendor stripped
+(what `Kopling\Core\Provider\ServiceProvider::boot()` originally did, via `Str::after($package,
+'/')`). `view('kopling-example::hello')` / `__('kopling-example::messages.hello')`, not
+`example::`.
+
+**Why:** Two different vendors can each publish an extension called `example` (or any other
+generic name) — `kopling/example` and `acme/example` are both entirely plausible. Deriving the
+namespace from the package name alone means both would register the identical `example::`
+namespace, and the second one installed would silently collide with (or overwrite) the first.
+Including the vendor makes the namespace as unique as the Composer package name already
+guarantees itself to be, at zero extra cost to the extension author — they don't declare this
+namespace themselves, `Manager` derives it the same way either way.
+
+**Alternatives considered:** Keeping the short name and requiring extension authors to pick a
+manually-declared, globally-unique namespace themselves — rejected, reintroduces exactly the kind
+of manual registration step the directory-convention system exists to avoid. A different
+separator (e.g. `.` or keeping the `/`) instead of `-` — `-` was chosen as the simplest one that
+reads cleanly in both `view()`/`__()` calls and doesn't need escaping in Blade.
+
+**Status:** Decided & implemented. `Manager::id()` is now the single place this derivation
+happens; `k-extensions/example`'s own views/routes/lang updated to the corrected namespace;
+`kopling-landing/public/extend.html` updated to document the correct scheme.

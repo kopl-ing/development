@@ -1,6 +1,7 @@
 {
     "name": "kopling/reactions",
     "description": "Reactions for Kopling",
+    "type": "kopling-extension",
     "license": "MIT",
     "authors": [
         {
@@ -13,13 +14,6 @@
     "autoload": {
         "psr-4": {
             "Kopling\\Reactions\\": "src/"
-        }
-    },
-    "extra": {
-        "kopling": {
-            "extensions": [
-                "reactions"
-            ]
         }
     }
 }

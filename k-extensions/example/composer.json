@@ -1,6 +1,7 @@
 {
     "name": "kopling/example",
-    "description": "Example extension for Kopling",
+    "description": "Example extension for Kopling -- a living reference for every path and convention an extension can use.",
+    "type": "kopling-extension",
     "license": "MIT",
     "authors": [
         {
@@ -10,8 +11,9 @@
     ],
     "require": {
     },
-    "extra": {
-        "kopling": {
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Example\\": "src/"
         }
     }
 }
