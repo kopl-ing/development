@@ -236,3 +236,81 @@ reads cleanly in both `view()`/`__()` calls and doesn't need escaping in Blade.
 **Status:** Decided & implemented. `Manager::id()` is now the single place this derivation
 happens; `k-extensions/example`'s own views/routes/lang updated to the corrected namespace;
 `kopling-landing/public/extend.html` updated to document the correct scheme.
+
+---
+
+## 2026-07-09 — Person/Group are the real Authenticatable model and its group relation, UUID-keyed
+
+**Decision:** `Kopling\Core\People\Person` extends `Illuminate\Foundation\Auth\User` (the
+`Authenticatable` base), backed by a `people` table; `Kopling\Core\People\Group` is a plain
+Eloquent model backed by `groups`, related to `Person` many-to-many via a `group_person` pivot.
+Both use `HasUuids` for UUID primary keys. The `web` guard's `users` provider is pointed at
+`Person::class` by k-core's `ServiceProvider::register()` calling
+`$this->app['config']->set('auth.providers.users.model', Person::class)` — `config/auth.php`
+itself is left untouched (still stock Laravel, still nominally defaulting to the nonexistent
+`App\Models\User`, which is harmless since `::class` never triggers autoloading).
+
+**Why:** These classes already existed as placeholders with `config/auth.php` already commented
+"Person Providers" — this wires that existing naming decision up to something that actually
+works. UUID primary keys match the convention already established by
+`k-extensions/example`'s migration (`$table->uuid('id')->primary()`). A `Group` with no way to
+relate to a `Person` is inert, hence the pivot. Setting the model via `config()->set()` in
+`register()` (config files load before any provider's `register()` runs) rather than editing
+`config/auth.php` directly keeps that root config file untouched — consistent with the "root
+holds no application code" rule, the same reasoning applied to keeping middleware registration
+out of `bootstrap/app.php` (see the entry below).
+
+**Status:** Decided & implemented.
+
+---
+
+## 2026-07-09 — htmx auth-wall responses use `HX-Redirect`, via an `ExceptionHandler::renderable()` callback registered from k-core's ServiceProvider
+
+**Decision:** `Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated` is an invokable
+(`__invoke(AuthenticationException $e, Request $request): ?Response`) that, only for requests
+carrying the `HX-Request` header, returns a 401 with an `HX-Redirect` header
+(`Route::has('login') ? route('login') : '/login'`) instead of letting the framework's default
+unauthenticated handling run; it returns `null` for non-htmx requests, falling through to
+Laravel's normal behavior. Registered via
+`$this->app->make(ExceptionHandler::class)->renderable(new RedirectHtmxUnauthenticated())` inside
+`ServiceProvider::boot()` — not declared in root `bootstrap/app.php`'s `withExceptions()` closure.
+
+**Why:** htmx swaps response HTML into whatever element issued the request; a normal
+redirect-to-login response gets its HTML fragment swapped into that target instead of navigating
+the whole page, stranding a login form mid-page. `HX-Redirect` is htmx's documented mechanism for
+this — the client processes it unconditionally on arrival and does `window.location = ...`
+regardless of status code, so pairing it with 401 matches htmx's own docs example. Registering
+from k-core's `ServiceProvider::boot()` rather than `bootstrap/app.php` follows the standing
+architecture rule (see "Root Laravel installation holds no application code" above) — `renderable()`
+is a fully supported Laravel API for registering exception-render callbacks from anywhere the
+container is available, not just from `bootstrap/app.php`'s closure.
+
+**Rejected first attempt, and why it failed:** The original design was a `Middleware` class
+(`Kopling\Core\Http\Middleware\RedirectHtmxUnauthenticated`) wrapping `$next($request)` in a
+try/catch for `AuthenticationException`, pushed onto the `web` group via
+`Route::pushMiddlewareToGroup()`. Verified by hand with a scratch route that throws
+`AuthenticationException` directly: the catch block never ran (confirmed via temporary logging)
+— curl against the route returned a framework 500 (`RouteNotFoundException` from the default
+`redirectTo()` handling) for *both* htmx and non-htmx requests. Root cause, found by reading the
+actual stack trace: `Illuminate\Routing\Pipeline` (the pipeline Laravel uses specifically for
+route-level middleware) overrides exception handling so that any `Throwable` raised while running
+the route + its route middleware is converted into a `Response` via the exception handler's
+`render()` *before* it ever propagates back up through enclosing route middleware as a real PHP
+exception — so `$next($request)` inside a route-group middleware never throws; it just returns
+the already-rendered error response. A try/catch around `$next()` in route-level middleware can
+therefore never observe an exception thrown deeper in that same route's pipeline. The
+`renderable()` hook is the actual interception point Laravel itself uses for this conversion, which
+is why registering there works.
+
+**Alternatives considered:** An `AuthenticationException` `render()` closure directly in
+`bootstrap/app.php`'s `withExceptions()` — functionally equivalent to what we ended up doing, but
+rejected as the registration *site* since that file is root-owned bootstrap/build tooling only,
+and CLAUDE.md already establishes that k-core's `ServiceProvider` is where "further config,
+middleware, or bindings" get registered as the codebase grows.
+
+**Trade-off accepted / not yet resolved:** No login route/controller exists yet, even though
+`Person` is now a real, table-backed model (see the entry above). The callback degrades via
+`Route::has('login') ? route('login') : '/login'` rather than a hard `route('login')` call.
+Revisit the literal `/login` fallback once a real login route lands.
+
+**Status:** Decided & implemented.

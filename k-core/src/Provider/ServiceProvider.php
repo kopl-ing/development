@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Provider;
 
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\ServiceProvider as Provider;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
+use Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated;
+use Kopling\Core\People\Person;
 
 class ServiceProvider extends Provider
 {
     public function register(): void
     {
+        $this->app['config']->set('auth.providers.users.model', Person::class);
+
         $this->app->singleton(Manifest::class, function ($app) {
             return new Manifest(
                 $app->make('files'),
@@ -25,6 +30,9 @@ class ServiceProvider extends Provider
 
     public function boot(Manager $manager): void
     {
+        $this->app->make(ExceptionHandler::class)->renderable(new RedirectHtmxUnauthenticated());
+
+        $this->loadMigrationsFrom(__DIR__.'/../migrations');
         $this->loadViewsFrom(__DIR__.'/../Ux/views', 'core');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
