@@ -857,3 +857,69 @@ exists today and is honest about being a raw-file scan, not the resolved router.
 **Status:** Decided & implemented. Verified against both `example` (all three matching forms —
 `example`, `kopling-example`, `kopling/example`) and `core`, and against an unmatched name
 (clean `FAILURE` exit, no stack trace).
+
+---
+
+## 2026-07-10 — Each Portal's layout defines its own slot map; the shared shell holds only html/head/body
+
+**Decision:** `Kopling\Core\Ux\Portal\Navigation\Side` (hardcoded to `"core::side-navigation"`)
+is replaced by a generic `Kopling\Core\Ux\Portal\Slot` (`<x-k::portal.slot name="...">`) that
+resolves and renders *any* named slot — no opinion about the markup around it. `Kopling\Core\Ux\
+Portal\Layout` (`<x-k::portal.layout>`) is stripped down to just the truly universal html/head/
+body wrapper; the header and side-navigation region it used to render itself move out into each
+Portal's own layout view. `layouts/admin.blade.php` now composes its own header + `<aside>` +
+`<x-k::portal.slot name="core::side-navigation">` explicitly (unchanged in appearance, just no
+longer hidden inside the shared shell). `layouts/community.blade.php` is scaffolded as a
+genuinely different shape: a top bar (`core::community.topbar`), a sidebar
+(`core::community.sidebar`), a main content area with a slot above the routed page content
+(`core::community.content-top`), a right rail (`core::community.rail`), and a bottom composer
+region (`core::community.composer`) — modeled in the abstract on kopling.convoro.co's own layout
+(top nav, left nav + tag list, center feed, right-side widget panels, bottom composer), not a
+pixel match.
+
+`Layout`'s constructor also dropped its `Manager`/`Portal`-resolving `portal` prop entirely:
+`PortalController` already does `view($portal->layout)->with('portal', $portal)`, so `$portal` is
+already in scope inside whichever layout view renders `<x-k::portal.layout>`'s default slot — the
+component threading its own copy through was dead weight once nothing inside the shared shell
+used it directly anymore.
+
+**Why per-layout slot maps instead of one shared shape every Portal is forced into:** the whole
+point of asking for this was that Admin's simple sidebar-and-content shape and Community's
+richer, multi-region shape are genuinely different layouts, not the same layout with different
+content — forcing both through one shared component with one fixed slot (`core::side-navigation`)
+would mean either Community never gets its own regions, or that one component grows a
+Community-specific special case, which is exactly the kind of one-off carve-out the rest of this
+system has avoided. Making `Slot` generic and moving region composition into each layout view
+means a third Portal (the Moderation portal named in the charter) can define a third, completely
+different slot map with zero changes to `Slot`/`Layout`/`Manager`/`SlotResolver` — all four already
+work for an arbitrary slot name, only the rendering side was needlessly narrowed to one.
+
+**Deliberately not done in this pass (structure first, content later):** `core::community.sidebar`/
+`rail`/`content-top`/`composer` have nothing registered into them yet — they render empty, which is
+expected, not a bug. Populating the sidebar with real nav (Home/Popular/Following/Bookmarks) and a
+tags list is real feature work for a later pass — the tags/categories list in particular is a
+dynamic, backend-driven list, not a fit for the same flat link-`Item` model `core::side-navigation`
+uses, and needs its own thinking, not a forced fit into this pass. Runtime theme-token overrides
+(the "Theme logic" the charter and `admin/theme.blade.php`'s "coming soon" placeholder both point
+at) are also out of scope here — this pass only avoids foreclosing on it, by using nothing but
+daisyUI semantic classes (`bg-base-*`, `border-base-*`, `text-base-content`) throughout, never a
+raw color.
+
+**Found, not fixed, while verifying this:** `Core::ux()`'s Theme entry still points at
+`route: 'core::admin.theme'`, a route that no longer exists — `routes/admin.php` and its
+dedicated `ThemeController` route registration were replaced by a generic per-Portal route in
+`routes/web.php` (`PortalController`, named after the Portal's own id) as part of unrelated,
+independent work on the routing/Portal system happening in parallel. `Http/Controllers/Admin/
+ThemeController.php` is now an orphaned, unrouted file. Visiting `/admin` as a person granted
+`manage-theme` currently throws `RouteNotFoundException` render-side. Confirmed this predates and
+is unrelated to the slot-map changes in this entry (verified by revoking `manage-theme` for a test
+render, which then renders cleanly) — left as-is rather than guessed at a fix, since resolving it
+means deciding whether Theme becomes its own route again or folds into whatever `PortalController`
+now renders for the Admin portal's root, and that's a routing-architecture call, not a rendering
+one.
+
+**Status:** Decided & implemented for the layout/slot-map shape. `Kopling\Core\Ux\Portal\{Layout,
+Slot}.php` and their views, `layouts/admin.blade.php`, `layouts/community.blade.php`. Verified via
+tinker (rendering both layouts directly): Community renders all five regions with none throwing on
+empty; Admin renders unchanged in shape, with the example extension's "Hello" link still resolving
+correctly. The dangling `core::admin.theme` route is a known, separate, unresolved gap — see above.

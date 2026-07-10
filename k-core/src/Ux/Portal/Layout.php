@@ -6,26 +6,19 @@ namespace Kopling\Core\Ux\Portal;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
-use Kopling\Core\Extension\Manager;
-use Kopling\Core\Portal\Portal;
 
 /**
- * The one shell every Portal's layout renders through -- shared head/body chrome plus the
- * side-navigation region -- so layouts/community.blade.php and layouts/admin.blade.php stop
- * duplicating markup. Deliberately portal-agnostic beyond display (see Portal's own
- * docblock, charter D29: never a gating mechanism itself): every portal renders the same
- * `core::side-navigation` slot -- what shows up is decided entirely by each entry's own
- * permission, not by which Portal this is.
+ * The one truly universal shell every Portal's layout renders through -- html/head/body
+ * chrome, nothing else. Deliberately holds no region markup of its own (no header, no side
+ * navigation): which regions exist, their slot names, and their arrangement is each Portal
+ * layout's own decision (see layouts/community.blade.php vs. layouts/admin.blade.php) --
+ * this component only owns what's genuinely identical across every one of them. `$portal`
+ * doesn't need to be threaded through here: `PortalController` already binds it directly on
+ * the top-level view (`view($portal->layout)->with('portal', $portal)`), so it's already in
+ * scope for whichever layout renders this component's default slot.
  */
 class Layout extends Component
 {
-    public Portal $portal;
-
-    public function __construct(Manager $manager, string $portal)
-    {
-        $this->portal = $manager->portals()->firstWhere('id', $portal);
-    }
-
     public function render(): View
     {
         return view('core::portal.layout');
