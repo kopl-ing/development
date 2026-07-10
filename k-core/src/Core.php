@@ -6,10 +6,12 @@ namespace Kopling\Core;
 
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Extension\AbstractExtension;
+use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
+use Kopling\Core\Ux\Portal\Navigation\Item;
 use Kopling\Core\Ux\Ux;
 
 /**
@@ -20,7 +22,7 @@ use Kopling\Core\Ux\Ux;
  * as a special case; writing local ids here and letting `Manager` prefix them the same way it
  * prefixes any extension's removes that asymmetry -- one declaration mechanism, not two.
  */
-class Core extends AbstractExtension implements ChangesUx, HasPermissions, HasPortals
+class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, HasPermissions, HasPortals
 {
     public static function name(): string
     {
@@ -74,7 +76,7 @@ class Core extends AbstractExtension implements ChangesUx, HasPermissions, HasPo
     public function ux(): Ux
     {
         return Ux::make()
-            ->add('k::portal.navigation.item', ['label' => 'Theme', 'route' => 'core::admin.theme'])
+            ->add(Item::class, ['label' => 'Theme', 'route' => 'core::admin.theme'])
             ->in('core::side-navigation')
             ->as('theme')
             ->when('manage-theme');

@@ -13,6 +13,7 @@ use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Storage\StorageRequest;
+use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
 
 class Manager
@@ -185,17 +186,25 @@ class Manager
     }
 
     /**
-     * Every UxEntry declared by every extension (Core included, same as permissions()), with
-     * `UxEntry::$id` -- and `$condition` when it's a permission-id string, not a closure --
-     * prefixed the same way `permissions()` prefixes `Permission::$id`. `$slot`/`$after`/
-     * `$before` are left untouched: they're fully-qualified references the author writes out
-     * in full, not private names Manager owns the prefixing of.
+     * Every UxEntry declared by every extension (Core included, same as permissions()),
+     * resolved down to what's actually registered once every extension's `Add`/`Replace`/
+     * `Remove` operations have run, in `extensions()` order. `Add` entries get `UxEntry::$id`
+     * -- and `$condition`, when it's a permission-id string, not a closure -- prefixed the
+     * same way `permissions()` prefixes `Permission::$id`; `$slot`/`$after`/`$before` are left
+     * untouched, since they're fully-qualified references the author writes out in full, not
+     * private names Manager owns the prefixing of. `Replace`/`Remove` target another entry's
+     * already fully-qualified id (same convention as `after`/`before`), so they're applied as
+     * given, never prefixed. A `Replace`/`Remove` targeting an entry that isn't registered
+     * (never was, or belongs to an extension processed later, or not installed at all) is a
+     * no-op, same graceful-degradation rule `SlotResolver` applies to a dangling `after`/
+     * `before` -- which also means an extension can only replace/remove something an
+     * earlier-processed extension (or Core) already registered, not one processed after it.
      *
      * @return Collection<int, UxEntry>
      */
     public function ux(): Collection
     {
-        $entries = [];
+        $registry = [];
 
         foreach ($this->extensions() as $package => $extension) {
             if (! $extension instanceof ChangesUx) {
@@ -205,16 +214,63 @@ class Manager
             $prefix = $this->id($package).'::';
 
             foreach ($extension->ux()->entries() as $entry) {
-                $entry->id = $prefix.$entry->id;
-
-                if (is_string($entry->condition)) {
-                    $entry->condition = $prefix.$entry->condition;
-                }
-
-                $entries[] = $entry;
+                match ($entry->action) {
+                    UxAction::Add => $this->applyUxAdd($registry, $entry, $prefix),
+                    UxAction::Replace => $this->applyUxReplace($registry, $entry),
+                    UxAction::Remove => $this->applyUxRemove($registry, $entry),
+                };
             }
         }
 
-        return collect($entries);
+        return collect(array_values($registry));
+    }
+
+    /**
+     * @param  array<string, UxEntry>  $registry
+     */
+    protected function applyUxAdd(array &$registry, UxEntry $entry, string $prefix): void
+    {
+        $entry->id = $prefix.$entry->id;
+
+        if (is_string($entry->condition)) {
+            $entry->condition = $prefix.$entry->condition;
+        }
+
+        $registry[$entry->id] = $entry;
+    }
+
+    /**
+     * Mutates the target in place rather than replacing it in the registry, so it keeps its
+     * original position -- swapping what an entry looks like is never the same thing as
+     * re-ordering it. Only `component`/`data` are always overwritten; `slot`/`after`/`before`/
+     * `condition` are only overwritten if this `Replace` entry actually set them (chained after
+     * `Ux::replace()`) -- left `null`, the target's original value stands.
+     *
+     * @param  array<string, UxEntry>  $registry
+     */
+    protected function applyUxReplace(array &$registry, UxEntry $entry): void
+    {
+        $target = $registry[$entry->id] ?? null;
+
+        if ($target === null) {
+            return;
+        }
+
+        $target->component = $entry->component;
+        $target->data = $entry->data;
+
+        foreach (['slot', 'after', 'before', 'condition'] as $field) {
+            if ($entry->{$field} !== null) {
+                $target->{$field} = $entry->{$field};
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, UxEntry>  $registry
+     */
+    protected function applyUxRemove(array &$registry, UxEntry $entry): void
+    {
+        unset($registry[$entry->id]);
     }
 }

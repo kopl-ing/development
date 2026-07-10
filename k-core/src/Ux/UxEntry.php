@@ -8,11 +8,17 @@ namespace Kopling\Core\Ux;
  * One piece of UI an extension (or core) places into a named slot -- e.g. a link in
  * `core::side-navigation`. Unlike `Permission`/`Portal`/`StorageRequest`, deliberately not
  * readonly: `Ux::add()` returns an entry that `in()`/`after()`/`before()`/`as()`/`when()`
- * mutate incrementally as the fluent chain continues.
+ * mutate incrementally as the fluent chain continues, and `Manager::ux()` mutates `component`/
+ * `data` (and whichever of `slot`/`after`/`before`/`condition` were set) in place on an
+ * already-registered entry when a later `Ux::replace()` targets it.
  *
  * `$id` defaults to `$component` if `as()` is never called -- fine unless another entry
  * needs to anchor `after()`/`before()` it, in which case the author should give it a stable
- * name. `$slot` is a fully-qualified string the author writes out in full (e.g.
+ * name. For an `Add` entry this is the local part, auto-prefixed by Manager, same as
+ * `Permission::$id`; for `Replace`/`Remove` it's instead the fully-qualified id of the entry
+ * being targeted -- written out in full, the same as `$after`/`$before`, never prefixed.
+ *
+ * `$slot` is a fully-qualified string the author writes out in full (e.g.
  * "core::side-navigation") and is never auto-prefixed by Manager -- it names a shared
  * rendezvous point other extensions must be able to reference exactly, unlike a Permission
  * id which is private to its own Gate check. `$after`/`$before` reference another entry's
@@ -24,6 +30,8 @@ namespace Kopling\Core\Ux;
 class UxEntry
 {
     public string $id;
+
+    public UxAction $action = UxAction::Add;
 
     public ?string $slot = null;
 
@@ -37,7 +45,9 @@ class UxEntry
     public string|\Closure|null $condition = null;
 
     /**
-     * @param  string  $component  A Blade component reference (e.g. "k::portal.navigation.item"),
+     * @param  string  $component  A Blade component reference -- either an already-valid tag
+     *                              ("k::portal.navigation.item") or the component's own FQCN
+     *                              ("Item::class"), resolved to a tag by `ComponentTag` --
      *                              rendered via <x-dynamic-component>.
      * @param  array  $data  Passed whole as the single `data` prop -- every component a UxEntry
      *                        can render (core-provided or an extension's own) takes one `array
@@ -46,9 +56,10 @@ class UxEntry
      *                        know its individual prop names.
      */
     public function __construct(
-        public readonly string $component,
-        public readonly array $data = [],
+        public string $component,
+        public array $data = [],
     ) {
         $this->id = $component;
+        $this->component = ComponentTag::resolve($component);
     }
 }

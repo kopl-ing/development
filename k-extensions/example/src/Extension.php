@@ -13,6 +13,7 @@ use Kopling\Core\Storage\StorageAccess;
 use Kopling\Core\Storage\StoragePermission;
 use Kopling\Core\Storage\StorageRequest;
 use Kopling\Core\Storage\StorageRetention;
+use Kopling\Core\Ux\Portal\Navigation\Item;
 use Kopling\Core\Ux\Ux;
 
 /**
@@ -74,15 +75,17 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     }
 
     /**
-     * Reuses core's generic <x-k::portal.navigation.item> rather than shipping a bespoke
-     * component -- the common case. `.after('core::theme')` anchors this after Core's own
-     * Theme link; `.when('manage-things')` reuses the permission declared above, prefixed
-     * to "kopling-example::manage-things" by Manager the same way the entry's own id is.
+     * Reuses core's generic Item component rather than shipping a bespoke one -- the common
+     * case. Passing the component's own class (resolved to its Blade tag by ComponentTag)
+     * reads better than spelling out "k::portal.navigation.item" by hand, though either works.
+     * `.after('core::theme')` anchors this after Core's own Theme link; `.when('manage-things')`
+     * reuses the permission declared above, prefixed to "kopling-example::manage-things" by
+     * Manager the same way the entry's own id is.
      */
     public function ux(): Ux
     {
         return Ux::make()
-            ->add('k::portal.navigation.item', ['label' => 'Hello', 'route' => 'example.hello'])
+            ->add(Item::class, ['label' => 'Hello', 'route' => 'example.hello'])
             ->in('core::side-navigation')
             ->as('hello')
             ->after('core::theme')

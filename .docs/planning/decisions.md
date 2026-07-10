@@ -733,3 +733,127 @@ Portals entry above), `UxEntry::$id` (already mutable from the `ChangesUx` entry
 `id: 'avatars'`. Verified via tinker: `Manager::storageDrivers()` returns
 `kopling-example::avatars` grouped under the `kopling-example` key, same shape as before, just
 with the request's own id now prefixed too.
+
+---
+
+## 2026-07-10 — `Ux`: `edit()` to restart chaining, `replace()`/`remove()` to target another entry, `add()` accepts a component's own FQCN
+
+**Decision:** Three additions to `Kopling\Core\Ux\Ux`, all building on the same fluent-builder
+shape:
+
+- **`edit(string $id): static`** re-selects an entry already added earlier in the *same* chain
+  (matched by its current `$id` — explicit via `as()`, or the default) as the one further calls
+  mutate, instead of only ever being able to continue configuring whichever `add()`/`replace()`/
+  `remove()` call came last. Throws `\InvalidArgumentException` if no such entry exists in this
+  chain — unlike a dangling `after()`/`before()`/`replace()`/`remove()` target, this is never a
+  cross-extension/install-order concern, so a miss here is a straightforward author typo, not
+  something to degrade gracefully around.
+- **`replace(string $id, string $component, array $data = []): static`** and **`remove(string
+  $id): static`** each start a new `UxEntry` tagged with a new `Kopling\Core\Ux\UxAction` enum
+  (`Add`/`Replace`/`Remove`, `UxEntry::$action`, defaulting to `Add`) targeting another entry's
+  already fully-qualified id — the same untouched-by-Manager convention `after()`/`before()`
+  already use, not the locally-prefixed convention `as()` uses for an entry's own id. `replace()`
+  can still be chained further (`->in()`/`->when()`/etc.); anything left unset on it keeps the
+  target's original value, so the common case (swap the component/data, keep the same slot/
+  gating) needs nothing beyond the one call.
+- **`add()`/`replace()`'s `$component` argument accepts a component's own FQCN** (e.g.
+  `Item::class`), not only an already-valid Blade tag string (`"k::portal.navigation.item"`).
+  `<x-dynamic-component>` only ever accepts a tag (it compiles straight to `<x-{{ $component }}>`
+  — confirmed by reading `Illuminate\View\DynamicComponent::render()`), so a new
+  `Kopling\Core\Ux\ComponentTag::resolve()` reverses whichever `Blade::componentNamespace()`
+  registration the class falls under back into its tag, called once from `UxEntry`'s constructor
+  so `$component` is always render-ready no matter which form was passed in.
+
+`Manager::ux()` is restructured accordingly: instead of building a flat array from every
+extension's declared entries, it walks every extension's operations (Core's included, in
+`extensions()` order) against one shared `array<string, UxEntry>` registry keyed by id —
+`Add` inserts (after prefixing, as before), `Replace`/`Remove` look the target up by its
+already-fully-qualified id and mutate/unset it in place. Keying by id and overwriting an existing
+key (rather than rebuilding the array) means a `Replace`d entry keeps its original position — PHP
+preserves an existing key's position on reassignment — so replacing a component is never
+indistinguishable from re-ordering it.
+
+**Why `UxEntry::$component`/`$data` had to stop being `readonly`:** `applyUxReplace()` mutates
+them on the *original* `Add`-created entry object already sitting in the registry — the same
+"mutate the existing object in place, don't reconstruct" reasoning the id-standardization entry
+above already established, extended to these two fields since `replace()` is specifically for
+overwriting them post-construction.
+
+**Why a `Replace`/`Remove` target is resolved against the registry as extensions are processed,
+not in a separate pass after:** processing every extension's own operations immediately (rather
+than collecting all `Add`s first, then all `Replace`/`Remove`s after) means an extension's
+`replace()`/`remove()` naturally works against anything an earlier-processed extension (Core
+first, then Composer-discovered order) already registered — including something registered
+earlier in its *own* `ux()` chain — with no special-casing needed for "local" vs "foreign"
+targets. The trade-off, stated plainly rather than left implicit: an extension can only replace or
+remove something registered by an extension processed *before* it, never one processed later —
+matching how ordinary service-provider registration order already constrains overrides in Laravel
+itself, not a new kind of limitation this system introduces.
+
+**Considered and set aside: a component declaring its own default id.** Raised alongside "accept a
+FQCN" — could a component like `Item` expose its own id so `as()` becomes unnecessary too? Set
+aside: `Item` is a generic, reusable "just a link" component used across many *different*
+registrations (Core's Theme link, the example extension's Hello link) — a single id hardcoded onto
+the class couldn't serve all of them, so `as()` still has to carry the per-registration identity
+regardless. Worth revisiting specifically for a genuinely single-purpose, bespoke component (one
+built for exactly one registration), where the component's own identity and the entry's identity
+really would be the same thing — not needed yet since no such component exists.
+
+**Alternatives considered:** A separate "operations" value object distinct from `UxEntry`, with
+`Manager` translating `Add`/`Replace`/`Remove` into three different object shapes — rejected,
+reusing `UxEntry` itself (just tagged with `$action`) needs no translation step and keeps `Ux`'s
+internal list a single homogeneous array. Resolving `Replace`/`Remove` targets in a dedicated pass
+after collecting every extension's `Add`s — rejected in favor of the single-pass, processed-in-order
+approach above, which needs no second data structure and naturally supports targeting an entry
+registered earlier in the *same* extension's own chain for free.
+
+**Status:** Decided & implemented. `Kopling\Core\Ux\{Ux,UxEntry,UxAction,ComponentTag}.php`,
+`Manager::ux()` (`applyUxAdd`/`applyUxReplace`/`applyUxRemove`). `Core::ux()` and
+`k-extensions/example`'s `Extension::ux()` updated to pass `Item::class` instead of the string tag,
+proving the FQCN path in real, shipped usage. `edit()` verified via tinker (restart-chaining
+mutates the right entry; a missing id throws). `replace()`/`remove()` verified via two synthetic
+`ChangesUx` implementations run through the same registry logic `Manager::ux()` uses (a real
+cross-extension override scenario doesn't exist in the shipped reference extensions yet, so this
+isn't demonstrated in `k-extensions/example` itself — tinker verification stands in for now).
+
+---
+
+## 2026-07-10 — `kopling:extension:registrations`: a debugging command, not a public API, reads Manager's own collectors rather than re-deriving anything
+
+**Decision:** `Kopling\Core\Console\Commands\ListExtensionRegistrations` (`php artisan
+kopling:extension:registrations {example|kopling/example|core}`) prints everything one installed
+extension (or Core) registers — directory conventions present, permissions, portals, storage
+requests, Ux slot entries, whether it's `CannotBeDisabled` — each with a runnable-looking usage
+example, by calling `Manager`'s own collectors (`permissions()`/`portals()`/`storageDrivers()`/
+`ux()`/`conventions()`) and filtering their already-prefixed results down to the one requested
+extension's id prefix, rather than re-implementing any of that logic itself.
+
+Two things it reports are necessarily heuristic, not authoritative, and are worded that way in the
+command's own output: **route names** are extracted with a regex over the raw `routes/web.php`
+source (`->name\('...'\)`) rather than resolved through the real `Router`, because extension routes
+aren't required to follow any id-prefixing convention the way views/lang/permissions/portals/ux
+are (`k-extensions/example`'s own route is named `example.hello`, not `kopling-example::hello`) —
+there's no reliable way to ask "which registered routes belong to this extension" other than
+reading the extension's own routes file. **Translation keys** are found by `require`-ing each
+`lang/{locale}/*.php` file directly and flattening its array, which works today (that's exactly
+what Laravel's own translator does with the same files) but would need updating if translations
+ever moved to a different format.
+
+**Why per-extension filtering, not adding an extension-scoped variant to `Manager` itself:** every
+existing `Manager` collector already returns results across every installed extension at once,
+and that's correct for their real callers (`Gate::define()`, route registration, `SlotResolver`) —
+a debugging command filtering the same output down to one id prefix afterward is cheap and needs
+no new `Manager` API surface; adding a `Manager::permissionsFor($package)`-style method for every
+collector, purely so this one command could avoid an `array_filter()`, would be new production
+surface justified only by a dev tool.
+
+**Alternatives considered:** Resolving route names via `Route::getRoutes()` filtered by matching
+each route's controller namespace against the extension's own PSR-4 namespace (from `Manifest`) —
+more "correct" in principle, rejected as more machinery than a debugging command warrants, and it
+would still miss closure-based routes entirely (`k-extensions/example`'s own route is a closure,
+not a controller) — the regex approach, while heuristic, actually covers the one route that
+exists today and is honest about being a raw-file scan, not the resolved router.
+
+**Status:** Decided & implemented. Verified against both `example` (all three matching forms —
+`example`, `kopling-example`, `kopling/example`) and `core`, and against an unmatched name
+(clean `FAILURE` exit, no stack trace).
