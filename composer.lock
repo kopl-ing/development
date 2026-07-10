@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3b905fd1f3e55209a1968856a43f0b0d",
+    "content-hash": "37971053d9a9f13d070af328dc9b517e",
     "packages": [
         {
             "name": "brick/math",
@@ -1122,7 +1122,7 @@
         },
         {
             "name": "kopling/admin",
-            "version": "dev-dk/templating",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/admin",
@@ -1149,12 +1149,40 @@
             }
         },
         {
+            "name": "kopling/auth-password",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "./k-extensions/auth-password",
+                "reference": "727c084cb4fd358160fb5cba2462bc60e8da8955"
+            },
+            "type": "kopling-extension",
+            "autoload": {
+                "psr-4": {
+                    "Kopling\\AuthPassword\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Daniël Klabbers",
+                    "email": "daniel@klabbers.email"
+                }
+            ],
+            "description": "Username/password login for Kopling -- the first login-method extension, built on Core's ValidateLogin/AttemptLogin events.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "kopling/core",
-            "version": "dev-dk/templating",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-core",
-                "reference": "c31d0cecf14979a3fb91a7ada74e8a726bf94bd2"
+                "reference": "ed115a287ddc2ce8497476d4e96475ab65ab0d8f"
             },
             "require": {
                 "laravel/framework": "13.*",
@@ -1189,7 +1217,7 @@
         },
         {
             "name": "kopling/demo",
-            "version": "dev-dk/templating",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/demo",
@@ -1220,7 +1248,7 @@
         },
         {
             "name": "kopling/example",
-            "version": "dev-dk/templating",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/example",
@@ -1248,7 +1276,7 @@
         },
         {
             "name": "kopling/reactions",
-            "version": "dev-dk/templating",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/reactions",
@@ -1276,7 +1304,7 @@
         },
         {
             "name": "kopling/theme-midnight",
-            "version": "dev-dk/templating",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/theme-midnight",
@@ -6247,6 +6275,7 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "kopling/admin": 20,
+        "kopling/auth-password": 20,
         "kopling/core": 20,
         "kopling/demo": 20,
         "kopling/example": 20,

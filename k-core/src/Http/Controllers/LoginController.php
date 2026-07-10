@@ -35,7 +35,7 @@ class LoginController
     public function __construct(protected Dispatcher $events)
     {}
 
-    public function showLoginForm(): View
+    public function showLoginForm(Request $request): View
     {
         return view('core::auth.login');
     }
@@ -51,7 +51,7 @@ class LoginController
         $event = $this->attemptLogin($request);
 
         if ($event->person) {
-            Auth::login($event->person);
+            Auth::login($event->person, $request->boolean('remember'));
 
             return $this->sendLoginResponse($request);
         }
