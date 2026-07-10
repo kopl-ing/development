@@ -1116,3 +1116,30 @@ row is correctly and silently ignored rather than corrupting the page; the overr
 present, in the right position, in a real rendered Community page. Not built: the admin editor,
 theme selection among multiple installed themes, and `color-scheme` (native browser UI like
 scrollbars/form controls won't flip dark under Midnight yet — a real gap, not urgent).
+
+---
+
+## 2026-07-10 — Flagged for later: every discovered extension is always enabled, no disable toggle exists
+
+**Status quo, confirmed deliberate for now:** `Manager::extensions()` instantiates and treats as
+active every extension Composer discovers (`"type": "kopling-extension"`), unconditionally — there
+is no "enabled" flag anywhere, for any extension, including `kopling/admin` and
+`kopling/theme-midnight` from earlier today. Fine as things stand: every installed extension today
+is something deliberately added to root `composer.json`'s `require` — installed already implies
+wanted. `CannotBeDisabled` (see its own entry above) was built specifically anticipating this gap:
+it guards a future toggle, the toggle itself was never in scope.
+
+**Why this is worth its own entry rather than just the code comment:** the extension roster grew
+from one dummy (`kopling/example`) to four real ones in a single session (`kopling/admin`,
+`kopling/theme-midnight`, plus `kopling/reactions`) — the moment "every installed extension is
+always active" stops being an obviously-fine simplification is exactly the moment a second theme,
+or an extension a host wants installed-but-dormant by default, shows up. Recording it now, before
+that pressure exists, rather than rediscovering it under time pressure later.
+
+**Not designed here, only flagged:** where "enabled/disabled" would persist (a settings-style
+table, similar in shape to `theme_tokens`), how `Manager::extensions()` would filter by it without
+breaking the memoized-instantiate-once shape it has today, and how it interacts with the also-not-
+yet-solved extension load-order problem (flagged in the Admin-split entry above) -- all open.
+
+**Status:** Not implemented, intentionally. Tracked in code (`Manager::extensions()`'s own
+docblock) and here so it surfaces again once a real need for it shows up.

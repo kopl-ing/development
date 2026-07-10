@@ -35,6 +35,14 @@ class Manager
      * its own), it's the one thing `Manager` always loads regardless. Every other entry is a
      * genuinely discovered extension, keyed by Composer package name, instantiated once.
      *
+     * TODO: every discovered extension is treated as enabled, unconditionally -- there is no
+     * "disabled" state at all yet, for any extension. Fine while every installed extension is
+     * something you deliberately chose to `composer require` (true today), a real gap once
+     * enabling/disabling an installed extension without uninstalling it is expected to exist
+     * (an admin toggle). `CannotBeDisabled` (Contract/CannotBeDisabled.php) already guards
+     * that future toggle -- the toggle itself isn't built, and this method is where its
+     * filtering would go once it is.
+     *
      * @return array<string, AbstractExtension>
      */
     public function extensions(): array
