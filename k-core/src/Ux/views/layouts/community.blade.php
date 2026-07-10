@@ -14,6 +14,7 @@
 $moments = $context->subject;
 /** @var \Kopling\Core\Portal\Portal $portal */
 $portal = $context->portal;
+$since = optional($moments->first())->created_at?->toIso8601String() ?? now()->toIso8601String();
 @endphp
 <x-k::portal.layout>
     <div class="flex flex-col min-h-screen">
@@ -43,9 +44,11 @@ $portal = $context->portal;
 
                     <x-k::portal.slot name="core::community.content-top" />
 
-                    <div class="flex flex-col gap-4">
+                    @include('core::community.poll', ['portal' => $portal, 'since' => $since])
+
+                    <div id="moments-feed" class="flex flex-col gap-4">
                         @foreach ($moments as $moment)
-                            <x-k::card.card :context="new \Kopling\Core\Ux\Context(subject: $moment, portal: $portal)" />
+                            @include('core::community.moment', ['moment' => $moment, 'portal' => $portal])
                         @endforeach
                     </div>
                 </div>

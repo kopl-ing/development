@@ -1264,3 +1264,99 @@ correctly positioned (`.after('core::author')` landed it between author and time
 `$entry->context->subject` is confirmed to be the exact same `Moment` instance every core entry
 received. The `SLOT`/`defaults()`/`data`+`context` pattern is the template for `Portal`/`Slot`/
 `Item` and anywhere else later — not applied there in this pass.
+
+---
+
+## 2026-07-10 — Community index goes live: htmx polling first, SSE-over-FPM/Reverb deliberately not built yet
+
+**Decision:** New `Moment`s now appear on the Community index without a manual reload, via plain
+htmx polling — not SSE, not Reverb. A small poller element (`community/poll.blade.php`) declares
+`hx-trigger="every 12s"` and `hx-swap="none"` — idle by default, it does *nothing* to the DOM on
+its own. Every 12s it hits `LatestMomentsController::check()` (`{portal}/moments.latest`); finding
+nothing newer than the `since` cursor it carries, that returns a bare `204 No Content` — htmx's own
+documented "don't touch the DOM" signal, so idle polling has no view to render and no markup for
+the client to parse for a response that would've changed nothing anyway. Finding something, the
+response is the "N new moments — click to view" banner (`community/new-moments.blade.php`) *plus*
+an `HX-Reswap: outerHTML` response header — overriding the poller's own declared `hx-swap="none"`
+for that one response only, which is what actually lets the banner replace the poller despite what
+the poller itself declared. Clicking the banner (it declares its own `hx-swap="outerHTML"` directly,
+no override needed there) hits `LatestMomentsController::load()` (`{portal}/moments.load`), which
+renders the actual new moments — through the exact same `community/moment.blade.php` partial the
+initial page load already uses, so any Card extension's header/footer additions show up identically
+either way — as an `hx-swap-oob="afterbegin"` block prepended into `#moments-feed`, alongside a
+fresh poller (back to `hx-swap="none"`, idle again) with `since` advanced to the newest of what was
+just loaded.
+
+**Why `204`, not `304`, for the "nothing new" case — raised directly during review, worth being
+precise about since they're easy to conflate:** `304 Not Modified` belongs to HTTP's conditional-
+GET/caching protocol specifically — the *client* sends `If-None-Match`/`If-Modified-Since`
+(validators the browser generates automatically, but only against a response the server previously
+marked cacheable via `ETag`/`Last-Modified`), and the server compares and returns 304 if unchanged.
+It answers "has *this* cached resource changed", for a stable, revalidatable URL. This poll's URL
+isn't that: `since` is baked into the query string, so it's a genuinely different URL — and a
+genuinely different question ("anything after *this* timestamp?") — on every request; there's no
+single cached resource being revalidated. `204`, by contrast, is just this server's own application
+logic (`count === 0`) deciding there's nothing to report — no validators, no caching protocol, and
+(this is the part that actually rules 304 out even if you wanted it) a 304 response is spec-required
+to carry no body either way, so it couldn't deliver the banner in the "found something" branch
+regardless of which status code the empty branch used. Building genuine 304 support here would mean
+implementing real conditional-GET validation to solve a problem `204` already solves outright, for
+no additional benefit.
+
+**Why polling, not SSE, given SSE was the original instinct:** SSE doesn't strictly need a separate
+daemon — it can run "over FPM," the request simply staying open and writing `data: ...\n\n` frames
+in a loop. But that means one PHP-FPM worker held open for as long as each visitor's tab stays on
+the page, and this install's actual hosting profile today (confirmed by reading `.env`/
+`composer.lock`: `QUEUE_CONNECTION=sync`, no Redis, no Reverb, no broadcasting driver installed at
+all) is exactly the "shared hosting" tier `kopling-landing/CLAUDE.md`'s own stated posture already
+names: *"runs on shared hosting (sync queue, polling/SSE-over-FPM fallback, cron scheduler) and
+shines on real infra (Reverb, real queues)."* SSE-over-FPM sits at the edge of the fallback tier
+(real worker-pool-exhaustion risk with more than a handful of concurrent open tabs, plus reverse-
+proxy response-buffering footguns that silently break streaming unless explicitly disabled) — not
+the right first thing to reach for on infra that has no daemon and no capacity plan for either.
+Polling has none of that: every check is a normal, complete, fast request/response, nothing held
+open, zero new server config.
+
+**Why a "click to load" banner, not auto-inserted cards:** silently shoving new cards above
+whatever someone's currently reading is jarring and invites accidental clicks, and cuts against
+the project's own stated values (`kopling-landing/CLAUDE.md`: "Engagement is a result of people
+enjoying each other — never a target to optimize (no engagement-bait mechanics)"). A calm,
+person-initiated "N new" indicator was chosen over an always-live auto-append.
+
+**Why `created_at`, not an id, is the cursor:** `Moment` uses `HasUuids` — UUIDs aren't
+sequentially sortable, so "everything created after what I've already seen" only means anything as
+a time comparison.
+
+**Why `since` never advances during idle polling, only at `load()` time:** nothing about the poller
+actually needs to change while nothing new exists, so there's nothing to re-render — nothing to
+advance past. `since` only ever needs to move once something's genuinely been loaded, and `load()`
+already re-emits a fresh poller (via `@include('core::community.poll', ...)`) with `since` advanced
+to the newest of what it just rendered — the cursor advances for free as a side effect of that one
+real state change, with zero client-side JS and no need to track anything across polls.
+
+**A per-card partial had to exist before any of this could work honestly.** The `@foreach` in
+`community.blade.php` used to build `<x-k::card.card>` inline; extracted to `community/
+moment.blade.php` first, so the polling response and the initial page load are provably rendering
+the same thing, not two independently-maintained copies that could quietly drift.
+
+**Explicitly not built, and why it's not tracked as a resolvable TODO the way load-order/theme-
+selection are:** SSE-over-FPM and Reverb-backed push are both real, known upgrade paths from here
+(swap `hx-trigger="every 12s"` for htmx's `sse` extension driven by a similar long-lived endpoint,
+or a Reverb-broadcast event once that infra exists) — but pursuing either without a concurrency
+plan (a max simultaneous-connection cap, disabling reverse-proxy buffering, the admin capability-
+detection dashboard `kopling-landing/CLAUDE.md` already calls for) would be trading a working,
+low-risk mechanism for a fragile one, for latency this feed doesn't need yet.
+
+**Status:** Decided & implemented. `k-core/src/Http/Controllers/LatestMomentsController.php`,
+`k-core/src/Ux/views/community/{moment,poll,new-moments,loaded}.blade.php`,
+`k-core/routes/community.php` (`moments/latest`, `moments/load`), `community.blade.php` (shared
+partial, `$since`, `#moments-feed` id). Verified over real HTTP end to end, including after the
+`204`/`hx-swap="none"`/`HX-Reswap` revision: an idle poll returns a genuine `204` with a zero-byte
+body; a `since` before existing rows returns `200` with the correct "N new" banner *and* the
+`HX-Reswap: outerHTML` header present; the full page still renders the poller with `hx-swap="none"`
+correctly; clicking `load` prepends the new moments (rendered through the full `Card`/`Top`/`Body`/
+`Footer` pipeline, not a simplified copy) and returns a poller with `since` advanced to the newest
+of them; creating a genuinely new `Moment` afterward and polling with that advanced cursor correctly
+reports only the one truly-new moment, not re-surfacing the ones already loaded — the
+cursor-advancement cycle holds up across a real create-and-poll round trip, not just a single
+request in isolation.

@@ -1,0 +1,20 @@
+{
+    "name": "kopling/demo",
+    "description": "Adds tooling to create a demo Kopling site.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+        "fakerphp/faker": "^1.24"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Demo\\": "src/"
+        }
+    }
+}
