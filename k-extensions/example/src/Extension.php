@@ -78,9 +78,8 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
      * Reuses core's generic Item component rather than shipping a bespoke one -- the common
      * case. Passing the component's own class (resolved to its Blade tag by ComponentTag)
      * reads better than spelling out "k::portal.navigation.item" by hand, though either works.
-     * `.after('core::theme')` anchors this after Core's own Theme link; `.when('manage-things')`
-     * reuses the permission declared above, prefixed to "kopling-example::manage-things" by
-     * Manager the same way the entry's own id is.
+     * `.when('manage-things')` reuses the permission declared above, prefixed to
+     * "kopling-example::manage-things" by Manager the same way the entry's own id is.
      */
     public function ux(): Ux
     {
@@ -88,7 +87,6 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
             ->add(Item::class, ['label' => 'Hello', 'route' => 'example.hello'])
             ->in('core::side-navigation')
             ->as('hello')
-            ->after('core::theme')
             ->when('manage-things');
     }
 }

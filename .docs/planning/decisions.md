@@ -923,3 +923,196 @@ Slot}.php` and their views, `layouts/admin.blade.php`, `layouts/community.blade.
 tinker (rendering both layouts directly): Community renders all five regions with none throwing on
 empty; Admin renders unchanged in shape, with the example extension's "Hello" link still resolving
 correctly. The dangling `core::admin.theme` route is a known, separate, unresolved gap — see above.
+
+---
+
+## 2026-07-10 — Theme editor removed for now, not patched around
+
+**Decision:** Pulled everything the dangling `core::admin.theme` route left behind, rather than
+patching the route back in: `Core::permissions()`'s `manage-theme` permission, `Core::ux()` and
+its `ChangesUx` implementation entirely (it had nothing left to declare once the Theme entry was
+gone), `Http/Controllers/Admin/ThemeController.php`, and `Ux/views/admin/theme.blade.php`.
+`k-extensions/example`'s own entry dropped its `.after('core::theme')` anchor (the target no
+longer exists — would have degraded gracefully to declaration order regardless, per
+`SlotResolver`'s missing-anchor rule, but an anchor to something permanently gone rather than
+temporarily uninstalled has no reason to stay in the reference implementation). `kopling-landing/
+public/extend.html` updated to match: its `'core::theme'` example references replaced with
+generic ones, and Section 7/8's prose corrected to describe the actual current architecture (each
+Portal layout defines its own slot map via `<x-k::portal.slot>`, not one shared shell/slot every
+Portal renders identically) — stale since the layout-scaffolding entry above, caught while fixing
+this.
+
+**Why removed instead of re-routing:** the theme editor never had real functionality behind it —
+`ThemeController` was already a documented placeholder ("proves the Admin portal's routing/gate/
+layout chain resolves end to end," per its own docblock) before its route disappeared in unrelated
+Portal-routing work. With no working feature left to gate, keeping a permission, a nav entry, and
+two dead files around just to preserve a route name would be scaffolding for its own sake — cheaper
+and more honest to remove it now and rebuild deliberately later, once the runtime theme-token
+system this was always a placeholder for is actually being designed, than to patch a route back in
+for a page that still only says "coming soon."
+
+**Status:** Decided & implemented. Verified via tinker: `Core::permissions()` no longer includes
+`manage-theme`; `Manager::ux()` returns only `kopling-example::hello`; the Admin layout renders
+cleanly end-to-end with no dangling route reference anywhere. `php artisan
+kopling:extension:registrations core` confirms the same. Coming back to a real theme editor is
+future work, not tracked as a gap here — there's no half-built route left to point at.
+
+---
+
+## 2026-07-10 — Admin Portal split into its own extension (`kopling/admin`); Core keeps only Community
+
+**Decision:** The Admin Portal (`Portal(id: 'admin', ...)`, the `access-admin` permission, and
+`layouts/admin.blade.php`) moved out of `Core` entirely into a new, ordinary Composer-discovered
+extension, `k-extensions/admin` (`kopling/admin`, PSR-4 `Kopling\Admin\`). Its `Extension` class
+implements `HasPermissions`/`HasPortals` exactly the way `k-extensions/example` does — nothing
+about being "the admin panel" gets special-cased. `Core` now declares only the Community portal
+and the `manage-people` permission. The layout view moved as-is (`git mv`) — it only ever used
+core-provided `<x-k::portal.layout>`/`<x-k::portal.slot>` and the `$portal` variable
+`PortalController` already binds, so nothing inside it needed to change.
+
+IDs shift as a direct, expected consequence of the move: the Admin portal's id is now
+`kopling-admin::admin` (was `core::admin`), its permission `kopling-admin::access-admin` (was
+`core::access-admin`), its layout view `kopling-admin::layouts.admin`. Registered at the root
+composer.json's `require` (`"kopling/admin": "@dev"`) — already covered by the existing
+`k-extensions/*` wildcard path repository, so no new repository entry was needed, only
+`composer update kopling/admin` (a new path-repo `composer.json` isn't picked up by
+`composer dump-autoload` alone — see the existing CLAUDE.md gotcha).
+
+**Real bug found and fixed while doing this, not caused by the split:** `Manager::portals()`
+prefixed `Portal::$id` but never `Portal::$permission` — so `Portal::$permission` stayed the bare
+local string (`'access-admin'`) while the actual grantable/gated permission was always the
+prefixed one (`core::access-admin`, now `kopling-admin::access-admin`). Verified concretely before
+fixing: granting a person the real permission and checking `$person->hasPermission($portal
+->permission)` returned `false` — the Admin portal's own gate has never actually been passable
+since the `permission` field was added to `Portal`. Fixed the same way `ux()` already prefixes a
+string `$condition`: `Manager::portals()` now prefixes `$portal->permission` too when it's set,
+and `Portal::$permission` is mutable (dropped `readonly`) for the same reason `UxEntry`'s mutated
+fields are. Re-verified after the fix: grant passes, revoke denies, both against the real
+`kopling-admin::access-admin` permission this time.
+
+**Load order: flagged as open, not solved here.** `Manager::extensions()` guarantees `Core` loads
+first; every Composer-discovered extension — `kopling/admin` now included — loads in whatever
+order `installed.json` happens to list them, which isn't currently controllable. This matters
+concretely for `kopling/admin`: another extension wanting to place something into the Admin
+portal's own slots and anchor it `after()`/`before()` one of Admin's own entries, or `replace()`/
+`remove()` one, can only do so if `kopling/admin` is processed *before* it (`Manager::ux()`'s
+existing ordering constraint — see the `edit()`/`replace()`/`remove()` entry above). While Admin
+lived inside `Core`, this was moot: `Core` is always first, full stop. Split out, `kopling/admin`
+has no such guarantee. The likely shape of a fix — a `composer.json`-declared load priority (e.g.
+`extra.kopling.priority`, `Manifest`/`Manager` sorting discovered extensions by it before
+`Core`'s Composer-discovered siblings get instantiated) — is sketched as a TODO directly in
+`Kopling\Admin\Extension`'s own docblock, but deliberately not designed or built as part of this
+entry.
+
+**Why split now rather than deferring further:** the Admin/Community distinction was already
+real (two Portals, two permissions, two layouts) — moving it into its own package now, while only
+one thing needs the not-yet-solved load-order guarantee, means the eventual priority mechanism
+gets designed against a real, concrete need instead of a hypothetical one, the same reasoning
+`RequestsStorageDriver` and `HasPermissions` were added under ("only for capabilities a directory
+convention can't express... as real needs prove themselves out").
+
+**Alternatives considered:** Solving load order first, splitting Admin out only once it existed —
+rejected; the split itself is independent, low-risk, and mechanical (no code inside the Admin
+Portal's own declarations needed to change beyond id prefixes), while priority-loading is a real
+design question (composer.json key naming, whether `Core` itself should be expressible as just
+"always priority 0" instead of hardcoded-first, how ties are broken) worth its own dedicated pass
+rather than rushing alongside a mechanical extraction.
+
+**Status:** Decided & implemented for the split; load order explicitly deferred (see above).
+`k-extensions/admin/{composer.json,src/Extension.php,lang/en/permissions.php,
+views/layouts/admin.blade.php}`; `Core.php` (Admin portal/permission removed); `Manager::portals()`
+(permission-prefixing fix); `Portal::$permission` (mutable). Verified end-to-end: `php artisan
+route:list` shows `kopling-admin::admin` at `/admin`; `php artisan kopling:extension:registrations
+admin` lists the new extension correctly; tinker confirms the permission gate now actually passes
+when granted and denies when revoked; a guest `GET /admin` over real HTTP still gets a clean `403`,
+`GET /` (Community) unaffected.
+
+---
+
+## 2026-07-10 — Runtime theme overrides: a `ChangesTheme` contract, `theme_tokens` for ad-hoc edits, no selection/editor yet
+
+**Decision:** Since Node/Vite can never run on a live Kopling host, "runtime-editable theming"
+can't mean compiling a new daisyUI theme — it means overriding a sparse subset of the CSS custom
+properties the one compiled `"kopling"` daisyUI theme (`k-core/src/Ux/css/app.css`) already
+defines, via a plain inline `<style>` block rendered on every request, layered on top of the
+compiled stylesheet.
+
+Built:
+- `Kopling\Core\Ux\Theme\Token` — a backed string enum, one case per CSS custom property the
+  compiled `"kopling"` theme defines (12 color tokens + 2 radius tokens, nothing more). A
+  curated, finite catalog on purpose, not "arbitrary CSS" — keeps a future admin editor to a
+  fixed set of meaningful controls, and gives every value a known expected shape to check
+  before it ever reaches a `<style>` tag (`Token::matches()` — hex-color regex for color
+  tokens, a numeric+unit regex for radius tokens).
+- `Kopling\Core\Extension\Contract\ChangesTheme` (`theme(): array<string,string>`, keyed by
+  `Token::*->value`) — an extension ships a named theme by implementing this, discovered the
+  same `instanceof` way every other capability is. `Manager::themes(): Collection<string,
+  array<string,string>>`, keyed by owning extension id (same reasoning as `storageDrivers()`),
+  validates every declared key against `Token::tryFrom()` and every value against
+  `Token::matches()` — throws immediately on either failure, since this is an extension
+  author's own bug caught at declaration time, not a foreign reference that might legitimately
+  not exist yet.
+- `theme_tokens` migration (`token` string primary key, `value` string) — ad-hoc, per-token
+  overrides layered on top of whatever theme is installed. Empty today; nothing writes to it
+  yet (the interactive editor is explicitly deferred), but `Theme::css()` already reads from it.
+- `Kopling\Core\Ux\Theme::css()` (the class existed as an empty stub since early scaffolding;
+  this is its first real implementation) — merges every installed `ChangesTheme` extension's
+  tokens, then overlays `theme_tokens` rows on top, and renders `:root[data-theme="kopling"]
+  {--token:value;...}`. Wired into the one shared `layouts/partials/head.blade.php`, so it's
+  live on every Portal (Community, Admin, any future one) with no per-Portal wiring — the same
+  "one shared spot, true for everyone automatically" reasoning the layout-scaffolding entry
+  already established for chrome shared across Portals.
+- `kopling/theme-midnight` — a real extension (not a fixture) shipping a dark palette via
+  `ChangesTheme`, proving a "theme" is just this capability like any other, not a special-cased
+  concept. Deliberately overrides only the 12 color tokens, leaving both radius tokens alone —
+  proof the merge is genuinely sparse, not an all-or-nothing full-theme swap.
+
+**Why `:root[data-theme="kopling"]` as the override selector, specifically:** confirmed by
+reading the actual compiled CSS output (`public/build/assets/*.css`) that the compiled theme's
+own rule is a bare `[data-theme=kopling]` attribute selector — specificity (0,1,0).
+`:root[data-theme="kopling"]` combines a pseudo-class with the same attribute selector for
+(0,2,0), reliably beating the compiled rule regardless of where in `<head>` the override
+`<style>` tag ends up, rather than depending on source-order alone (which would still have
+worked here, but shouldn't be the thing load-bearing).
+
+**Two trust levels, two different failure behaviours for what's structurally the same
+validation:** `ChangesTheme`-declared tokens are checked once, in `Manager::themes()`, and throw
+on failure — code, author's own bug, fail fast in dev. `theme_tokens` rows are checked again, in
+`Theme::css()`, on every single page load, and a row that fails validation is silently skipped
+rather than thrown on — once an admin editor exists, this runs against something a real person
+submitted, and one bad row should never be able to take the whole site down; falling back to
+whatever the next layer down says for that one token is the correct failure mode, not a 500.
+Verified concretely: a deliberately malformed `theme_tokens` row (`--color-primary` set to
+`javascript:alert(1)`) was silently ignored, `--color-primary` still rendered Midnight's own
+valid value.
+
+**Explicitly not built, on purpose:** the interactive editor (live preview, an admin UI) —
+deferred by direct instruction, not forgotten. Selection between multiple simultaneously-
+installed `ChangesTheme` extensions — `Manager::themes()` just merges every installed theme's
+tokens together in `extensions()` order, last write wins on overlap; correct and sufficient
+while at most one theme extension is ever installed, a genuinely unsolved problem the moment a
+second one exists (no different in kind from the extension-load-order gap already flagged for
+`kopling/admin`).
+
+**Alternatives considered:** Storing overrides as one JSON blob instead of a `token`/`value`
+table — rejected, a flat table is trivial to list/edit per-token once an editor exists and there's
+only ever one community per install, so no document-shape benefit to gain. Compiling a genuinely
+new daisyUI theme per community (e.g. shelling out to a build step per request or per save) —
+rejected outright, directly contradicts the standing "Node/Vite never runs on a Kopling host"
+architecture rule. Letting `ChangesTheme` values through unvalidated since they're "trusted,
+code-authored" — rejected: these still get interpolated raw into a `<style>` tag, and a
+supply-chain-compromised or simply buggy extension is exactly the scenario basic shape validation
+is cheap insurance against.
+
+**Status:** Decided & implemented for the non-interactive half, as scoped. `k-core/src/migrations/
+2026_07_10_000002_create_theme_tokens_table.php`, `k-core/src/Ux/Theme.php`, `k-core/src/Ux/Theme/
+Token.php`, `k-core/src/Extension/Contract/ChangesTheme.php`, `Manager::themes()`,
+`layouts/partials/head.blade.php`, `k-extensions/theme-midnight/*`. `kopling:extension:
+registrations` updated to know about `ChangesTheme` too (a real gap: it predated this contract and
+listed Midnight as implementing nothing). Verified end-to-end: `Theme::css()` renders empty with
+nothing installed; renders Midnight's full color palette with radius tokens correctly absent once
+installed; a `theme_tokens` row correctly overrides a Midnight value; a malformed `theme_tokens`
+row is correctly and silently ignored rather than corrupting the page; the override is confirmed
+present, in the right position, in a real rendered Community page. Not built: the admin editor,
+theme selection among multiple installed themes, and `color-scheme` (native browser UI like
+scrollbars/form controls won't flip dark under Midnight yet — a real gap, not urgent).

@@ -12,9 +12,11 @@
         }
     ],
     "require": {
+        "kopling/admin": "@dev",
         "kopling/core": "@dev",
         "kopling/example": "@dev",
-        "kopling/reactions": "@dev"
+        "kopling/reactions": "@dev",
+        "kopling/theme-midnight": "@dev"
     },
     "autoload": {
         "psr-4": {

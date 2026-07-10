@@ -7,12 +7,14 @@ namespace Kopling\Core\Extension;
 use Illuminate\Support\Collection;
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
+use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Storage\StorageRequest;
+use Kopling\Core\Ux\Theme\Token;
 use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
 
@@ -158,11 +160,11 @@ class Manager
     }
 
     /**
-     * Every Portal declared by every extension, with `Portal::$id` already prefixed with the
-     * owning extension's `id()` -- same authoring rule, same collision-safety reasoning as
-     * `permissions()`. `Core` is the sole implementor today (`core::community`,
-     * `core::admin`); a future first-party Moderation-portal extension (charter D29's own named
-     * proof case) slots into this same loop for free.
+     * Every Portal declared by every extension, with `Portal::$id` -- and `$permission`, when
+     * set -- prefixed with the owning extension's `id()`, same authoring rule and collision-
+     * safety reasoning as `permissions()`/`ux()`'s `$condition`. A future first-party
+     * Moderation-portal extension (charter D29's own named proof case) slots into this same
+     * loop for free.
      *
      * @return Collection<int, Portal>
      */
@@ -175,14 +177,71 @@ class Manager
                 continue;
             }
 
+            $prefix = $this->id($package).'::';
+
             foreach ($extension->portals() as $portal) {
-                $portal->id = $this->id($package).'::'.$portal->id;
+                $portal->id = $prefix.$portal->id;
+
+                if ($portal->permission !== null) {
+                    $portal->permission = $prefix.$portal->permission;
+                }
 
                 $portals[] = $portal;
             }
         }
 
         return collect($portals)->keyBy('id');
+    }
+
+    /**
+     * Every theme declared by every extension, keyed by owning extension id -- so an eventual
+     * theme-picker UI can show which extension a theme came from, the same reasoning
+     * `storageDrivers()` is keyed by owner instead of flattened. Unlike every other collector
+     * here, keys inside each theme's array are never prefixed -- they're `Token::*->value`
+     * strings naming a specific CSS custom property, a fixed catalog Manager itself checks
+     * against, not a name space collision concern between extensions. An unrecognized key, or a
+     * value that doesn't match that token's expected shape (`Token::matches()`), throws
+     * immediately: a `ChangesTheme` implementor's own bug, not a foreign reference that might
+     * legitimately not exist yet (contrast with `ux()`'s `after`/`before`).
+     *
+     * No selection between multiple installed themes exists yet -- every declared theme's
+     * tokens simply get merged together, in `extensions()` order, last write wins on overlap.
+     * Fine while at most one theme extension is ever installed; genuinely picking one active
+     * theme among several is a real, not-yet-solved problem once a second one exists.
+     *
+     * @return Collection<string, array<string, string>>
+     */
+    public function themes(): Collection
+    {
+        $themes = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof ChangesTheme) {
+                continue;
+            }
+
+            $declared = $extension->theme();
+
+            foreach ($declared as $token => $value) {
+                $case = Token::tryFrom($token);
+
+                if ($case === null) {
+                    throw new \InvalidArgumentException(
+                        "[{$package}] declared an unrecognized theme token [{$token}]."
+                    );
+                }
+
+                if (! $case->matches($value)) {
+                    throw new \InvalidArgumentException(
+                        "[{$package}]'s theme token [{$token}] has an invalid value [{$value}]."
+                    );
+                }
+            }
+
+            $themes[$this->id($package)] = $declared;
+        }
+
+        return collect($themes);
     }
 
     /**

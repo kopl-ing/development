@@ -7,6 +7,7 @@ namespace Kopling\Core\Console\Commands;
 use Illuminate\Console\Command;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
+use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
@@ -54,6 +55,7 @@ class ListExtensionRegistrations extends Command
         $this->portals($manager, $id);
         $this->storage($manager, $id);
         $this->ux($manager, $id);
+        $this->theme($manager, $id);
 
         return self::SUCCESS;
     }
@@ -80,6 +82,7 @@ class ListExtensionRegistrations extends Command
             HasPortals::class => 'HasPortals',
             RequestsStorageDriver::class => 'RequestsStorageDriver',
             CannotBeDisabled::class => 'CannotBeDisabled',
+            ChangesTheme::class => 'ChangesTheme',
         ];
 
         $implemented = array_intersect_key($known, class_implements($extension));
@@ -312,6 +315,26 @@ class ListExtensionRegistrations extends Command
             };
 
             $this->components->twoColumnDetail($entry->id, "{$entry->slot} ({$entry->component}), {$condition}");
+        }
+
+        $this->newLine();
+    }
+
+    protected function theme(Manager $manager, string $id): void
+    {
+        $this->components->info('Theme (ChangesTheme)');
+
+        $tokens = $manager->themes()[$id] ?? [];
+
+        if ($tokens === []) {
+            $this->line('  <fg=gray>none</>');
+            $this->newLine();
+
+            return;
+        }
+
+        foreach ($tokens as $token => $value) {
+            $this->components->twoColumnDetail($token, $value);
         }
 
         $this->newLine();

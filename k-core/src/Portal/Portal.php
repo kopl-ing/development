@@ -19,7 +19,7 @@ class Portal
         public readonly string $layout,
         public readonly ?string $icon = null,
         public readonly ?string $description = null,
-        public readonly ?string $permission = null,
+        public ?string $permission = null,
         public readonly ?array $middleware = null,
     ) {
     }

@@ -1,0 +1,19 @@
+{
+    "name": "kopling/theme-midnight",
+    "description": "Midnight -- a dark theme for Kopling, shipped as overrides on top of the compiled kopling daisyUI theme.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\ThemeMidnight\\": "src/"
+        }
+    }
+}
