@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Kopling\Core\Provider;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as Provider;
-use Kopling\Core\Authorization\CorePermissions;
 use Kopling\Core\Console\Commands\DiscoverExtensions;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
@@ -39,9 +39,12 @@ class ServiceProvider extends Provider
     {
         $this->app->make(ExceptionHandler::class)->renderable(new RedirectHtmxUnauthenticated());
 
+        Blade::componentNamespace('Kopling\\Core\\Ux', 'k');
+
         $this->loadMigrationsFrom(__DIR__.'/../migrations');
         $this->loadViewsFrom(__DIR__.'/../Ux/views', 'core');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../routes/admin.php');
 
         foreach ($manager->extensions() as $package => $extension) {
             $id = $manager->id($package);
@@ -67,7 +70,7 @@ class ServiceProvider extends Provider
             // onto the page -- that needs the head-assets outlet mechanism, not built yet.
         }
 
-        foreach ([...CorePermissions::all(), ...$manager->permissions()] as $permission) {
+        foreach ($manager->permissions() as $permission) {
             Gate::define($permission->id, function (Person $person, ...$args) use ($permission) {
                 if (! $person->hasPermission($permission->id)) {
                     return false;
@@ -77,7 +80,7 @@ class ServiceProvider extends Provider
                     return true;
                 }
 
-                return (bool) ($permission->callback)($person, ...$args);
+                return ($permission->callback)($person, ...$args);
             });
         }
     }

@@ -458,3 +458,220 @@ staying usable standalone (`php artisan kopling:extensions:discover`), not just 
 `bootstrap/cache/kopling-extensions.php` and the entire `database/` directory, ran `composer
 dump-autoload` cold, confirmed both were recreated correctly, then ran `php artisan migrate`
 successfully against the fresh SQLite file.
+
+---
+
+## 2026-07-10 — Portals: named UI surfaces declared through `Core`, an `AbstractExtension` `Manager` always loads first; never a second gating mechanism
+
+**Decision:** `Kopling\Core\Portal\Portal` is a plain readonly VO (`id`, `label`, `path`,
+`layout`) — a route-prefix + Blade-layout pairing, mirroring `Permission`'s shape exactly.
+`Kopling\Core\Extension\Contract\HasPortals` (`portals(): array<Portal>`) mirrors
+`HasPermissions`. `Kopling\Core\Extension\Manager::portals()` mirrors `Manager::permissions()`
+precisely: loops every `instanceof HasPortals` entry in `extensions()`, prefixing `Portal::$id`
+with the owning package's `id()` the same way permission ids are prefixed.
+
+Core's own permissions and portals are declared through a new `Kopling\Core\Core` class —
+`extends AbstractExtension implements HasPermissions, HasPortals`, writing **local** ids
+(`manage-people`, `manage-theme`, `community`, `admin`) exactly as any real extension would.
+`Manager::extensions()` now always prepends `'core' => new Core()` before the Composer-discovered
+entries, so `Core` runs through the identical `permissions()`/`portals()`/`storageDrivers()` loops
+as everything else — no special-cased merge anywhere. `ServiceProvider::boot()`'s `Gate::define()`
+loop simplified from `[...CorePermissions::all(), ...$manager->permissions()]` to plain
+`$manager->permissions()`.
+
+Two portals exist today: `core::community` (`path: ''`, existing `/` route/layout untouched — no
+functional rewiring, this entry exists purely so the registry isn't hardcoded to a single
+non-default portal) and `core::admin` (`path: 'admin'`, new `k-core/src/routes/admin.php` +
+`admin.blade.php`). The Admin portal's first and only route today, `core::admin.theme`
+(`ThemeController`, gated by a new `core::manage-theme` permission), is a thin placeholder proving
+the chain end to end — no token storage/validator/editor yet, that's separate follow-up work.
+
+**Why:** `CorePermissions::all()` previously hand-wrote fully-prefixed ids (`core::manage-people`)
+as a special case, because core "isn't discovered through `Manager`" — a real asymmetry between
+how core and extensions authored the same kind of thing. Adding a parallel `CorePortals::all()` for
+the new Portal concept would have been a *third* copy of the same special-casing. Making `Core`
+itself an `AbstractExtension` implementor removes the asymmetry structurally: there is exactly one
+way to declare a permission or a portal (implement the contract, write a local id), and exactly one
+place that does the prefixing (`Manager`), regardless of whether the declarer is core or a real
+extension. This is also the direct, structural fix for charter D29's "a Portal is a registrable
+pattern, not fixed to exactly two" — the Moderation portal (D29's own named future proof case) is a
+`HasPortals`-implementing extension away, no `Manager`/`ServiceProvider` changes required.
+
+**Portal is explicitly not a gating mechanism.** No `canAccessPortal()`-style check exists anywhere
+— that would be exactly the disguised hardcoded-admin-flag D29 rejects (the real, lived Flarum
+flaw: a binary admin flag with no partial access). `core::admin.theme` gates itself with ordinary
+`can:core::manage-theme` route middleware, identical to how any route anywhere would. The Admin
+layout's nav is a single `@can`-gated link, not a portal-level visibility flag — "is this portal
+worth showing" is answered by aggregating over its own routes' real gates, not a separate check.
+
+**Why no `auth` middleware on the admin route group:** no `login` route exists yet (existing,
+separately-tracked gap — see the htmx auth-wall entry above). Laravel's stock
+`Authenticate::redirectTo()` calls `route('login')` unconditionally for non-htmx requests, which
+would throw `RouteNotFoundException` — the identical failure class already diagnosed once for the
+htmx auth-wall. `can:core::manage-theme` alone is sufficient: Laravel's `Gate` auto-denies (never
+invokes the callback) when an ability's callback requires a non-nullable typed user and the
+resolved user is null, so a guest cleanly gets `403`, never a crash. Verified over real HTTP
+(`php artisan serve`): guest `GET /admin/theme` → `403`; `Gate::forUser()` with a person granted
+`core::manage-theme` → `ALLOW`, with a person that isn't → `DENY`, matching the same
+`Gate::define()` closure the `can:` middleware itself calls.
+
+**Why the route name is `core::admin.theme`, not `admin.theme`:** `Portal::$id` gets the same
+`::`-prefixing treatment as `Permission::$id` for the same collision-safety reason (two extensions
+could otherwise both declare a portal literally named `admin`). `::` inside a route name is
+unusual by stock Laravel convention, but consistent with every other namespace this codebase
+already uses (views, translations, permissions) — chosen deliberately over inventing a second
+separator just for routes.
+
+**Why `app.blade.php`'s `<head>` was extracted into `layouts/partials/head.blade.php`:** the new
+`admin.blade.php` needs the identical `<head>` (charset, viewport, csrf meta, `@vite(...)`), and a
+separate, still-pending piece of work (runtime theme-token `<style>` injection, discussed but not
+yet built) will need to land in that shared head exactly once rather than in two
+independently-drifting layout files. Verified behaviorally identical after extraction (`GET /`
+renders byte-for-byte the same content, confirmed against a real `npm run build` + HTTP request).
+
+**Alternatives considered:** A `CorePortals::all()` static registry mirroring the (now-removed)
+`CorePermissions` — rejected once the asymmetry it would have repeated was noticed; folding into
+`Core` removes it instead of adding a third instance of it. A nav-item registry inside the Admin
+portal — rejected as premature for a single route (`n=1`); a hardcoded `@can`-gated link is the
+correct-sized answer until a second admin route needs ordering/choosing between items. `auth`
+middleware on the admin group — rejected, see the login-route reasoning above.
+
+**Status:** Decided & implemented. `k-core/src/Core.php`, `k-core/src/Portal/Portal.php`,
+`k-core/src/Extension/Contract/HasPortals.php`, `k-core/src/routes/admin.php`,
+`k-core/src/Http/Controllers/Admin/ThemeController.php`,
+`k-core/src/Ux/views/layouts/admin.blade.php`,
+`k-core/src/Ux/views/layouts/partials/head.blade.php`, `k-core/src/Ux/views/admin/theme.blade.php`.
+`Authorization/CorePermissions.php` deleted. Verified end-to-end over real HTTP and via `Gate`
+directly (guest 403, granted/ungranted `Person` allow/deny, `Gate::has()` for both
+`core::manage-people` and `core::manage-theme` post-refactor, `GET /` unaffected). Not yet built:
+the theme editor's real internals (token storage, `ThemeValidator`, live-preview) behind
+`core::admin.theme` — tracked as separate, later work.
+
+---
+
+## 2026-07-10 — `ChangesUx`/`Ux`: one contract for every UI extension point, not one per surface; supersedes the "nav registry premature at n=1" call above
+
+**Decision:** `Kopling\Core\Extension\Contract\ChangesUx` (`ux(): Ux`) is the single contract for
+an extension (or `Core`, same as `HasPermissions`/`HasPortals`) to place UI into any named slot —
+side navigation today, head assets/post actions/admin widgets later — rather than a new capability
+interface per surface. `Kopling\Core\Ux\Ux` is a fluent builder mirroring Laravel's own
+`Route::get()->name()->middleware()` chaining: `Ux::make()->add($component, $data)->in($slot)
+->after($id)->before($id)->as($id)->when($condition)`, each call mutating the `UxEntry` started by
+the most recent `add()`. `Kopling\Core\Ux\UxEntry` holds one registered placement — unlike
+`Permission`/`Portal`/`StorageRequest`, deliberately **not** readonly, since the builder mutates it
+incrementally as the chain continues.
+
+Two things get different treatment, and the difference is deliberate:
+- **`$slot`** is a fully-qualified string the author writes out in full (`"core::side-navigation"`)
+  and is **never** auto-prefixed by `Manager` — a slot is a public rendezvous point other
+  extensions must be able to name exactly; auto-prefixing it the way permission ids are would make
+  it impossible for one extension to place something into a slot owned/rendered by another.
+- **`$id`** (defaults to the `$component` string if `as()` is never called) and a string
+  `$condition` (a local permission id) **are** prefixed by `Manager::ux()`, the same treatment
+  `permissions()` gives `Permission::$id` — these are private to the declaring extension, so
+  `after('core::theme')`/`when('manage-things')` read the same low-ceremony way permission ids
+  already do.
+
+`Kopling\Core\Extension\Manager::ux(): UxEntryCollection` loops `extensions()` (Core included, same
+as `permissions()`/`portals()`) filtering `instanceof ChangesUx`. `Kopling\Core\Ux\SlotResolver::
+resolve(string $slot, UxEntryCollection $entries): UxEntryCollection` turns that flat, unordered
+collection into what one slot actually renders: filters to the slot, best-effort positions entries
+via `after`/`before` (a reference to a missing/uninstalled entry is silently ignored, never an
+error — "outlets compose; overrides don't"), then filters by `condition` (`Gate::allows()` for a
+string, direct call for a closure). Every component a `UxEntry` can render takes exactly one
+constructor param, `array $data` — passed whole, never spread into named props — so `SlotResolver`/
+`Manager` never need to know an individual component's prop names to render it via
+`<x-dynamic-component :component="$entry->component" :data="$entry->data" />`.
+
+`Core::ux()` now registers the Admin portal's Theme link this way (`.as('theme')
+.when('manage-theme')`), replacing `layouts/admin.blade.php`'s previous hardcoded `@can(...)` link.
+`k-extensions/example` implements `ChangesUx` too, registering a demo item `.after('core::theme')
+.when('manage-things')` — proving cross-extension anchoring and independent gating end to end.
+
+**Supersedes:** the "nav-item registry inside the Admin portal — rejected as premature for a single
+route (n=1)" call in the Portals entry above. That was correct at the time (one hardcoded link, no
+second consumer yet); it stopped being true the moment a second, real consumer (an extension
+wanting its own side-navigation entry) needed the same placement without core hand-editing a Blade
+`@can` block for every extension that ever wants a link. Building the *general* mechanism now,
+rather than a narrow nav-only registry, avoids paying this same design cost again for the next
+surface (head assets, post actions, admin widgets) — each of those would otherwise want its own
+contract interface, bloating both `AbstractExtension`'s surface and every extension's own
+`Extension.php` with one more method per UI surface it touches.
+
+**Why one contract instead of `HasNavigation` narrowly:** a narrow contract solves nav today but
+repeats the exact shape (value object + contract interface + `Manager` collector) for every future
+surface — `HasPermissions` and `RequestsStorageDriver` already show that pattern doesn't stay cheap
+past two instances. `ChangesUx`/`Ux` generalizes the aggregation shape once (still `instanceof`-
+discovered, still `Manager`-collected, still id-prefixed the same way) while the fluent builder
+carries the per-surface specifics (`slot`, ordering, condition) as data rather than as new methods
+on the contract itself.
+
+**Plain `Illuminate\Support\Collection`, not a custom typed subclass:** `Manager::ux()`/`portals()`
+and `Ux::entries()` return an ordinary `collect(...)` — a `UxEntryCollection`/`PortalCollection`
+pair `extends Collection` calling `$this->ensure(...)` in the constructor was tried first, then
+reverted the same session: `ensure()` only re-validates what the *constructor* receives, but
+`put()`/`push()`/`merge()` (and most of `Collection`'s other mutators) write straight into the
+internal `$items` array without ever calling `new static(...)` — so the guarantee silently stopped
+holding the moment anything touched the collection after construction, which defeats the reason to
+have a typed collection in the first place. A real fix (overriding every mutating method, or
+validating lazily on each read) is more ceremony than a handful of small, short-lived collections
+here warrant.
+
+**Alternatives considered:** A `HasNavigation` contract narrowly scoped to nav — rejected per the
+"supersedes" reasoning above. A static `Outlet::add('post.actions', 'reactions::button')` facade,
+matching the charter's own marketing sketch literally — rejected in favor of routing registration
+through the same `instanceof`-discovered contract + `Manager`-collector shape every other
+extension-declared capability already uses, rather than a bare static call with no
+extension-scoping (a static facade call has no natural place for `Manager` to know which extension
+made it, needed for id-prefixing). `Ux` passed into `ux(Ux $ux): void` as a mutable parameter
+instead of returned from `ux(): Ux` — rejected, `Ux::make()` returned by the method reads closer to
+how `permissions()`/`portals()`/`storage()` already return their own value, and needs no
+special-cased "empty builder" the extension didn't create itself.
+
+**Status:** Decided & implemented. `k-core/src/Ux/{Ux,UxEntry,SlotResolver}.php`,
+`k-core/src/Extension/Contract/ChangesUx.php`, `Manager::ux()`/`Manager::portals()`, `Core::ux()`,
+`k-extensions/example`'s `Extension::ux()`.
+Not yet built: any slot beyond `core::side-navigation` (head assets, post actions, admin widgets) —
+the mechanism generalizes to them without further contract/`Manager` changes, only a new consuming
+component. `kopling-landing/public/extend.html` needs a matching update documenting `ChangesUx`
+alongside `RequestsStorageDriver`/`HasPermissions` — separate repo, not done as part of this entry.
+
+---
+
+## 2026-07-10 — Core Ux components: PHP class path mirrors Blade view path, domain-nested; extensions stay flat
+
+**Decision:** A core-owned `<x-k::*>` component's PHP class path mirrors its Blade view path
+1:1, domain-nested under `Ux/` — e.g. `k-core/src/Ux/Portal/Navigation/Side.php` (class
+`Kopling\Core\Ux\Portal\Navigation\Side`) pairs with
+`k-core/src/Ux/views/portal/navigation/side.blade.php`, registered as `<x-k::portal.navigation
+.side>`. `Blade::componentNamespace('Kopling\Core\Ux', 'k')` (registered once, in
+`ServiceProvider::boot()`) resolves the dot-separated tag directly against the nested PHP
+namespace — Laravel's own component-namespace resolution already dot-splits nested folders, no
+custom resolution needed. This convention is **core-only**: an extension's own components (if it
+ever ships one) stay flat/simple, the same as `views/`/`css/`/`js/` already do — never required to
+adopt this nesting.
+
+**Why:** Core is expected to grow many components across several UI domains over time (Portal
+chrome, navigation, later probably forms/actions/etc., per the charter's own `<x-k::action>`
+example) — a flat `Ux/views/components/*.blade.php` bucket (the stock Laravel package convention)
+doesn't scale legibly past a handful of components the way domain-then-kind organization already
+proved out for `k-core`'s CSS/JS (see the "source assets live inside the owning package's own
+domain folder" entry above — same reasoning, applied one level deeper: domain, then kind, then
+component name). Mirroring the PHP path and the Blade path 1:1 means a contributor can always find
+one from the other by inspection, without needing a lookup table. Extensions don't get this
+requirement because they're single-purpose and flat by design (see the "single-purpose extensions
+get a flat, unprefixed top-level layout" entry above) — forcing domain-nesting onto a package that
+usually has one or two components of its own would be exactly the kind of premature structure that
+entry already rejected for extensions generally.
+
+**Alternatives considered:** A flat `Ux/View/Components/*.php` + `Ux/views/components/*.blade.php`
+bucket, matching the stock Laravel package-component convention — rejected for the scaling reason
+above; also would have meant registering a narrower `Blade::componentNamespace('Kopling\Core\Ux
+\View\Components', 'k')` pointing one level deeper, which is exactly the indirection the mirrored
+convention avoids. Requiring extensions to adopt the same nesting for consistency — rejected,
+directly contradicts the existing flat-extension-layout decision for no real benefit (an extension
+with one component doesn't need a domain hierarchy to organize it).
+
+**Status:** Decided & implemented. First working reference:
+`k-core/src/Ux/Portal/{Layout,Navigation/Side,Navigation/Item}.php` and their mirrored
+`k-core/src/Ux/views/portal/{layout,navigation/side,navigation/item}.blade.php`.

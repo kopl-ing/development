@@ -8,3 +8,4 @@ use Kopling\Core\Http\Controllers\HomeController;
 Route::middleware('web')->group(function () {
     Route::get('/', HomeController::class)->name('home');
 });
+

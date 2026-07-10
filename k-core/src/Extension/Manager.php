@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extension;
 
+use Illuminate\Support\Collection;
 use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Core;
+use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasPermissions;
+use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
+use Kopling\Core\Portal\Portal;
 use Kopling\Core\Storage\StorageRequest;
+use Kopling\Core\Ux\UxEntry;
 
 class Manager
 {
@@ -21,7 +27,10 @@ class Manager
     }
 
     /**
-     * Every discovered extension, keyed by Composer package name, instantiated once.
+     * `Core` (`'core'`) is always the first entry, guaranteed present -- it isn't Composer-
+     * discovered the way the rest are (it declares no `"type": "kopling-extension"` package of
+     * its own), it's the one thing `Manager` always loads regardless. Every other entry is a
+     * genuinely discovered extension, keyed by Composer package name, instantiated once.
      *
      * @return array<string, AbstractExtension>
      */
@@ -31,7 +40,7 @@ class Manager
             return $this->extensions;
         }
 
-        $this->extensions = [];
+        $this->extensions = ['core' => new Core()];
 
         foreach ($this->manifest->extensions() as $package => $extension) {
             $class = $extension['namespace'].'Extension';
@@ -136,5 +145,70 @@ class Manager
         }
 
         return $permissions;
+    }
+
+    /**
+     * Every Portal declared by every extension, with `Portal::$id` already prefixed with the
+     * owning extension's `id()` -- same authoring rule, same collision-safety reasoning as
+     * `permissions()`. `Core` is the sole implementor today (`core::community`,
+     * `core::admin`); a future first-party Moderation-portal extension (charter D29's own named
+     * proof case) slots into this same loop for free.
+     *
+     * @return Collection<int, Portal>
+     */
+    public function portals(): Collection
+    {
+        $portals = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof HasPortals) {
+                continue;
+            }
+
+            foreach ($extension->portals() as $portal) {
+                $portals[] = new Portal(
+                    id: $this->id($package).'::'.$portal->id,
+                    label: $portal->label,
+                    path: $portal->path,
+                    layout: $portal->layout,
+                );
+            }
+        }
+
+        return collect($portals);
+    }
+
+    /**
+     * Every UxEntry declared by every extension (Core included, same as permissions()), with
+     * `UxEntry::$id` -- and `$condition` when it's a permission-id string, not a closure --
+     * prefixed the same way `permissions()` prefixes `Permission::$id`. `$slot`/`$after`/
+     * `$before` are left untouched: they're fully-qualified references the author writes out
+     * in full, not private names Manager owns the prefixing of.
+     *
+     * @return Collection<int, UxEntry>
+     */
+    public function ux(): Collection
+    {
+        $entries = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof ChangesUx) {
+                continue;
+            }
+
+            $prefix = $this->id($package).'::';
+
+            foreach ($extension->ux()->entries() as $entry) {
+                $entry->id = $prefix.$entry->id;
+
+                if (is_string($entry->condition)) {
+                    $entry->condition = $prefix.$entry->condition;
+                }
+
+                $entries[] = $entry;
+            }
+        }
+
+        return collect($entries);
     }
 }
