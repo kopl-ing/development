@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3b905fd1f3e55209a1968856a43f0b0d",
+    "content-hash": "9aa55d417cea04bce9aa9f4e7262fe1d",
     "packages": [
         {
             "name": "brick/math",
@@ -1122,7 +1122,7 @@
         },
         {
             "name": "kopling/admin",
-            "version": "dev-dk/templating",
+            "version": "dev-feat/discussions",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/admin",
@@ -1150,11 +1150,11 @@
         },
         {
             "name": "kopling/core",
-            "version": "dev-dk/templating",
+            "version": "dev-feat/discussions",
             "dist": {
                 "type": "path",
                 "url": "./k-core",
-                "reference": "c31d0cecf14979a3fb91a7ada74e8a726bf94bd2"
+                "reference": "ed115a287ddc2ce8497476d4e96475ab65ab0d8f"
             },
             "require": {
                 "laravel/framework": "13.*",
@@ -1189,7 +1189,7 @@
         },
         {
             "name": "kopling/demo",
-            "version": "dev-dk/templating",
+            "version": "dev-feat/discussions",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/demo",
@@ -1219,8 +1219,36 @@
             }
         },
         {
+            "name": "kopling/discussions",
+            "version": "dev-feat/discussions",
+            "dist": {
+                "type": "path",
+                "url": "./k-extensions/discussions",
+                "reference": "ef9af5ef6b1e90b84c04ed2924f6c35dbf83cf45"
+            },
+            "type": "kopling-extension",
+            "autoload": {
+                "psr-4": {
+                    "Kopling\\Discussions\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ernest Defoe",
+                    "email": "ernestdefoe@gmail.com"
+                }
+            ],
+            "description": "Replies for Kopling -- a discussion page per moment, with an activity teaser and engage bar.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "kopling/example",
-            "version": "dev-dk/templating",
+            "version": "dev-feat/discussions",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/example",
@@ -1248,11 +1276,11 @@
         },
         {
             "name": "kopling/reactions",
-            "version": "dev-dk/templating",
+            "version": "dev-feat/discussions",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/reactions",
-                "reference": "73db6729a79498dc094793f68156ceefcbaddae7"
+                "reference": "8b19c7428b4e02d12d19e562688ec8cd839fda79"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1276,7 +1304,7 @@
         },
         {
             "name": "kopling/theme-midnight",
-            "version": "dev-dk/templating",
+            "version": "dev-feat/discussions",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/theme-midnight",
@@ -6249,6 +6277,7 @@
         "kopling/admin": 20,
         "kopling/core": 20,
         "kopling/demo": 20,
+        "kopling/discussions": 20,
         "kopling/example": 20,
         "kopling/reactions": 20,
         "kopling/theme-midnight": 20
