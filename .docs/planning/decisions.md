@@ -1360,3 +1360,90 @@ of them; creating a genuinely new `Moment` afterward and polling with that advan
 reports only the one truly-new moment, not re-surfacing the ones already loaded — the
 cursor-advancement cycle holds up across a real create-and-poll round trip, not just a single
 request in isolation.
+
+---
+
+## 2026-07-11 — Login/registration is core-owned scaffolding + two extension points (`ValidateLogin`, `AttemptLogin`); no login method is built in
+
+**Decision:** `Kopling\Core\Http\Controllers\LoginController` owns the `/login` GET+POST flow
+(and `/logout`); `RegistrationController` owns `/register` (GET only so far). Neither controller
+knows what "credentials" means. `login()` dispatches two events from
+`Kopling\Core\Authentication\Event`:
+
+- `ValidateLogin(Request $request)` — dispatched via `$events->until()` before the throttle
+  check; a listener (e.g. a captcha check) vetoes by throwing directly from inside itself. Its
+  return value is discarded — there's nothing for it to carry back, only pass/fail.
+- `AttemptLogin` — mutable, carries the outcome: `?Person $person`, `ValidationException $e`
+  (defaulted in the constructor to `ValidationException::withMessages([])`, never null), and
+  fluent `succeeded(Person $person): self` / `failed(ValidationException $e): self` mutators. `
+  LoginController::attemptLogin()` constructs one instance, dispatches it with plain `dispatch()`
+  (not `until()`), and returns that same local reference regardless of what any listener
+  returned. `login()` checks `$event->person`: if set, it calls `Auth::login()` itself and
+  completes the session; otherwise it increments the throttle counter and rethrows `$event->e`.
+
+Both routes moved from an unprefixed block in `k-core/routes/web.php` into
+`k-core/routes/community.php` — they're now part of the `community` portal's own route group,
+registered as `core::community/login`, `core::community/login.attempt`,
+`core::community/register`, `core::community/logout` (URL paths unchanged; only the route
+*names* gained the portal prefix). `RedirectHtmxUnauthenticated` was updated to check/redirect to
+`core::community/login` instead of the bare `login` it used as a placeholder before.
+
+**Why an event pair, not a single event:** the two events answer genuinely different questions.
+`ValidateLogin` is a pure gate (continue or don't) with nothing to hand back. `AttemptLogin` has
+to hand back *who*, or a reason it didn't work — a bare boolean can't carry either, and a thrown
+exception can't carry a successful `Person` back out. Splitting them means a listener only
+implements the shape it actually needs, and core never has to guess which case it's in.
+
+**Why `AttemptLogin` uses `dispatch()` + a locally-held reference, not `until()`'s return value:**
+the first version relied on `until()`'s return value directly (`return $this->events->until(new
+AttemptLogin($request));`), typed `bool|ValidationException` and later `AttemptLogin` with a
+non-nullable return type. Both broke immediately — verified via `php artisan tinker` — with a
+`TypeError`, because `until()` returns `null` the moment nothing is listening (true today; no
+login-method extension exists yet), and a listener mutating the event object it received doesn't
+make `until()` itself return that object unless the listener remembers to explicitly `return`
+it. Holding `attemptLogin()`'s own reference to the `AttemptLogin` it constructs and returning
+that, independent of what `dispatch()` reports, removes the crash *and* the "did the listener
+remember to `return $event`" footgun in one change — no listener authoring mistake can make this
+method return the wrong type.
+
+**Why the `ValidationException` fallback on `AttemptLogin::$e` is an empty `withMessages([])`,
+not a real message:** confirmed via tinker that this produces zero PHP errors (a genuinely empty
+error array, HTTP 422) rather than a crash, but it's a known, deliberately deferred gap — with no
+login-method extension installed, a login POST silently redirects back with no visible error at
+all. Flagged to revisit once `kopling/auth-password` (or equivalent) exists to make "no login
+method is installed" a real, visible message instead of a silent no-op.
+
+**Why the throttle key dropped the identifier field entirely:** `ThrottlesLogins::throttleKey()`
+originally read `$request->input($this->username())` — `username()` assumed every login method's
+form calls its identifier field the same thing (`email`), which is exactly the assumption
+`AttemptLogin`'s opaque-request design was built to avoid. `username()` was removed along with
+`credentials()`; `throttleKey()` now keys by `$request->ip()` alone. Coarser (keyed per-IP, not
+per-identifier-attempted), but makes zero assumptions about what any given login method's request
+shape looks like.
+
+**Why the routes moved into `community.php` despite the naming cost:** login/register are
+arguably portal-agnostic (any current or future Portal could reuse the same login page) — keeping
+them in `web.php`'s unprefixed block was defensible on those grounds, and was flagged as such
+before this change. Moved anyway, explicitly accepting that `route('login')`/`Route::has('login')`
+no longer resolve and that Laravel's stock `auth` middleware `redirectTo()` convention (which
+looks for a route literally named `login`) no longer applies here. This also finally closes the
+trade-off logged in the "htmx auth-wall" entry above ("Revisit the literal `/login` fallback once
+a real login route lands") — `RedirectHtmxUnauthenticated` now checks a real, existing route name
+(`core::community/login`) instead of falling back to a hardcoded string on every request.
+
+**Trade-off accepted / not yet resolved:**
+- No login-method extension exists yet (`kopling/auth-password`, discussed but not started) — the
+  two events above have no real listener anywhere, so every login attempt today fails with an
+  empty-message `ValidationException` (see above).
+- There is no Kopling-native mechanism for an extension to *register* a listener for
+  `ValidateLogin`/`AttemptLogin` at all yet — doing so today means reaching for Laravel's own
+  `Event::listen()` directly, which cuts against the standing "extensions code against Kopling's
+  own contract, never against Laravel directly" principle (`extend.html` Section 3). This is the
+  same gap `extend.html`'s open-items list already names ahead of time (`Kopling\Extend\*`,
+  "a wrapped, blessed subset of Laravel primitives... events... Not yet populated") — now with a
+  concrete, real caller waiting on it instead of a hypothetical one.
+- `RegistrationController` has no POST handling yet — only `LoginController` was carried through
+  this event-pair treatment so far.
+
+**Status:** Decided & implemented for the scaffolding (routes, controllers, events, throttling).
+Not yet a working login — see trade-offs above.

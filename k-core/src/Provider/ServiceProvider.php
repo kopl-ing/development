@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Kopling\Core\Provider;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as Provider;
+use Illuminate\Support\Str;
 use Kopling\Core\Console\Commands\DiscoverExtensions;
 use Kopling\Core\Console\Commands\ListExtensionRegistrations;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
 use Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated;
+use Kopling\Core\Http\Middleware\InjectPortal;
 use Kopling\Core\People\Person;
 
 class ServiceProvider extends Provider
@@ -44,15 +47,25 @@ class ServiceProvider extends Provider
     {
         $this->app->make(ExceptionHandler::class)->renderable(new RedirectHtmxUnauthenticated());
 
+        /** @var Kernel|\Illuminate\Foundation\Http\Kernel $http */
+        $http = $this->app->make(Kernel::class);
+        $http->appendMiddlewareToGroup('web', InjectPortal::class);
+
         Blade::componentNamespace('Kopling\\Core\\Ux', 'k');
 
         $this->loadMigrationsFrom(__DIR__.'/../migrations');
         $this->loadViewsFrom(__DIR__.'/../Ux/views', 'core');
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
 
+        $manager->listeners();
+
         foreach ($manager->extensions() as $package => $extension) {
             $id = $manager->id($package);
             $conventions = $manager->conventions($package);
+
+            if ($package !== 'core') {
+                Blade::componentNamespace(Str::beforeLast($extension::class, '\\'), $id);
+            }
 
             if (isset($conventions['migrations'])) {
                 $this->loadMigrationsFrom($conventions['migrations']);

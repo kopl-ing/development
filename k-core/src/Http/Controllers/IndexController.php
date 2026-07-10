@@ -18,13 +18,11 @@ class IndexController
 
     public function __invoke(Request $request)
     {
-        $portal = Str::before($request->route()->getName(), '/');
-
-        $portal = $this->manager->portals()->firstWhere('id', $portal);
-
-        if (! $portal) {
+        if (! $request->attributes->has('portal')) {
             abort(404);
         }
+
+        $portal = $request->attributes->get('portal');
 
         $context = new Context(
             subject: Moment::query()->latest()->paginate(),

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9aa55d417cea04bce9aa9f4e7262fe1d",
+    "content-hash": "da5414a35ecea174c725b758edfb7f73",
     "packages": [
         {
             "name": "brick/math",
@@ -1144,6 +1144,34 @@
                 }
             ],
             "description": "The Admin portal for Kopling -- community-operator tools, gated behind their own permissions.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "kopling/auth-password",
+            "version": "dev-feat/discussions",
+            "dist": {
+                "type": "path",
+                "url": "./k-extensions/auth-password",
+                "reference": "727c084cb4fd358160fb5cba2462bc60e8da8955"
+            },
+            "type": "kopling-extension",
+            "autoload": {
+                "psr-4": {
+                    "Kopling\\AuthPassword\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Daniël Klabbers",
+                    "email": "daniel@klabbers.email"
+                }
+            ],
+            "description": "Username/password login for Kopling -- the first login-method extension, built on Core's ValidateLogin/AttemptLogin events.",
             "transport-options": {
                 "relative": true
             }
@@ -6275,6 +6303,7 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "kopling/admin": 20,
+        "kopling/auth-password": 20,
         "kopling/core": 20,
         "kopling/demo": 20,
         "kopling/discussions": 20,

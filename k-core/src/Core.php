@@ -10,6 +10,7 @@ use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
+use Kopling\Core\Http\Middleware\InjectPortal;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Footer;
@@ -67,7 +68,12 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Has
     public function portals(): array
     {
         return [
-            new Portal(id: 'community', label: 'Community', path: '', layout: 'core::layouts.community')
+            new Portal(
+                id: 'community',
+                label: 'Community',
+                path: '',
+                layout: 'core::layouts.community',
+            )
                 ->routes(__DIR__ . '/../routes/community.php'),
         ];
     }

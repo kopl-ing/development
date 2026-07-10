@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extension;
 
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Collection;
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
@@ -12,6 +13,7 @@ use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
+use Kopling\Core\Extension\Contract\ListensToEvents;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Storage\StorageRequest;
@@ -26,7 +28,10 @@ class Manager
      */
     protected ?array $extensions = null;
 
-    public function __construct(protected Manifest $manifest)
+    public function __construct(
+        protected Manifest $manifest,
+        protected Dispatcher $events,
+    )
     {
     }
 
@@ -320,6 +325,27 @@ class Manager
         }
 
         return collect(array_values($registry));
+    }
+
+    /**
+     * Registers every listener declared by every extension directly against the event
+     * dispatcher -- a side effect, not an aggregation like `ux()`/`permissions()`, so there's
+     * nothing to return.
+     */
+    public function listeners(): void
+    {
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof ListensToEvents) {
+                continue;
+            }
+
+            foreach ($extension->listen() as $event => $listener) {
+                match (true) {
+                    is_string($event) => $this->events->listen($event, $listener),
+                    default => $this->events->subscribe($listener)
+                };
+            }
+        }
     }
 
     /**
