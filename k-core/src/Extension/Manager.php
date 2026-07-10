@@ -85,8 +85,10 @@ class Manager
         $conventions = [];
 
         foreach (['migrations', 'views', 'css', 'js', 'routes', 'lang'] as $kind) {
-            if (is_dir($path.'/'.$kind)) {
-                $conventions[$kind] = $path.'/'.$kind;
+            $find = realpath($path.'/'.$kind);
+
+            if ($find && is_dir($path.'/'.$kind)) {
+                $conventions[$kind] = $find;
             }
         }
 
@@ -95,6 +97,10 @@ class Manager
 
     public function path(string $package): ?string
     {
+        if ($package === 'core') {
+            return __DIR__ . '/../../';
+        }
+
         return $this->manifest->extensions()[$package]['path'] ?? null;
     }
 
