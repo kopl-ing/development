@@ -1,5 +1,5 @@
 @php use Kopling\Reactions\Reaction; @endphp
-@props(['data' => [], 'context' => null])
+@props(['data' => [], 'context' => null, 'oob' => false])
 {{--
     One moment's reaction rail, registered into `core::card.footer`. Rendered two ways, both
     reaching this same file: as the anonymous component `<x-kopling-reactions::rail>` the
@@ -21,7 +21,9 @@
         $hasAny = array_sum($counts) > 0;
     @endphp
     @if ($canReact || $hasAny)
-        <div id="reactions-{{ $moment->id }}" class="flex flex-wrap items-center gap-1.5">
+        {{-- $oob: when the word form re-renders the strip, it also carries the rail back as
+             an out-of-band swap so its counts stay in sync without a page reload. --}}
+        <div id="reactions-{{ $moment->id }}" @if ($oob) hx-swap-oob="true" @endif class="flex flex-wrap items-center gap-1.5">
             @foreach (Reaction::PALETTE as $emoji)
                 @php
                     $count = $counts[$emoji] ?? 0;

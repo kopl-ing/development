@@ -17,21 +17,26 @@ class Extension extends AbstractExtension implements ChangesUx
 
     public static function description(): string
     {
-        return 'Lightweight emoji reactions for moments.';
+        return 'Emoji and worded reactions for moments.';
     }
 
     /**
      * Fills the `core::card.footer` slot that `Card\Footer` deliberately leaves empty for a
-     * real reactions feature. Registers the extension's own anonymous component by its tag
-     * (`kopling-reactions::rail`), not a class -- extensions get an auto view namespace but
-     * not a class-component namespace, so `ComponentTag` passes the tag through untouched and
-     * the footer renders it via `<x-dynamic-component>`.
+     * real reactions feature, with two entries: the emoji `rail` (the calm aggregate) and the
+     * `words` strip ("Latest reactions") after it. Both are registered by their anonymous
+     * component tag, not a class -- extensions get an auto view namespace but not a
+     * class-component namespace, so `ComponentTag` passes the tag through untouched and the
+     * footer renders each via `<x-dynamic-component>`.
      */
     public function ux(): Ux
     {
         return Ux::make()
             ->add('kopling-reactions::rail')
             ->in('core::card.footer')
-            ->as('rail');
+            ->as('rail')
+            ->add('kopling-reactions::words')
+            ->in('core::card.footer')
+            ->as('words')
+            ->after('rail');
     }
 }

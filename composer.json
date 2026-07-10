@@ -19,7 +19,7 @@
         "kopling/discussions": "@dev",
         "kopling/example": "@dev",
         "kopling/reactions": "@dev",
-        "kopling/theme-midnight": "@dev"
+        "kopling/theme-delft": "@dev"
     },
     "autoload": {
         "psr-4": {

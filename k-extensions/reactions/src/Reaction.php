@@ -25,10 +25,17 @@ class Reaction extends Model
      */
     public const PALETTE = ['👍', '❤️', '😂', '🎉', '😮', '😢'];
 
+    /** How many worded reactions the "Latest reactions" strip shows before it stops. */
+    public const WORDS_LIMIT = 6;
+
+    /** Longest word a reaction may carry -- matches the migration column + the route guard. */
+    public const WORD_MAX = 40;
+
     protected $fillable = [
         'moment_id',
         'person_id',
         'emoji',
+        'word',
     ];
 
     public function moment(): BelongsTo
@@ -71,5 +78,23 @@ class Reaction extends Model
             'mine' => $mine,
             'canReact' => $actor !== null,
         ];
+    }
+
+    /**
+     * The most recent worded reactions on a moment (newest first), each with its author
+     * eager-loaded -- the "Latest reactions" strip. Plain (wordless) rail toggles are
+     * excluded; only reactions that actually carry a word show here.
+     *
+     * @return \Illuminate\Support\Collection<int, static>
+     */
+    public static function latestWorded(Moment $moment, int $limit = self::WORDS_LIMIT): \Illuminate\Support\Collection
+    {
+        return static::query()
+            ->with('person')
+            ->where('moment_id', $moment->id)
+            ->whereNotNull('word')
+            ->latest()
+            ->limit($limit)
+            ->get();
     }
 }

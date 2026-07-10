@@ -18,6 +18,10 @@ return new class extends Migration
             $table->foreignUuid('moment_id')->constrained(table: 'moments')->cascadeOnDelete();
             $table->foreignUuid('person_id')->constrained(table: 'people')->cascadeOnDelete();
             $table->string('emoji');
+            // Optional short word that turns a plain emoji reaction into a "worded" one --
+            // the demo's "Latest reactions" strip. Null for a plain rail toggle; a reaction
+            // is the same row whether or not it carries a word (one per moment+person+emoji).
+            $table->string('word', 40)->nullable();
             $table->timestamps();
 
             $table->unique(['moment_id', 'person_id', 'emoji']);
