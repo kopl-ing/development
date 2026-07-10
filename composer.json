@@ -19,6 +19,7 @@
         "kopling/discussions": "@dev",
         "kopling/example": "@dev",
         "kopling/reactions": "@dev",
+        "kopling/tags": "@dev",
         "kopling/theme-delft": "@dev"
     },
     "autoload": {
