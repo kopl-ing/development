@@ -45,15 +45,26 @@ class UxEntry
     public string|\Closure|null $condition = null;
 
     /**
+     * Set by `SlotResolver::resolve()` right before rendering, when the slot being resolved
+     * is bound to something (a `Moment`'s Card header, say) -- `null` for slots that aren't
+     * (page-level ones like `core::side-navigation`). See `Context` itself for why this
+     * carries the binding instead of a loose array merged into `$data`.
+     */
+    public ?Context $context = null;
+
+    /**
      * @param  string  $component  A Blade component reference -- either an already-valid tag
      *                              ("k::portal.navigation.item") or the component's own FQCN
      *                              ("Item::class"), resolved to a tag by `ComponentTag` --
      *                              rendered via <x-dynamic-component>.
-     * @param  array  $data  Passed whole as the single `data` prop -- every component a UxEntry
-     *                        can render (core-provided or an extension's own) takes one `array
-     *                        $data` constructor param, not a spread of named props, so any
-     *                        component can be targeted without Manager/SlotResolver needing to
-     *                        know its individual prop names.
+     * @param  array  $data  Passed whole as the single `data` prop -- static, author-declared
+     *                        configuration for this registration (e.g. a reactions button's
+     *                        own settings), as opposed to `$context`, which is the dynamic,
+     *                        render-time binding. Every component a UxEntry can render (core-
+     *                        provided or an extension's own) takes one `array $data`
+     *                        constructor param, not a spread of named props, so any component
+     *                        can be targeted without Manager/SlotResolver needing to know its
+     *                        individual prop names.
      */
     public function __construct(
         public string $component,

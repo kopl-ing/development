@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Kopling\Core\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Validation\UnauthorizedException;
+use Illuminate\Support\Str;
+use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Ux\Context;
 
-class PortalController
+class IndexController
 {
     public function __construct(readonly protected Manager $manager)
     {
@@ -16,7 +18,7 @@ class PortalController
 
     public function __invoke(Request $request)
     {
-        $portal = $request->route()->getName();
+        $portal = Str::before($request->route()->getName(), '/');
 
         $portal = $this->manager->portals()->firstWhere('id', $portal);
 
@@ -24,11 +26,13 @@ class PortalController
             abort(404);
         }
 
-        if ($portal->permission && ! $request->user()?->hasPermission($portal->permission)) {
-            abort(403);
-        }
+        $context = new Context(
+            subject: Moment::query()->latest()->paginate(),
+            portal: $portal,
+            request: $request,
+        );
 
         return view($portal->layout)
-            ->with('portal', $portal);
+            ->with('context', $context);
     }
 }

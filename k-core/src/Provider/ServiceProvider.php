@@ -44,7 +44,7 @@ class ServiceProvider extends Provider
 
         $this->loadMigrationsFrom(__DIR__.'/../migrations');
         $this->loadViewsFrom(__DIR__.'/../Ux/views', 'core');
-        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
 
         foreach ($manager->extensions() as $package => $extension) {
             $id = $manager->id($package);

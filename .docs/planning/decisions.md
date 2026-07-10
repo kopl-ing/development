@@ -1143,3 +1143,124 @@ yet-solved extension load-order problem (flagged in the Admin-split entry above)
 
 **Status:** Not implemented, intentionally. Tracked in code (`Manager::extensions()`'s own
 docblock) and here so it surfaces again once a real need for it shows up.
+
+---
+
+## 2026-07-10 — Community's card feed extracted into granular `Ux/Card/*` components
+
+**Decision:** The hand-written card markup in `layouts/community.blade.php` (built the same
+session, immediately prior) is now eleven small components under `Kopling\Core\Ux\Card\*`
+(`<x-k::card.*>`, following the same core-only directory-mirroring convention as `Ux/Portal/*`):
+`Card` (the `card`/`card-body` shell), `Top` (header row), `Body` (title/text area), `Footer`
+(bottom row, reuses daisyUI's own `card-actions` part), `Avatar`, `Author`, `Timestamp`, `Tag`,
+`Control` (the per-card "..." actions button), and two content-agnostic layout primitives, `Row`/
+`Column` (flex arrangement, no props, used both inside `Top` for the author/timestamp grouping and
+inside `Footer` for the reply/reaction counts). `community.blade.php` now composes these instead of
+writing the markup directly.
+
+**Why this decomposition, not fewer/coarser components:** matches the charter's own stated
+extensibility model directly — "Keep Blade partials small. Partial granularity IS the
+extensibility budget" — rather than introducing a new principle. A single monolithic `Card`
+component would have been simpler today but would force anyone wanting a slightly different card
+(a different control, no timestamp, an extra badge) to fork the whole thing instead of recomposing
+smaller pieces. `Row`/`Column` deliberately take no props and know nothing about cards
+specifically — proven as genuinely general (not just "footer helpers") by reuse inside `Top` for
+the author/timestamp stack, the same session they were written.
+
+**Where `ml-auto` lives, and why it matters:** on `Control` itself, not on `Tag` or imposed by
+`Top`'s own markup — matches the actual request ("row containing avatar, author, timestamp, tag
+and, aligned right, a card control"): everything up to and including `Tag` flows left-to-right
+normally: `Control` is the one thing that floats to the far right, and it earns that behavior by
+carrying it itself rather than `Top` special-casing "whatever's last."
+
+**Deliberately not built:** `Control` renders a plain, non-functional icon button — no dropdown,
+no menu items, no htmx attributes. There's no real per-post action (edit, delete, report) to hang
+off it yet; wiring one in before a real action exists would mean inventing fake interactivity.
+daisyUI's own `dropdown` component (popover-API variant) is the documented path once one does.
+
+**Status:** Decided & implemented. `k-core/src/Ux/Card/*.php` (11 classes) and their mirrored
+`k-core/src/Ux/views/card/*.blade.php`; `layouts/community.blade.php` updated to compose them.
+Verified: cleared compiled views, re-fetched the live Community page over real HTTP, confirmed all
+three placeholder cards render with the exact same structure as the pre-extraction inline markup
+(avatar, author/timestamp column, tag, control button all present and correctly positioned; title/
+excerpt; reply/reaction counts) — a pure refactor, no visual/structural change intended or
+observed.
+
+---
+
+## 2026-07-10 — Card's header/body/footer become genuinely extensible, bound to a real `Moment` model, via two small mechanisms — not one growing `SlotResolver`
+
+**Decision:** `Card`'s previously-hardcoded children (built the same session, immediately prior)
+now go through the extension mechanism, but split deliberately across two small, separately-scoped
+pieces rather than one class absorbing every new concern:
+
+1. **Child-slot composition — the existing `Ux`/`Manager::ux()` pipeline, completely unchanged.**
+   `Top`/`Body`/`Footer`'s own regions are just slot names (`core::card.header`, `core::card.body`,
+   `core::card.footer`) — the same fully-qualified-string convention `core::side-navigation`
+   already uses. An extension targets them with the exact same `.add()`/`.replace()`/`.remove()`/
+   `.after()`/`.before()`/`.when()` calls already known from `ChangesUx`. Zero code changed in
+   `Manager::ux()` to make this work — it was already slot-name-agnostic.
+2. **Component-declared defaults — co-located on the component itself, not centralized.** `Top`/
+   `Footer`/`Body` each gained a `public const SLOT` and `public static function defaults(Ux $ux):
+   void` appending their own default children onto a builder passed in. `Core::ux()` is now a
+   *thin composition point* — `Top::defaults($ux); Footer::defaults($ux); Body::defaults($ux);` —
+   not a dumping ground; the actual declarations live on each component class. Directly answers
+   "each component needs a class and a definition of what child components go" — open `Top.php`,
+   its defaults are right there, not buried in `Core`.
+
+**Explicitly dropped, not deferred:** a third mechanism for wholesale component replacement (a
+`ReplacesComponents` contract + `Manager::components()` collector + `ComponentRegistry`, resolving
+`Card` itself via `<x-dynamic-component>` instead of a hardcoded tag) was designed and then
+rejected during review — the contract-plus-collector shape didn't sit right. Unlike the load-order
+or theme-selection gaps flagged earlier this session, this isn't tracked as a TODO to resume from
+this sketch — it's out of scope for now, to be redesigned from scratch if a real need for it shows
+up. `Card` stays a plain, directly-tagged component; only what's *inside* it is extensible today.
+
+**`Context`, not a loose `array $data`, for the dynamic/model-bound channel.** A new
+`Kopling\Core\Ux\Context` (`subject`, `actor` — `actor` defaults to `Auth::user()`, `null` for a
+guest) is constructed once per rendered `Moment` and passed unchanged from `Card` down through
+`Top`/`Body`/`Footer` to every slot-rendered leaf. `UxEntry` gained a matching mutable
+`public ?Context $context = null`; `SlotResolver::resolve()` gained an optional `?Context $context`
+parameter, set on every surviving entry right before rendering (`null` for slots that aren't bound
+to anything, like `core::side-navigation`). Every leaf (`Avatar`, `Author`, `Timestamp`, `Control`,
+new `Content`) now uniformly takes **both** `array $data` (static, author-declared config — still
+useful, e.g. a future reactions button's own settings) **and** `?Context $context` (the dynamic
+binding) — two clearly separate channels, always both present, rather than conflating "what this
+registration configured" with "what instance this is rendering for" into one array. `subject` is
+typed `mixed`, not `Moment` — only one bound-model type exists today, so a shared interface would
+be invented ahead of a real second one (same reasoning as the deferred extension-load-order and
+theme-selection gaps).
+
+**No `tag` on `Moment` at all.** Tagging is a future extension's own concern, not core's — the
+`moments` migration has no `tag` column, and `Top::defaults()` no longer registers a `Tag` child by
+default. The `Tag` component class itself is kept (a generic, reusable "small label" primitive a
+real tags extension can reuse) — just not part of Core's own header defaults anymore.
+
+**`Author`+`Timestamp` are no longer visually grouped.** They were stacked via `Column` before;
+now they're two independent, individually-orderable entries in the flat `core::card.header` list
+(so an extension can insert something *between* them), rendering inline instead of stacked — a
+stated trade-off, not an oversight. `Row`/`Column` aren't deleted, just unused by Card's own
+defaults for now.
+
+**`Footer` ships with zero default children on purpose.** No fake reply/reaction counts —
+`k-extensions/reactions` (still a bare stub, no contracts implemented) is the real future consumer
+of `core::card.footer`. Shipping a placeholder count now would be exactly the "dummy data" this
+redesign was meant to get away from.
+
+**The `Moment` model:** `Kopling\Core\Content\Moment` (`HasUuids`, matching `Person`/`Group`;
+`belongsTo(Person::class)`), migration `2026_07_10_000003_create_moments_table.php` — `id`,
+`person_id` (FK → people, cascade delete), `title`, `body`, timestamps. `community.blade.php` now
+queries `Moment::with('person')->latest()->get()` instead of a hardcoded array, building one
+`Context` per moment.
+
+**Status:** Decided & implemented. `Kopling\Core\Ux\Context`, `UxEntry::$context`,
+`SlotResolver::resolve()`'s new param, `Core::ux()`, `Kopling\Core\Ux\Card\{Card,Top,Body,Footer,
+Content,Avatar,Author,Timestamp,Control}.php` and their views, `Kopling\Core\Content\Moment` +
+migration, `community.blade.php`. Verified: real HTTP render of the Community portal with two
+seeded `Moment` rows shows correct avatar initials, author name, real relative timestamps (via
+`created_at->diffForHumans()`), title/body, empty footer, no tag anywhere. Extensibility proven via
+tinker with a synthetic `ChangesUx` implementor targeting `core::card.header`: its entry appears
+correctly positioned (`.after('core::author')` landed it between author and timestamp) and its
+`$entry->context->subject` is confirmed to be the exact same `Moment` instance every core entry
+received. The `SLOT`/`defaults()`/`data`+`context` pattern is the template for `Portal`/`Slot`/
+`Item` and anywhere else later — not applied there in this pass.

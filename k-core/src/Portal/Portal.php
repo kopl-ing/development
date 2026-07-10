@@ -12,6 +12,8 @@ namespace Kopling\Core\Portal;
  */
 class Portal
 {
+    public ?string $routes = null;
+
     public function __construct(
         public string $id,
         public readonly string $label,
@@ -22,5 +24,16 @@ class Portal
         public ?string $permission = null,
         public readonly ?array $middleware = null,
     ) {
+    }
+
+    public function routes(string $path): self
+    {
+        if (! file_exists($path)) {
+            throw new \InvalidArgumentException("Portal routes path does not exist for portal $this->id: $path");
+        }
+
+        $this->routes = $path;
+
+        return $this;
     }
 }

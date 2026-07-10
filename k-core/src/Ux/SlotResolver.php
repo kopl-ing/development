@@ -18,16 +18,26 @@ use Illuminate\Support\Facades\Gate;
 class SlotResolver
 {
     /**
+     * `$context`, when given, is set on every surviving entry -- for a slot bound to
+     * something (a `Moment`'s Card header, say), not for a page-level one like
+     * `core::side-navigation`, which has nothing to bind and passes `null`.
+     *
      * @param  Collection<int, UxEntry>  $entries
      * @return Collection<int, UxEntry>
      */
-    public static function resolve(string $slot, Collection $entries): Collection
+    public static function resolve(string $slot, Collection $entries, ?Context $context = null): Collection
     {
         $ordered = static::order(
             $entries->filter(fn (UxEntry $entry) => $entry->slot === $slot)->values()->all()
         );
 
-        return collect($ordered)->filter(fn (UxEntry $entry) => static::passes($entry))->values();
+        $visible = collect($ordered)->filter(fn (UxEntry $entry) => static::passes($entry))->values();
+
+        if ($context !== null) {
+            $visible->each(fn (UxEntry $entry) => $entry->context = $context);
+        }
+
+        return $visible;
     }
 
     /**
