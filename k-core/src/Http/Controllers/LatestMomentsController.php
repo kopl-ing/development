@@ -51,7 +51,7 @@ class LatestMomentsController
      */
     public function check(Request $request): Response
     {
-        $portal = $this->portal($request);
+        $portal = $request->attributes->get('portal');
         $since = Carbon::parse($request->query('since'));
 
         $count = Moment::where('created_at', '>', $since)->count();
@@ -76,7 +76,7 @@ class LatestMomentsController
      */
     public function load(Request $request): View
     {
-        $portal = $this->portal($request);
+        $portal = $request->attributes->get('portal');
         $since = Carbon::parse($request->query('since'));
 
         $moments = Moment::where('created_at', '>', $since)->latest()->get();
@@ -86,12 +86,5 @@ class LatestMomentsController
             'moments' => $moments,
             'since' => optional($moments->first())->created_at?->toIso8601String() ?? $since->toIso8601String(),
         ]);
-    }
-
-    protected function portal(Request $request): \Kopling\Core\Portal\Portal
-    {
-        $id = Str::before($request->route()->getName(), '/');
-
-        return $this->manager->portals()->firstWhere('id', $id);
     }
 }
