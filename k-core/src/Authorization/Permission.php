@@ -23,7 +23,7 @@ class Permission
      * @param  ?\Closure(\Kopling\Core\People\Person, mixed ...$args): bool  $callback
      */
     public function __construct(
-        public readonly string $id,
+        public string $id,
         public readonly string $label,
         public readonly string $description,
         public readonly ?\Closure $callback = null,

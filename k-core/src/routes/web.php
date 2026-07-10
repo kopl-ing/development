@@ -1,11 +1,15 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Kopling\Core\Http\Controllers\HomeController;
+use Kopling\Core\Extension\Manager;
+use Kopling\Core\Http\Controllers\PortalController;
+use Kopling\Core\Portal\Portal;
 
-// bootstrap/app.php doesn't declare a `web:` routes file, so the `web` middleware group
-// (sessions, cookies, CSRF) isn't attached automatically -- apply it explicitly here.
-Route::middleware('web')->group(function () {
-    Route::get('/', HomeController::class)->name('home');
-});
+$portals = app(Manager::class)->portals();
 
+$portals
+    ->each(function (Portal $portal) {
+        Route::get($portal->path, PortalController::class)
+            ->middleware($portal->middleware ?? 'web')
+            ->name($portal->id);
+    });

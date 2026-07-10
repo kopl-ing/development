@@ -13,10 +13,14 @@ namespace Kopling\Core\Portal;
 class Portal
 {
     public function __construct(
-        public readonly string $id,
+        public string $id,
         public readonly string $label,
         public readonly string $path,
         public readonly string $layout,
+        public readonly ?string $icon = null,
+        public readonly ?string $description = null,
+        public readonly ?string $permission = null,
+        public readonly ?array $middleware = null,
     ) {
     }
 }

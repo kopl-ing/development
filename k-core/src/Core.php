@@ -39,6 +39,11 @@ class Core extends AbstractExtension implements ChangesUx, HasPermissions, HasPo
     {
         return [
             new Permission(
+                id: 'access-admin',
+                label: 'Access admin panel',
+                description: 'Allows access to the community admin panel.',
+            ),
+            new Permission(
                 id: 'manage-people',
                 label: 'Manage people',
                 description: 'Create, edit, and remove people and groups.',
@@ -58,7 +63,7 @@ class Core extends AbstractExtension implements ChangesUx, HasPermissions, HasPo
     {
         return [
             new Portal(id: 'community', label: 'Community', path: '', layout: 'core::layouts.community'),
-            new Portal(id: 'admin', label: 'Admin', path: 'admin', layout: 'core::layouts.admin'),
+            new Portal(id: 'admin', label: 'Admin', path: 'admin', layout: 'core::layouts.admin', permission: 'access-admin'),
         ];
     }
 

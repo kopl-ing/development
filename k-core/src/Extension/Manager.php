@@ -98,9 +98,12 @@ class Manager
     }
 
     /**
-     * Storage requests declared by every extension, keyed the same way as `id()` namespaces
-     * views/translations -- so the admin storage-mapping screen can show which extension
-     * owns each request instead of one anonymous, flattened list.
+     * Storage requests declared by every extension, grouped by extension id the same way
+     * `id()` namespaces views/translations -- so the admin storage-mapping screen can show
+     * which extension owns each request instead of one anonymous, flattened list. Within
+     * that, `StorageRequest::$id` is itself also prefixed the same way `permissions()`/
+     * `portals()`/`ux()` prefix theirs, so two extensions declaring the same local id (e.g.
+     * both wanting an "avatars" purpose) don't collide.
      *
      * @return array<string, array<StorageRequest>>
      */
@@ -109,9 +112,18 @@ class Manager
         $requests = [];
 
         foreach ($this->extensions() as $package => $extension) {
-            if ($extension instanceof RequestsStorageDriver) {
-                $requests[$this->id($package)] = $extension->storage();
+            if (! $extension instanceof RequestsStorageDriver) {
+                continue;
             }
+
+            $prefix = $this->id($package).'::';
+            $declared = $extension->storage();
+
+            foreach ($declared as $request) {
+                $request->id = $prefix.$request->id;
+            }
+
+            $requests[$this->id($package)] = $declared;
         }
 
         return $requests;
@@ -135,12 +147,9 @@ class Manager
             }
 
             foreach ($extension->permissions() as $permission) {
-                $permissions[] = new Permission(
-                    id: $this->id($package).'::'.$permission->id,
-                    label: $permission->label,
-                    description: $permission->description,
-                    callback: $permission->callback,
-                );
+                $permission->id = $this->id($package).'::'.$permission->id;
+
+                $permissions[] = $permission;
             }
         }
 
@@ -166,16 +175,13 @@ class Manager
             }
 
             foreach ($extension->portals() as $portal) {
-                $portals[] = new Portal(
-                    id: $this->id($package).'::'.$portal->id,
-                    label: $portal->label,
-                    path: $portal->path,
-                    layout: $portal->layout,
-                );
+                $portal->id = $this->id($package).'::'.$portal->id;
+
+                $portals[] = $portal;
             }
         }
 
-        return collect($portals);
+        return collect($portals)->keyBy('id');
     }
 
     /**

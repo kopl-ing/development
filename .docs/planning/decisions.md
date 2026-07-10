@@ -675,3 +675,61 @@ with one component doesn't need a domain hierarchy to organize it).
 **Status:** Decided & implemented. First working reference:
 `k-core/src/Ux/Portal/{Layout,Navigation/Side,Navigation/Item}.php` and their mirrored
 `k-core/src/Ux/views/portal/{layout,navigation/side,navigation/item}.blade.php`.
+
+---
+
+## 2026-07-10 — One id field, mutated in place by `Manager`, across every extension-declared value object
+
+**Decision:** `Permission`, `Portal`, `UxEntry`, and now `StorageRequest` all name their local
+identifier `$id` (not `key`, not anything else) and declare it as a plain mutable property —
+never `readonly`, and the class itself is never `readonly class` either, even though every other
+property on these value objects stays `readonly`. `Manager`'s four collectors
+(`permissions()`/`portals()`/`ux()`/`storageDrivers()`) all prefix that same `$id` the same way:
+mutate it in place (`$declared->id = $this->id($package).'::'.$declared->id;`) and keep the same
+object, rather than constructing a new copy of the value object with every other field
+hand-repeated just to attach a prefix.
+
+`StorageRequest::$key` is renamed to `$id` as part of this pass, and `storageDrivers()` now
+prefixes it (`kopling-example::avatars`) the same way the other three collectors already prefix
+theirs — extending the "StorageRequest capabilities" entry above, which predates this
+standardization and still hand-wrote `$key` with no prefixing at all (uniqueness wasn't yet a
+concern when only one extension declared any storage purpose). The grouped-by-extension return
+shape `array<string, array<StorageRequest>>` is unchanged — that grouping and the request's own
+prefixed id serve different purposes (which extension owns it vs. a globally unique name for it)
+and both are worth keeping.
+
+**Why the naming standardization:** `permissions()` originally reconstructed a brand new
+`Permission` for every entry, copying `label`/`description`/`callback` over unchanged just to
+attach a prefixed id — the same shape `portals()` and `ux()` were about to need too. Once `Portal`
+and `UxEntry` were built with a mutable `$id` from the start (so `Manager` could mutate in place
+instead of rebuilding), `Permission`'s copy-to-prefix pattern stood out as the odd one out, not the
+norm. `StorageRequest::$key` was the last holdout using a different field name entirely for the
+same concept (an author-chosen local identifier `Manager` prefixes) — standardizing the name
+alongside the mutation pattern means all four value objects read the same way at a glance: "this is
+the thing `Manager` prefixes," not "this one's called `key` for historical reasons."
+
+**Why mutate in place instead of keeping value objects immutable:** these objects are already
+reconstructed fresh on every request (an extension's `permissions()`/`portals()`/`ux()`/`storage()`
+method is called anew each time `Manager`'s collectors run, per the "recomputed fresh every
+request, never persisted" reasoning in the Permissions entry above) — there's no shared/cached
+instance a mutation could corrupt across requests or across two different callers. Given that,
+requiring every collector to hand-copy every other field just to attach one prefixed string was
+ceremony with no actual safety benefit.
+
+**Alternatives considered:** Keeping these value objects fully immutable (`readonly` id included)
+and having `Manager` construct a prefixed copy, as `permissions()` originally did — rejected once
+the pattern had to be written three more times (`portals()`, `ux()`, and now `storageDrivers()`);
+the copy step was pure boilerplate, not a safety property worth its repetition. A custom
+`ensure()`-backed typed `Collection` per value object, considered earlier the same session for
+`UxEntry`/`Portal` and reverted (see the `ChangesUx`/`Ux` entry above) — unrelated to this
+decision but the same instinct (add structure defensively) rejected for the same reason: the
+mutation these collectors do is trusted, request-scoped, internal `Manager` code, not something
+that needs guarding against.
+
+**Status:** Decided & implemented. `Permission::$id`, `Portal::$id` (already mutable from the
+Portals entry above), `UxEntry::$id` (already mutable from the `ChangesUx` entry above), and now
+`StorageRequest::$id` (renamed from `$key`, dropped the class-level `readonly`). All four of
+`Manager`'s collectors mutate in place. `k-extensions/example`'s `Extension::storage()` updated to
+`id: 'avatars'`. Verified via tinker: `Manager::storageDrivers()` returns
+`kopling-example::avatars` grouped under the `kopling-example` key, same shape as before, just
+with the request's own id now prefixed too.

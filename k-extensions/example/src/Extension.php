@@ -43,7 +43,7 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     {
         return [
             new StorageRequest(
-                key: 'avatars',
+                id: 'avatars',
                 label: 'Avatars',
                 description: 'Profile pictures uploaded by members.',
                 access: StorageAccess::Public,
