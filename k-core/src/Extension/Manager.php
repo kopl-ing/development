@@ -9,6 +9,7 @@ use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
@@ -138,6 +139,29 @@ class Manager
         }
 
         return $requests;
+    }
+
+    /**
+     * Every artisan command class declared by every extension. Unlike `permissions()`/
+     * `portals()`/`ux()`, nothing here gets prefixed -- a command is referenced by its own
+     * fully-qualified class name, already namespaced to the extension that declared it, so
+     * there's no local id to collide with another extension's.
+     *
+     * @return array<class-string>
+     */
+    public function commands(): array
+    {
+        $commands = [];
+
+        foreach ($this->extensions() as $extension) {
+            if (! $extension instanceof HasCommands) {
+                continue;
+            }
+
+            array_push($commands, ...$extension->commands());
+        }
+
+        return $commands;
     }
 
     /**

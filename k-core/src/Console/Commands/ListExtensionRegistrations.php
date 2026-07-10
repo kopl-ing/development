@@ -21,10 +21,10 @@ use Symfony\Component\Console\Attribute\AsCommand;
  * so an author (or anyone reviewing what an extension does) doesn't have to cross-reference
  * Manager's collectors and the filesystem by hand.
  */
-#[AsCommand(name: 'kopling:extension:registrations')]
+#[AsCommand(name: 'kopling:extensions:registrations')]
 class ListExtensionRegistrations extends Command
 {
-    protected $signature = 'kopling:extension:registrations {extension : Composer package name (kopling/example), short name (example), or "core"}';
+    protected $signature = 'kopling:extensions:registrations {extension : Composer package name (kopling/example), short name (example), or "core"}';
 
     protected $description = "List everything an extension registers with Kopling, with a usage example for each";
 

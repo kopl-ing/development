@@ -32,7 +32,11 @@ class ServiceProvider extends Provider
         $this->app->singleton(Manager::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([DiscoverExtensions::class, ListExtensionRegistrations::class]);
+            $this->commands([
+                DiscoverExtensions::class,
+                ListExtensionRegistrations::class,
+                ...$this->app->make(Manager::class)->commands(),
+            ]);
         }
     }
 

@@ -818,10 +818,10 @@ isn't demonstrated in `k-extensions/example` itself — tinker verification stan
 
 ---
 
-## 2026-07-10 — `kopling:extension:registrations`: a debugging command, not a public API, reads Manager's own collectors rather than re-deriving anything
+## 2026-07-10 — `kopling:extensions:registrations`: a debugging command, not a public API, reads Manager's own collectors rather than re-deriving anything
 
 **Decision:** `Kopling\Core\Console\Commands\ListExtensionRegistrations` (`php artisan
-kopling:extension:registrations {example|kopling/example|core}`) prints everything one installed
+kopling:extensions:registrations {example|kopling/example|core}`) prints everything one installed
 extension (or Core) registers — directory conventions present, permissions, portals, storage
 requests, Ux slot entries, whether it's `CannotBeDisabled` — each with a runnable-looking usage
 example, by calling `Manager`'s own collectors (`permissions()`/`portals()`/`storageDrivers()`/
@@ -954,7 +954,7 @@ for a page that still only says "coming soon."
 **Status:** Decided & implemented. Verified via tinker: `Core::permissions()` no longer includes
 `manage-theme`; `Manager::ux()` returns only `kopling-example::hello`; the Admin layout renders
 cleanly end-to-end with no dangling route reference anywhere. `php artisan
-kopling:extension:registrations core` confirms the same. Coming back to a real theme editor is
+kopling:extensions:registrations core` confirms the same. Coming back to a real theme editor is
 future work, not tracked as a gap here — there's no half-built route left to point at.
 
 ---
@@ -1022,7 +1022,7 @@ rather than rushing alongside a mechanical extraction.
 `k-extensions/admin/{composer.json,src/Extension.php,lang/en/permissions.php,
 views/layouts/admin.blade.php}`; `Core.php` (Admin portal/permission removed); `Manager::portals()`
 (permission-prefixing fix); `Portal::$permission` (mutable). Verified end-to-end: `php artisan
-route:list` shows `kopling-admin::admin` at `/admin`; `php artisan kopling:extension:registrations
+route:list` shows `kopling-admin::admin` at `/admin`; `php artisan kopling:extensions:registrations
 admin` lists the new extension correctly; tinker confirms the permission gate now actually passes
 when granted and denies when revoked; a guest `GET /admin` over real HTTP still gets a clean `403`,
 `GET /` (Community) unaffected.
