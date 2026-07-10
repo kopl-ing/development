@@ -14,6 +14,7 @@ use Kopling\Core\Portal\Portal;
 use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
+use Kopling\Core\Ux\Community\Sidebar;
 use Kopling\Core\Ux\Ux;
 
 /**
@@ -82,6 +83,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Has
         Top::defaults($ux);
         Footer::defaults($ux);
         Body::defaults($ux);
+        Sidebar::defaults($ux);
 
         return $ux;
     }

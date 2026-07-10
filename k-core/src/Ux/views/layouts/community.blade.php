@@ -19,44 +19,46 @@ $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->t
 <x-k::portal.layout>
     <div class="flex flex-col min-h-screen">
         <header class="navbar bg-base-100 border-b border-base-300 sticky top-0 z-30">
-            <div class="flex-1">
-                <span class="text-lg font-semibold px-4">{{ $portal->label }}</span>
-            </div>
-            <div class="flex-none gap-2 px-4">
-                <x-k::portal.slot name="core::community.topbar" />
+            <div class="flex w-full max-w-7xl mx-auto items-center">
+                <div class="flex-1">
+                    <span class="text-lg font-semibold px-4">{{ $portal->label }}</span>
+                </div>
+                <div class="flex-none gap-2 px-4">
+                    <x-k::portal.slot name="core::community.topbar" />
+                </div>
             </div>
         </header>
 
         <div class="flex flex-1">
-            <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0">
-                <ul class="menu p-4">
-                    <x-k::portal.slot name="core::community.sidebar" />
-                </ul>
-            </aside>
+            <div class="flex w-full max-w-7xl mx-auto">
+                <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0">
+                    <x-k::community.sidebar />
+                </aside>
 
-            <main class="flex-1 p-6">
-                <div class="max-w-2xl mx-auto">
-                    <div role="tablist" class="tabs tabs-border mb-4">
-                        <button role="tab" class="tab tab-active">Latest</button>
-                        <button role="tab" class="tab">Top</button>
-                        <button role="tab" class="tab">New</button>
+                <main class="flex-1 p-6">
+                    <div class="max-w-2xl mx-auto">
+                        <div role="tablist" class="tabs tabs-border mb-4">
+                            <button role="tab" class="tab tab-active">Latest</button>
+                            <button role="tab" class="tab">Top</button>
+                            <button role="tab" class="tab">New</button>
+                        </div>
+
+                        <x-k::portal.slot name="core::community.content-top" />
+
+                        @include('core::community.poll', ['portal' => $portal, 'since' => $since])
+
+                        <div id="moments-feed" class="flex flex-col gap-4">
+                            @foreach ($moments as $moment)
+                                @include('core::community.moment', ['moment' => $moment, 'portal' => $portal])
+                            @endforeach
+                        </div>
                     </div>
+                </main>
 
-                    <x-k::portal.slot name="core::community.content-top" />
-
-                    @include('core::community.poll', ['portal' => $portal, 'since' => $since])
-
-                    <div id="moments-feed" class="flex flex-col gap-4">
-                        @foreach ($moments as $moment)
-                            @include('core::community.moment', ['moment' => $moment, 'portal' => $portal])
-                        @endforeach
-                    </div>
-                </div>
-            </main>
-
-            <aside class="w-72 border-l border-base-300 p-4 hidden xl:block">
-                <x-k::portal.slot name="core::community.rail" />
-            </aside>
+                <aside class="w-72 border-l border-base-300 p-4 hidden xl:block">
+                    <x-k::portal.slot name="core::community.rail" />
+                </aside>
+            </div>
         </div>
 
         <footer class="border-t border-base-300 p-4">
