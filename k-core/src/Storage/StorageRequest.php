@@ -10,7 +10,7 @@ namespace Kopling\Core\Storage;
  * backend (local disk, S3, whatever): that choice belongs to the admin mapping this request
  * to a configured storage drive, not to the extension asking for it.
  */
-final class StorageRequest
+class StorageRequest
 {
     public function __construct(
         public readonly string $key,

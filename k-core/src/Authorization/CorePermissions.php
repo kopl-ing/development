@@ -10,7 +10,7 @@ namespace Kopling\Core\Authorization;
  * it doesn't go through Manager::id()'s auto-prefixing the way an extension's do. There's no
  * collision risk to guard against here: core is singular, never installed twice.
  */
-final class CorePermissions
+class CorePermissions
 {
     /**
      * @return array<Permission>

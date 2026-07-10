@@ -17,7 +17,7 @@ namespace Kopling\Core\Authorization;
  * (e.g. "must hold the permission AND own this specific record") -- it can never grant
  * access on its own.
  */
-final class Permission
+class Permission
 {
     /**
      * @param  ?\Closure(\Kopling\Core\People\Person, mixed ...$args): bool  $callback
