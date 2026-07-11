@@ -89,16 +89,26 @@ class ServiceProvider extends Provider
         }
 
         foreach ($manager->permissions() as $permission) {
-            Gate::define($permission->id, function (Person $person, ...$args) use ($permission) {
-                if (! $person->hasPermission($permission->id)) {
-                    return false;
-                }
+            Gate::define($permission->id, function (?Person $person, ...$args) use ($permission) {
+                // If permission is stored in the database.
+                $gated = $person?->hasPermission($permission->id);
 
-                if ($permission->callback === null) {
-                    return true;
-                }
+                if ($gated === true) return true;
 
-                return ($permission->callback)($person, ...$args);
+                // Use the callback if provided.
+                $gated = $permission->callback !== null
+                    ? ($permission->callback)($person, ...$args)
+                    : null;
+
+                if ($gated !== null) return $gated;
+
+                // Use the default value if provided.
+                if ($permission->default) $gated = $permission->default;
+
+                if ($gated !== null) return $gated;
+
+                // Block otherwise.
+                return false;
             });
         }
     }

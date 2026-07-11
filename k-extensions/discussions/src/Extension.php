@@ -59,11 +59,13 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
                 'view',
                 __('kopling-discussions::permissions.view.label'),
                 __('kopling-discussions::permissions.view.description'),
+                default: true,
             ),
             new Permission(
                 'reply',
                 __('kopling-discussions::permissions.reply.label'),
                 __('kopling-discussions::permissions.reply.description'),
+                default: true,
             ),
         ];
     }

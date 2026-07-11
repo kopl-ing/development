@@ -5,9 +5,7 @@ use Kopling\Discussions\Controllers\DiscussionController;
 
 Route::middleware('web')->group(function () {
     Route::get('/m/{moment}', [DiscussionController::class, 'show'])
-        ->name('discussions.show')
-        ->middleware('can:kopling-discussions::view');
+        ->name('discussions.show');
     Route::post('/m/{moment}/reply', [DiscussionController::class, 'reply'])
-        ->name('discussions.reply')
-        ->middleware('can:kopling-discussions::reply');
+        ->name('discussions.reply');
 });

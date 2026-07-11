@@ -26,6 +26,7 @@ class Permission
         public string $id,
         public readonly string $label,
         public readonly string $description,
+        public readonly ?bool $default = null,
         public readonly ?\Closure $callback = null,
     ) {
     }

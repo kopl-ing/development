@@ -1122,7 +1122,7 @@
         },
         {
             "name": "kopling/admin",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/admin",
@@ -1150,7 +1150,7 @@
         },
         {
             "name": "kopling/auth-password",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/auth-password",
@@ -1178,7 +1178,7 @@
         },
         {
             "name": "kopling/core",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-core",
@@ -1217,7 +1217,7 @@
         },
         {
             "name": "kopling/demo",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/demo",
@@ -1248,7 +1248,7 @@
         },
         {
             "name": "kopling/discussions",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/discussions",
@@ -1276,7 +1276,7 @@
         },
         {
             "name": "kopling/example",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/example",
@@ -1304,11 +1304,11 @@
         },
         {
             "name": "kopling/reactions",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/reactions",
-                "reference": "8b19c7428b4e02d12d19e562688ec8cd839fda79"
+                "reference": "73db6729a79498dc094793f68156ceefcbaddae7"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1332,7 +1332,7 @@
         },
         {
             "name": "kopling/theme-midnight",
-            "version": "dev-feat/discussions",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/theme-midnight",

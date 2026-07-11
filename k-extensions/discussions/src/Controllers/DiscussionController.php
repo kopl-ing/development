@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Discussions\Controllers;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Kopling\Core\Content\Moment;
@@ -12,6 +13,7 @@ use Kopling\Discussions\Reply;
 
 class DiscussionController
 {
+    use AuthorizesRequests;
     /**
      * The discussion page for one moment -- the moment itself plus its reply thread and a
      * composer. Its own route + page (reusing the base portal shell + core's card), the same
@@ -19,6 +21,8 @@ class DiscussionController
      */
     public function show(Moment $moment): View
     {
+        $this->authorize('kopling-discussions::view');
+
         return view('kopling-discussions::show', [
             'moment' => $moment,
             'replies' => Reply::forMoment($moment),
