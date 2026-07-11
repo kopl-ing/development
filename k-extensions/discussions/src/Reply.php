@@ -53,13 +53,22 @@ class Reply extends Model
      * What the activity teaser says: how many replies, how many distinct people, and how many
      * words they spent -- the demo's "N people used X words to talk about this".
      *
+     * Memoized per-moment for the lifetime of the request: the card renders this for two
+     * separate slots (the body `teaser` and the footer `engage`), which otherwise each fire
+     * their own query -- so a feed of N cards ran 2N reply queries (see issue #4). The static
+     * cache collapses that to one per moment; it's a request-scoped process that never spans
+     * requests, so there's nothing to invalidate.
+     *
      * @return array{count: int, people: int, words: int}
      */
     public static function statsFor(Moment $moment): array
     {
-        $replies = static::query()
-            ->where('moment_id', $moment->id)
-            ->get(['person_id', 'body']);
+        // Read the `replies` relation the discussions extension eager-loads onto every Moment
+        // (see Extension::models()) rather than querying per card: on the feed the whole page's
+        // replies arrive in one `whereIn`, and `->getRelation()` never lazy-loads if it wasn't.
+        $replies = $moment->relationLoaded('replies')
+            ? $moment->getRelation('replies')
+            : $moment->replies()->get(['moment_id', 'person_id', 'body']);
 
         return [
             'count' => $replies->count(),
