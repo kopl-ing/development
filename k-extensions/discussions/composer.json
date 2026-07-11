@@ -1,0 +1,19 @@
+{
+    "name": "kopling/discussions",
+    "description": "Replies for Kopling -- a discussion page per moment, with an activity teaser and engage bar.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ernest Defoe",
+            "email": "ernestdefoe@gmail.com"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Discussions\\": "src/"
+        }
+    }
+}

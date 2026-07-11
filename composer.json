@@ -16,6 +16,7 @@
         "kopling/auth-password": "@dev",
         "kopling/core": "@dev",
         "kopling/demo": "@dev",
+        "kopling/discussions": "@dev",
         "kopling/example": "@dev",
         "kopling/reactions": "@dev",
         "kopling/theme-midnight": "@dev"
