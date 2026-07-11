@@ -554,7 +554,7 @@ the theme editor's real internals (token storage, `ThemeValidator`, live-preview
 **Decision:** `Kopling\Core\Extension\Contract\ChangesUx` (`ux(): Ux`) is the single contract for
 an extension (or `Core`, same as `HasPermissions`/`HasPortals`) to place UI into any named slot —
 side navigation today, head assets/post actions/admin widgets later — rather than a new capability
-interface per surface. `Kopling\Core\Ux\Ux` is a fluent builder mirroring Laravel's own
+interface per surface. `Kopling\Core\Extend\Ux` is a fluent builder mirroring Laravel's own
 `Route::get()->name()->middleware()` chaining: `Ux::make()->add($component, $data)->in($slot)
 ->after($id)->before($id)->as($id)->when($condition)`, each call mutating the `UxEntry` started by
 the most recent `add()`. `Kopling\Core\Ux\UxEntry` holds one registered placement — unlike
@@ -738,7 +738,7 @@ with the request's own id now prefixed too.
 
 ## 2026-07-10 — `Ux`: `edit()` to restart chaining, `replace()`/`remove()` to target another entry, `add()` accepts a component's own FQCN
 
-**Decision:** Three additions to `Kopling\Core\Ux\Ux`, all building on the same fluent-builder
+**Decision:** Three additions to `Kopling\Core\Extend\Ux`, all building on the same fluent-builder
 shape:
 
 - **`edit(string $id): static`** re-selects an entry already added earlier in the *same* chain

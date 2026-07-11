@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extension;
 
+use Illuminate\Console\Command;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Collection;
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
+use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\HasModelRelations;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\ListensToEvents;
@@ -140,13 +143,13 @@ class Manager
             }
 
             $prefix = $this->id($package).'::';
-            $declared = $extension->storage();
+            $declared = collect($extension->storage())->ensure(StorageRequest::class);
 
             foreach ($declared as $request) {
                 $request->id = $prefix.$request->id;
             }
 
-            $requests[$this->id($package)] = $declared;
+            $requests[$this->id($package)] = $declared->all();
         }
 
         return $requests;
@@ -157,6 +160,11 @@ class Manager
      * `portals()`/`ux()`, nothing here gets prefixed -- a command is referenced by its own
      * fully-qualified class name, already namespaced to the extension that declared it, so
      * there's no local id to collide with another extension's.
+     *
+     * `HasCommands::commands()` returns class-strings, not instantiated objects, so there's
+     * no `Collection::ensure()` type to check against -- each entry is instead verified with
+     * `is_subclass_of(..., Command::class)`, the equivalent guard against a `HasCommands`
+     * implementor returning something that isn't actually an artisan command class.
      *
      * @return array<class-string>
      */
@@ -169,7 +177,15 @@ class Manager
                 continue;
             }
 
-            array_push($commands, ...$extension->commands());
+            foreach ($extension->commands() as $command) {
+                if (! is_string($command) || ! is_subclass_of($command, Command::class)) {
+                    throw new \UnexpectedValueException(
+                        sprintf('HasCommands::commands() should only include Command class-strings, but %s found.', get_debug_type($command))
+                    );
+                }
+
+                $commands[] = $command;
+            }
         }
 
         return $commands;
@@ -192,7 +208,9 @@ class Manager
                 continue;
             }
 
-            foreach ($extension->permissions() as $permission) {
+            $declared = collect($extension->permissions())->ensure(Permission::class);
+
+            foreach ($declared as $permission) {
                 $permission->id = $this->id($package).'::'.$permission->id;
 
                 $permissions[] = $permission;
@@ -221,8 +239,9 @@ class Manager
             }
 
             $prefix = $this->id($package).'::';
+            $declared = collect($extension->portals())->ensure(Portal::class);
 
-            foreach ($extension->portals() as $portal) {
+            foreach ($declared as $portal) {
                 $portal->id = $prefix.$portal->id;
 
                 if ($portal->permission !== null) {
@@ -234,6 +253,44 @@ class Manager
         }
 
         return collect($portals)->keyBy('id');
+    }
+
+    /**
+     * Every model relation declared by every extension, combined into one Collection keyed by
+     * the fully-qualified model class it targets. A `Relation` extender is scoped to exactly
+     * one model (`Relation::for()` throws if called a second time on the same instance), so an
+     * extension contributes one `Relation` per model it extends; where more than one extension
+     * targets the same model, their `relations` arrays are merged onto that model's entry,
+     * keyed by relation name -- last write wins on a name collision, same rule `themes()`
+     * applies on token overlap.
+     *
+     * `Collection::ensure(Relation::class)` guards `HasModelRelations::relations()` itself --
+     * every item it returns must actually be a `Kopling\Core\Extend\Relation` extender, not
+     * some other value an implementor mistakenly returned.
+     *
+     * @return Collection<string, array<string, array{class: class-string, constraint: array}>>
+     */
+    public function relations(): Collection
+    {
+        $declared = collect();
+
+        foreach ($this->extensions() as $extension) {
+            if (! $extension instanceof HasModelRelations) {
+                continue;
+            }
+
+            $declared->push(...$extension->relations());
+        }
+
+        $declared->ensure(Relation::class);
+
+        return $declared->reduce(
+            fn (Collection $relations, Relation $relation) => $relations->put(
+                $relation->model,
+                array_merge($relations->get($relation->model, []), $relation->relations)
+            ),
+            collect()
+        );
     }
 
     /**

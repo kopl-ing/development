@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extension\Contract;
 
-use Kopling\Core\Ux\Ux;
+use Kopling\Core\Extend\Ux;
 
 /**
  * One contract for every UI surface an extension might want to place something into --

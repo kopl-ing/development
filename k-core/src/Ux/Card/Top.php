@@ -7,10 +7,10 @@ namespace Kopling\Core\Ux\Card;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\View\Component;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Ux\Context;
 use Kopling\Core\Ux\SlotResolver;
-use Kopling\Core\Ux\Ux;
 use Kopling\Core\Ux\UxEntry;
 
 /**

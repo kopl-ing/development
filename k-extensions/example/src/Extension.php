@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Example;
 
 use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasPermissions;
@@ -14,7 +15,6 @@ use Kopling\Core\Storage\StoragePermission;
 use Kopling\Core\Storage\StorageRequest;
 use Kopling\Core\Storage\StorageRetention;
 use Kopling\Core\Ux\Portal\Navigation\Item;
-use Kopling\Core\Ux\Ux;
 
 /**
  * A dummy extension -- not meant to be installed for real functionality. It exists so every

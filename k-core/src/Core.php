@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace Kopling\Core;
 
 use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
-use Kopling\Core\Http\Middleware\InjectPortal;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
 use Kopling\Core\Ux\Community\Sidebar;
-use Kopling\Core\Ux\Ux;
 
 /**
  * Core's own declarations, made through the same contracts any extension would implement --

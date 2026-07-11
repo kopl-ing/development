@@ -6,10 +6,10 @@ namespace Kopling\AuthPassword;
 
 use Kopling\AuthPassword\Listeners\AttemptPasswordLogin;
 use Kopling\Core\Authentication\Event\AttemptLogin;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ListensToEvents;
-use Kopling\Core\Ux\Ux;
 
 class Extension extends AbstractExtension implements ChangesUx, ListensToEvents
 {

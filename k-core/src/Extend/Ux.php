@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Kopling\Core\Ux;
+namespace Kopling\Core\Extend;
 
 use Closure;
 use Illuminate\Support\Collection;
+use Kopling\Core\Ux\UxAction;
+use Kopling\Core\Ux\UxEntry;
 
 /**
  * The fluent builder returned by `Kopling\Core\Extension\Contract\ChangesUx::ux()` --
