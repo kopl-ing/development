@@ -28,6 +28,51 @@ use Kopling\Core\Ux\Theme\Token;
  */
 class Theme
 {
+    /**
+     * The visitor's chosen theme id, set by the topbar switcher (ThemeController). A plain
+     * cookie rather than a per-Person setting on purpose: it works for guests too, needs no
+     * schema, and matches theme_tokens being an instance-wide (not per-account) concern --
+     * per-account theming is a charter-open question, deliberately not pre-empted here.
+     */
+    public const COOKIE = 'kopling_theme';
+
+    /**
+     * Every installed theme the visitor can pick between: `[id => label]`, label = the
+     * ChangesTheme extension's `name()`. Empty when no theme extension is installed.
+     *
+     * @return array<string, string>
+     */
+    public static function available(): array
+    {
+        return app(Manager::class)->themeChoices();
+    }
+
+    /**
+     * The active theme id: the visitor's cookie when it names a still-installed theme,
+     * otherwise a deterministic default (first theme by id, so the choice never silently
+     * flips with extension load order the way the old merge-everything behaviour did). Null
+     * only when no theme extension is installed at all.
+     */
+    public static function active(): ?string
+    {
+        $available = static::available();
+
+        if ($available === []) {
+            return null;
+        }
+
+        $chosen = request()->cookie(static::COOKIE);
+
+        if (is_string($chosen) && isset($available[$chosen])) {
+            return $chosen;
+        }
+
+        $ids = array_keys($available);
+        sort($ids);
+
+        return $ids[0];
+    }
+
     public static function css(): string
     {
         $tokens = static::resolve();
@@ -50,8 +95,13 @@ class Theme
     {
         $tokens = [];
 
-        foreach (app(Manager::class)->themes() as $declared) {
-            $tokens = [...$tokens, ...$declared];
+        // Apply ONLY the active theme's tokens (a real pick between installed themes), not
+        // every ChangesTheme extension merged together -- the latter let whichever theme
+        // loaded last silently win the whole palette.
+        $active = static::active();
+
+        if ($active !== null) {
+            $tokens = app(Manager::class)->themes()->get($active, []);
         }
 
         foreach (DB::table('theme_tokens')->pluck('value', 'token') as $token => $value) {

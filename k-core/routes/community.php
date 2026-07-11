@@ -13,6 +13,8 @@ Route::get('/', IndexController::class)->name('community');
 Route::get('moments/latest', [LatestMomentsController::class, 'check'])->name('moments.latest');
 Route::get('moments/load', [LatestMomentsController::class, 'load'])->name('moments.load');
 
+Route::post('theme', ThemeController::class)->name('theme.set');
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login'])->name('login.attempt');

@@ -16,6 +16,7 @@ use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
 use Kopling\Core\Ux\Community\Sidebar;
+use Kopling\Core\Ux\Community\ThemeSwitcher;
 
 /**
  * Core's own declarations, made through the same contracts any extension would implement --
@@ -89,6 +90,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Has
         Footer::defaults($ux);
         Body::defaults($ux);
         Sidebar::defaults($ux);
+        ThemeSwitcher::defaults($ux);
 
         return $ux;
     }

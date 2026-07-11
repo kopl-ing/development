@@ -381,6 +381,28 @@ class Manager
     }
 
     /**
+     * Every installed theme as `[id => label]` for the theme switcher -- id the same key
+     * `themes()` uses (so a picked id selects that theme's token set), label the extension's
+     * own `name()`. Kept separate from `themes()` so the switcher can list themes without
+     * paying to validate every token, and so a theme with no currently-valid tokens still
+     * shows up as a choice.
+     *
+     * @return array<string, string>
+     */
+    public function themeChoices(): array
+    {
+        $choices = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if ($extension instanceof ChangesTheme) {
+                $choices[$this->id($package)] = $extension::name();
+            }
+        }
+
+        return $choices;
+    }
+
+    /**
      * Every UxEntry declared by every extension (Core included, same as permissions()),
      * resolved down to what's actually registered once every extension's `Add`/`Replace`/
      * `Remove` operations have run, in `extensions()` order. `Add` entries get `UxEntry::$id`
