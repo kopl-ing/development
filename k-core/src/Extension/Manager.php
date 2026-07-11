@@ -6,15 +6,16 @@ namespace Kopling\Core\Extension;
 
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Support\Collection;
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
-use Kopling\Core\Extend\Relation;
+use Kopling\Core\Database\Model as DatabaseModel;
+use Kopling\Core\Extend\Model as ExtendModel;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\HasCommands;
-use Kopling\Core\Extension\Contract\HasModelRelations;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\ListensToEvents;
@@ -27,7 +28,7 @@ use Kopling\Core\Ux\UxEntry;
 
 class Manager
 {
-    protected ?Collection $relations = null;
+    protected ?Collection $models = null;
 
     /**
      * @var array<string, AbstractExtension>|null
@@ -259,55 +260,70 @@ class Manager
     }
 
     /**
-     * Registers every model relation declared by every extension directly against its target
-     * model via `Model::resolveRelationUsing()` -- a side effect, not an aggregation like
-     * `permissions()`/`portals()`, so there's nothing to return (mirrors `listeners()`). A
-     * `Relation` extender is scoped to exactly one model (`Relation::for()` throws if called a
-     * second time on the same instance); each entry in its `relations` array becomes one
-     * dynamically-resolved relation method on that model, callable exactly like a hand-written
-     * `public function posts(): HasMany` would be. Where more than one extension targets the
-     * same model with the same relation name, `resolveRelationUsing()`'s own array_replace --
-     * not Manager -- decides it, last one registered wins.
+     * Registers every model extension declared by every extension -- relations directly against
+     * the target model via `Model::resolveRelationUsing()`, casts into `Database\Model`'s own
+     * flat, class-keyed cast registry (`Database\Model::registerCasts()`, read by its
+     * `getCasts()` override) -- a side effect, not an aggregation like `permissions()`/
+     * `portals()`, so there's nothing meaningful to return beyond what `ListExtensionRegistrations`
+     * -style introspection might want (mirrors `listeners()` otherwise). An `Extend\Model`
+     * instance is scoped to exactly one model class by its own constructor, so there's exactly
+     * one place "which model" is declared; where more than one extension targets the same
+     * model, their `relations`/`casts` are combined, not replaced -- a relation-name collision
+     * is last-registered-wins (`resolveRelationUsing()`'s own rule), a cast-key collision is
+     * last-declared-wins among extensions, though core's own `$casts` always wins regardless of
+     * declaration order (see `Database\Model::getCasts()`).
      *
-     * `Collection::ensure(Relation::class)` guards `HasModelRelations::relations()` itself --
-     * every item it returns must actually be a `Kopling\Core\Extend\Relation` extender, not
-     * some other value an implementor mistakenly returned.
+     * `Collection::ensure(Extend\Model::class)` guards `ExtendsModels::models()` itself --
+     * every item it returns must actually be a `Kopling\Core\Extend\Model` extender, not some
+     * other value an implementor mistakenly returned.
+     *
+     * Cached on the instance (`Manager` is bound as a singleton) so the `resolveRelationUsing()`/
+     * cast-registry side effects only ever run once, the same reasoning `extensions()` already
+     * caches on.
      */
-    public function relations(): Collection
+    public function models(): Collection
     {
-        if ($this->relations !== null) return $this->relations;
+        if ($this->models !== null) {
+            return $this->models;
+        }
 
         $declared = collect();
 
         foreach ($this->extensions() as $extension) {
-            if (! $extension instanceof HasModelRelations) {
+            if (! $extension instanceof ExtendsModels) {
                 continue;
             }
 
-            $declared->push(...$extension->relations());
+            $declared->push(...$extension->models());
         }
 
-        $declared
-            ->ensure(Relation::class)
-            ->each(function (Relation $relation) {
-                if (! class_exists($relation->model)) {
-                    return;
-                }
+        $declared->ensure(ExtendModel::class);
 
-                /** @var class-string<Model> $class */
-                $class = $relation->model;
+        $casts = [];
 
-                foreach ($relation->relations as $definition) {
-                    $class::resolveRelationUsing(
-                        $definition['name'],
-                        function (Model $model) use ($definition) {
-                            return $model->{$definition['method']}(...$definition['constraint']);
-                        }
-                    );
-                }
-            });
+        $declared->each(function (ExtendModel $model) use (&$casts) {
+            if (! class_exists($model->model)) {
+                return;
+            }
 
-        $this->relations = $declared;
+            /** @var class-string<EloquentModel> $class */
+            $class = $model->model;
+
+            foreach ($model->relations as $definition) {
+                $class::resolveRelationUsing(
+                    $definition['name'],
+                    function (EloquentModel $instance) use ($definition) {
+                        return $instance->{$definition['method']}(...$definition['constraint']);
+                    }
+                );
+            }
+
+            $casts[$model->model] = array_merge($casts[$model->model] ?? [], $model->casts);
+        });
+
+        DatabaseModel::registerCasts($casts);
+
+        $this->models = $declared;
 
         return $declared;
     }

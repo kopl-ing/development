@@ -6,16 +6,17 @@ namespace Kopling\Discussions;
 
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\HasCommands;
-use Kopling\Core\Extension\Contract\HasModelRelations;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions, HasModelRelations
+class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions, ExtendsModels
 {
     public static function name(): string
     {
@@ -73,13 +74,11 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
         ];
     }
 
-    public function relations(): array
+    public function models(): array
     {
         return [
-            (new Relation)
-                ->for(Moment::class)
-                ->hasMany('replies', Reply::class)
-                ->eagerLoad(),
+            (new Model(Moment::class))
+                ->relation((new Relation)->hasMany('replies', Reply::class)->eagerLoad()),
         ];
     }
 }

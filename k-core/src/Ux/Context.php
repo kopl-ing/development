@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
-use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\People\Person;
 use Kopling\Core\Portal\Portal;
@@ -67,13 +66,15 @@ class Context
         /** @var Manager $manager */
         $manager = resolve(Manager::class);
 
-        $manager->relations()
+        $manager->models()
             ->where('model', $this->subject->getModel()->getMorphClass())
-            ->filter(function (Relation $relation) {
-                if (is_bool($relation->eagerLoad)) return $relation->eagerLoad;
+            ->pluck('relations')
+            ->flatten(1)
+            ->filter(function (array $definition) {
+                if (is_bool($definition['eagerLoad'])) return $definition['eagerLoad'];
 
-                if (is_callable($relation->eagerLoad)) {
-                    $callable = $relation->eagerLoad;
+                if (is_callable($definition['eagerLoad'])) {
+                    $callable = $definition['eagerLoad'];
 
                     return $callable(
                         $this->portal,
@@ -84,8 +85,6 @@ class Context
 
                 return false;
             })
-            ->pluck('relations')
-            ->flatten(1)
             ->keyBy('name')
             ->each(fn (array $definition, string $relation) => $this->subject = $this->subject->with($relation));
 

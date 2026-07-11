@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extend;
 
-use Exception;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,22 +15,14 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
+/**
+ * A relation declaration, target-agnostic on its own -- `Model::relation()` is what pins it to
+ * a model, so "which model" only ever lives in one place.
+ */
 class Relation
 {
-    public ?string $model = null;
     public array $relations = [];
     public mixed $eagerLoad = false;
-
-    public function for(string $model): self
-    {
-        if ($this->model !== null) {
-            throw new Exception('Model to extend with relationships already set: '.$this->model);
-        }
-
-        $this->model = $model;
-
-        return $this;
-    }
 
     public function hasOne(string $relation, ...$args): self
     {
