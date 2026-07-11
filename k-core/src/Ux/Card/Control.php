@@ -27,6 +27,6 @@ class Control extends Component
 
     public function render(): View
     {
-        return view('core::card.control');
+        return view('kopling-core::card.control');
     }
 }

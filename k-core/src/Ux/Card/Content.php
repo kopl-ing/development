@@ -22,7 +22,7 @@ class Content extends Component
 
     public function render(): View
     {
-        return view('core::card.content', [
+        return view('kopling-core::card.content', [
             'title' => $this->context?->getSubject()?->title,
             'body' => $this->context?->getSubject()?->body,
         ]);

@@ -15,6 +15,6 @@ class Column extends Component
 {
     public function render(): View
     {
-        return view('core::card.column');
+        return view('kopling-core::card.column');
     }
 }

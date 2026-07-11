@@ -19,11 +19,11 @@ use Kopling\Core\Ux\UxEntry;
  * `Top` imposes on its children. Resolves and renders `SLOT` exactly like the page-level
  * `Slot` component does, just bound to this card's own `Context` -- an extension targets
  * `SLOT` with the same `Ux::add()`/`replace()`/`remove()`/`after()`/`before()`/`when()` calls
- * it already knows from `core::side-navigation`.
+ * it already knows from `kopling-core::side-navigation`.
  */
 class Top extends Component
 {
-    public const SLOT = 'core::card.header';
+    public const SLOT = 'kopling-core::card.header';
 
     /**
      * @var Collection<int, UxEntry>
@@ -37,7 +37,7 @@ class Top extends Component
 
     public function render(): View
     {
-        return view('core::card.top');
+        return view('kopling-core::card.top');
     }
 
     /**

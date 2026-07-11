@@ -15,6 +15,6 @@ class Tag extends Component
 
     public function render(): View
     {
-        return view('core::card.tag');
+        return view('kopling-core::card.tag');
     }
 }

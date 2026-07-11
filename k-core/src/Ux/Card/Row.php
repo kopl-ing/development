@@ -16,6 +16,6 @@ class Row extends Component
 {
     public function render(): View
     {
-        return view('core::card.row');
+        return view('kopling-core::card.row');
     }
 }

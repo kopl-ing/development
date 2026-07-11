@@ -85,7 +85,7 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     {
         return Ux::make()
             ->add(Item::class, ['label' => 'Hello', 'route' => 'example.hello'])
-            ->in('core::side-navigation')
+            ->in('kopling-core::side-navigation')
             ->as('hello')
             ->when('manage-things');
     }

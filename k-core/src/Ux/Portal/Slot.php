@@ -34,6 +34,6 @@ class Slot extends Component
 
     public function render(): View
     {
-        return view('core::portal.slot');
+        return view('kopling-core::portal.slot');
     }
 }

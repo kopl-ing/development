@@ -18,7 +18,7 @@ class Author extends Component
 
     public function render(): View
     {
-        return view('core::card.author', [
+        return view('kopling-core::card.author', [
             'name' => $this->context?->getSubject()?->person?->name,
         ]);
     }

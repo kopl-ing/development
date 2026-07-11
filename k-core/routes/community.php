@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Kopling\Core\Http\Controllers;
 
 use Illuminate\Support\Facades\Route;
+use Kopling\Core\Authentication\Controller\LoginController;
+use Kopling\Core\Authentication\Controller\RegistrationController;
 
 Route::get('/', IndexController::class)->name('community');
 
@@ -14,7 +16,8 @@ Route::get('moments/load', [LatestMomentsController::class, 'load'])->name('mome
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login'])->name('login.attempt');
-    Route::get('register', RegistrationController::class)->name('register');
+    Route::get('register', [RegistrationController::class, 'showRegistrationForm'])->name('register');
+    Route::post('register', [RegistrationController::class, 'register'])->name('register.attempt');
 });
 
 Route::post('logout', [LoginController::class, 'logout'])

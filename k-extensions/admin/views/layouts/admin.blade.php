@@ -3,7 +3,7 @@
         <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0">
             <ul class="menu p-4">
                 <li class="menu-title">{{ $portal->label }}</li>
-                <x-k::portal.slot name="core::side-navigation" />
+                <x-k::portal.slot name="kopling-core::side-navigation" />
             </ul>
         </aside>
         <div class="flex-1">

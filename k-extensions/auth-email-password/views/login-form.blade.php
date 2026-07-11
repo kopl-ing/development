@@ -1,4 +1,4 @@
-<form method="POST" action="{{ route('core::community/login.attempt') }}" class="flex flex-col gap-3">
+<form method="POST" action="{{ route('kopling-core::community/login.attempt') }}" class="flex flex-col gap-3">
     @csrf
 
     <fieldset class="fieldset">

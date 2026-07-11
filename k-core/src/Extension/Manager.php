@@ -43,10 +43,11 @@ class Manager
     }
 
     /**
-     * `Core` (`'core'`) is always the first entry, guaranteed present -- it isn't Composer-
-     * discovered the way the rest are (it declares no `"type": "kopling-extension"` package of
-     * its own), it's the one thing `Manager` always loads regardless. Every other entry is a
-     * genuinely discovered extension, keyed by Composer package name, instantiated once.
+     * `Core` (keyed `'kopling/core'`, its real Composer package name) is always the first
+     * entry, guaranteed present -- it isn't Composer-discovered the way the rest are (it
+     * declares no `"type": "kopling-extension"` package of its own), it's the one thing
+     * `Manager` always loads regardless. Every other entry is a genuinely discovered
+     * extension, keyed by Composer package name, instantiated once.
      *
      * TODO: every discovered extension is treated as enabled, unconditionally -- there is no
      * "disabled" state at all yet, for any extension. Fine while every installed extension is
@@ -64,7 +65,7 @@ class Manager
             return $this->extensions;
         }
 
-        $this->extensions = ['core' => new Core()];
+        $this->extensions = ['kopling/core' => new Core()];
 
         foreach ($this->manifest->extensions() as $package => $extension) {
             $class = $extension['namespace'].'Extension';
@@ -109,7 +110,7 @@ class Manager
 
     public function path(string $package): ?string
     {
-        if ($package === 'core') {
+        if ($package === 'kopling/core') {
             return __DIR__ . '/../../';
         }
 

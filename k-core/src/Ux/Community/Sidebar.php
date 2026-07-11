@@ -16,8 +16,8 @@ use Kopling\Core\Ux\UxEntry;
 /**
  * The Community portal's primary nav block -- Home feed, Popular, and whatever an extension
  * (Following, Bookmarks, ...) registers alongside them. Page-level, not bound to a Context,
- * same reasoning as `Portal\Slot`/`core::side-navigation` -- there's no single Moment this
- * list renders for. Owns `core::community.sidebar`, the slot `layouts/community.blade.php`
+ * same reasoning as `Portal\Slot`/`kopling-core::side-navigation` -- there's no single Moment this
+ * list renders for. Owns `kopling-core::community.sidebar`, the slot `layouts/community.blade.php`
  * already declares; resolves/renders it exactly like `Card\Top` does for its own slot.
  *
  * `defaults()` only registers Home feed -- Popular has no real sort/ranking behind it yet
@@ -27,7 +27,7 @@ use Kopling\Core\Ux\UxEntry;
  */
 class Sidebar extends Component
 {
-    public const SLOT = 'core::community.sidebar';
+    public const SLOT = 'kopling-core::community.sidebar';
 
     /**
      * @var Collection<int, UxEntry>
@@ -41,12 +41,12 @@ class Sidebar extends Component
 
     public function render(): View
     {
-        return view('core::community.sidebar');
+        return view('kopling-core::community.sidebar');
     }
 
     public static function defaults(Ux $ux): void
     {
-        $ux->add(Item::class, ['label' => 'Home feed', 'route' => 'core::community/community'])
+        $ux->add(Item::class, ['label' => 'Home feed', 'route' => 'kopling-core::community/community'])
             ->in(self::SLOT)
             ->as('home');
     }

@@ -26,7 +26,7 @@ class Avatar extends Component
     {
         $name = $this->context?->getSubject()?->person?->name;
 
-        return view('core::card.avatar', [
+        return view('kopling-core::card.avatar', [
             'initials' => $this->initials($name),
             'name' => $name,
         ]);

@@ -24,6 +24,6 @@ class Card extends Component
 
     public function render(): View
     {
-        return view('core::card.card');
+        return view('kopling-core::card.card');
     }
 }

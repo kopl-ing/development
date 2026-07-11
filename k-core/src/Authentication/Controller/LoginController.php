@@ -2,19 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Kopling\Core\Http\Controllers;
+namespace Kopling\Core\Authentication\Controller;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 use Kopling\Core\Authentication\Event\AttemptLogin;
 use Kopling\Core\Authentication\Event\ValidateLogin;
 use Kopling\Core\Http\Controllers\Concerns\RedirectsUsers;
 use Kopling\Core\Http\Controllers\Concerns\ThrottlesLogins;
-use Kopling\Core\People\Person;
 
 /**
  * Same method shape as laravel/ui's AuthenticatesUsers trait (credentials()/attemptLogin()/
@@ -37,7 +35,7 @@ class LoginController
 
     public function showLoginForm(Request $request): View
     {
-        return view('core::auth.login');
+        return view('kopling-core::auth.login');
     }
 
     public function login(Request $request): RedirectResponse

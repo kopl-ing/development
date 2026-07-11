@@ -20,7 +20,7 @@ class Item extends Component
 
     public function render(): View
     {
-        return view('core::portal.navigation.item', [
+        return view('kopling-core::portal.navigation.item', [
             'label' => $this->data['label'],
             'route' => $this->data['route'],
             'icon' => $this->data['icon'] ?? null,

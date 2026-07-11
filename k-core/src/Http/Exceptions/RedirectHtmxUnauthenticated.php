@@ -19,7 +19,7 @@ class RedirectHtmxUnauthenticated
 
         return response('', 401)->header(
             'HX-Redirect',
-            Route::has('core::community/login') ? route('core::community/login') : '/login',
+            Route::has('kopling-core::community/login') ? route('kopling-core::community/login') : '/login',
         );
     }
 }

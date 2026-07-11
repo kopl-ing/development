@@ -21,7 +21,7 @@ use Kopling\Core\Ux\Community\Sidebar;
  * Core's own declarations, made through the same contracts any extension would implement --
  * `Kopling\Core\Extension\Manager` always includes this as its first entry, not Composer-
  * discovered like the rest (see `Manager::extensions()`). This replaces a previous
- * `CorePermissions` static registry that hand-wrote fully-prefixed ids ("core::manage-people")
+ * `CorePermissions` static registry that hand-wrote fully-prefixed ids ("kopling-core::manage-people")
  * as a special case; writing local ids here and letting `Manager` prefix them the same way it
  * prefixes any extension's removes that asymmetry -- one declaration mechanism, not two.
  */
@@ -71,7 +71,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Has
                 id: 'community',
                 label: 'Community',
                 path: '',
-                layout: 'core::layouts.community',
+                layout: 'kopling-core::layouts.community',
             )
                 ->routes(__DIR__ . '/../routes/community.php'),
         ];

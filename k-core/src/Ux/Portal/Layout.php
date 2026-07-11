@@ -21,6 +21,6 @@ class Layout extends Component
 {
     public function render(): View
     {
-        return view('core::portal.layout');
+        return view('kopling-core::portal.layout');
     }
 }

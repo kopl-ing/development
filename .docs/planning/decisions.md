@@ -1365,7 +1365,7 @@ request in isolation.
 
 ## 2026-07-11 — Login/registration is core-owned scaffolding + two extension points (`ValidateLogin`, `AttemptLogin`); no login method is built in
 
-**Decision:** `Kopling\Core\Http\Controllers\LoginController` owns the `/login` GET+POST flow
+**Decision:** `Kopling\Core\Authentication\Controller\LoginController` owns the `/login` GET+POST flow
 (and `/logout`); `RegistrationController` owns `/register` (GET only so far). Neither controller
 knows what "credentials" means. `login()` dispatches two events from
 `Kopling\Core\Authentication\Event`:
@@ -1447,3 +1447,59 @@ a real login route lands") — `RedirectHtmxUnauthenticated` now checks a real, 
 
 **Status:** Decided & implemented for the scaffolding (routes, controllers, events, throttling).
 Not yet a working login — see trade-offs above.
+
+---
+
+## 2026-07-11 — Core's views moved to `k-core/views/` (the same top-level convention every extension already uses); its Manager package key changed from the literal `'core'` to its real Composer name `'kopling/core'`, so its namespace is now `kopling-core::` (was `core::`)
+
+**Decision:** `k-core/src/Ux/views/` moved to `k-core/views/`, matching the directory-convention
+layout `Manager::conventions()` already expects of every extension (`views/`, `lang/`,
+`migrations/`, `routes/`, `css/`, `js/` at the package root). `ServiceProvider::boot()`'s
+hardcoded `$this->loadViewsFrom(__DIR__.'/../Ux/views', 'core')` call is gone — Core's views now
+load exactly the way an extension's do, through the per-package `foreach ($manager->extensions()
+as $package => $extension)` loop already in `boot()`, keyed off `Manager::conventions($package)`.
+
+That loop derives the loaded namespace from `Manager::id($package)`, which strips the vendor
+segment by turning `/` into `-` (`kopling/example` → `kopling-example`). Core's entry in
+`Manager::extensions()` was `'core' => new Core()` — a literal, hand-picked string, not Core's
+real Composer name (`kopling/core`, per `k-core/composer.json`) — so `id('core')` was a no-op and
+Core's namespace stayed the bare `core`. Changed the key to the real `'kopling/core'` (updating
+`Manager::path()`'s matching special case, and `ServiceProvider::boot()`'s `$package !== 'core'`
+guard that keeps the Blade `k` component prefix from being overwritten by the loop) so Core no
+longer gets bespoke treatment here either — its namespace is now `kopling-core`, derived the exact
+same way `kopling-admin`, `kopling-discussions`, etc. already are for every other extension.
+
+Every hand-written `'core::...'` string literal that isn't one of `permissions()`/`portals()`/
+`ux()`'s auto-prefixed local ids (view names passed to `view()`/`@include()`, route names passed
+to `route()`/`Route::has()`, translation keys passed to `__()`, Blade slot `name="..."` attribute
+values, and `SLOT` class constants like `Sidebar::SLOT`/`Footer::SLOT`/`Top::SLOT`) was updated to
+`'kopling-core::...'` by hand across `k-core/src` and the four in-repo extensions that already
+referenced it (`admin`, `auth-email-password`, `discussions`, `example`) — 33 files, ~57
+occurrences. `Core::portals()`/`permissions()` themselves needed no edits: they already declare
+local, unprefixed ids (`'community'`, `'manage-people'`) and let `Manager` prefix them, so they
+picked up `kopling-core::` automatically once the package key changed. The Blade component prefix
+(`x-k::*`) is untouched — that's a separate, permanently-short prefix registered directly via
+`Blade::componentNamespace('Kopling\\Core\\Ux', 'k')`, never derived from the package id.
+
+**Why now, not left as the one remaining special case:** the views move made the inconsistency
+concrete rather than cosmetic — routing Core's views through the same convention-based loop every
+extension's views already go through only works cleanly if Core's own package key resolves the
+same way theirs do. Leaving `'core'` as a hand-picked literal while every other id derivation goes
+through `Manager::id()` would have meant either keeping a second, parallel `loadViewsFrom` call
+just for Core (defeating the point of the move) or quietly special-casing the loop further.
+Confirmed via `php artisan route:list` and `tinker` (`Manager::permissions()`/`portals()`,
+`view('kopling-core::auth.login')->render()`, `__('kopling-core::auth.log_in')`) that routes,
+permissions, portal ids, view resolution, and translation resolution all now consistently resolve
+under `kopling-core::`, matching how a real extension resolves under its own vendor-prefixed id.
+
+**Trade-off accepted:** `k-core/migrations` and `k-core/routes/web.php` are already loaded twice
+today — once by `ServiceProvider::boot()`'s own explicit `loadMigrationsFrom`/`loadRoutesFrom`
+calls, and again by the same per-package loop this change routes views through, since both
+directories already exist at Core's package root and satisfy `Manager::conventions()` on their
+own. Pre-existing, not introduced by this change, and out of scope here — left as-is; the views
+move only removes the one explicit call that *was* necessary (views wasn't at the package root
+before), it doesn't touch the other two.
+
+**Status:** Decided & implemented. `extend.html` (a separate repo, `../kopling-landing`) still
+documents Core's slot examples as `core::side-navigation` / `core::community.*` — flagged, not
+updated here since it's outside this repository.

@@ -18,7 +18,7 @@ class Timestamp extends Component
 
     public function render(): View
     {
-        return view('core::card.timestamp', [
+        return view('kopling-core::card.timestamp', [
             'value' => $this->context?->getSubject()?->created_at?->diffForHumans(),
         ]);
     }

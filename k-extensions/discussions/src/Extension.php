@@ -39,11 +39,11 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
     {
         return Ux::make()
             ->add('kopling-discussions::teaser')
-            ->in('core::card.body')
+            ->in('kopling-core::card.body')
             ->as('teaser')
-            ->after('core::content')
+            ->after('kopling-core::content')
             ->add('kopling-discussions::engage')
-            ->in('core::card.footer')
+            ->in('kopling-core::card.footer')
             ->as('engage')
             ->after('kopling-reactions::words');
     }

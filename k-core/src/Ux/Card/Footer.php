@@ -25,7 +25,7 @@ use Kopling\Core\Ux\UxEntry;
  */
 class Footer extends Component
 {
-    public const SLOT = 'core::card.footer';
+    public const SLOT = 'kopling-core::card.footer';
 
     /**
      * @var Collection<int, UxEntry>
@@ -39,7 +39,7 @@ class Footer extends Component
 
     public function render(): View
     {
-        return view('core::card.footer');
+        return view('kopling-core::card.footer');
     }
 
     public static function defaults(Ux $ux): void

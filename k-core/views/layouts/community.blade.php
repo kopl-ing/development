@@ -4,7 +4,7 @@
     Portal is forced into. sidebar/rail/composer are still real, resolvable, empty slots (see
     CLAUDE.md/decisions.md) -- nothing registers into them yet. The card feed queries real
     Moment rows -- see Kopling\Core\Content\Moment and Kopling\Core\Ux\Card\Card's own
-    extensibility (Top/Body/Footer resolve core::card.header/.body/.footer, each with its own
+    extensibility (Top/Body/Footer resolve kopling-core::card.header/.body/.footer, each with its own
     Context binding). Only daisyUI semantic classes (bg-base-*, text-base-content, border-
     base-*) are used here, never a raw color -- keeps this open for the runtime theme-token
     system (see Kopling\Core\Ux\Theme).
@@ -24,7 +24,7 @@ $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->t
                     <span class="text-lg font-semibold px-4">{{ $portal->label }}</span>
                 </div>
                 <div class="flex-none gap-2 px-4">
-                    <x-k::portal.slot name="core::community.topbar" />
+                    <x-k::portal.slot name="kopling-core::community.topbar" />
                 </div>
             </div>
         </header>
@@ -43,26 +43,26 @@ $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->t
                             <button role="tab" class="tab">New</button>
                         </div>
 
-                        <x-k::portal.slot name="core::community.content-top" />
+                        <x-k::portal.slot name="kopling-core::community.content-top" />
 
-                        @include('core::community.poll', ['portal' => $portal, 'since' => $since])
+                        @include('kopling-core::community.poll', ['portal' => $portal, 'since' => $since])
 
                         <div id="moments-feed" class="flex flex-col gap-4">
                             @foreach ($moments as $moment)
-                                @include('core::community.moment', ['moment' => $moment, 'portal' => $portal])
+                                @include('kopling-core::community.moment', ['moment' => $moment, 'portal' => $portal])
                             @endforeach
                         </div>
                     </div>
                 </main>
 
                 <aside class="w-72 border-l border-base-300 p-4 hidden xl:block">
-                    <x-k::portal.slot name="core::community.rail" />
+                    <x-k::portal.slot name="kopling-core::community.rail" />
                 </aside>
             </div>
         </div>
 
         <footer class="border-t border-base-300 p-4">
-            <x-k::portal.slot name="core::community.composer" />
+            <x-k::portal.slot name="kopling-core::community.composer" />
         </footer>
     </div>
 </x-k::portal.layout>

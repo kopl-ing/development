@@ -27,7 +27,7 @@ class Extension extends AbstractExtension implements ChangesUx, ListensToEvents
     {
         return Ux::make()
             ->add(LoginForm::class)
-            ->in('core::auth.login-form')
+            ->in('kopling-core::auth.login-form')
             ->as('form');
     }
 

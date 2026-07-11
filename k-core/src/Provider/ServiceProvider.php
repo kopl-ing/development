@@ -54,7 +54,6 @@ class ServiceProvider extends Provider
         Blade::componentNamespace('Kopling\\Core\\Ux', 'k');
 
         $this->loadMigrationsFrom(__DIR__.'/../migrations');
-        $this->loadViewsFrom(__DIR__.'/../Ux/views', 'core');
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
 
         $manager->listeners();
@@ -64,7 +63,7 @@ class ServiceProvider extends Provider
             $id = $manager->id($package);
             $conventions = $manager->conventions($package);
 
-            if ($package !== 'core') {
+            if ($package !== 'kopling/core') {
                 Blade::componentNamespace(Str::beforeLast($extension::class, '\\'), $id);
             }
 

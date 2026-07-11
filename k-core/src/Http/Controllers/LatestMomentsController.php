@@ -61,7 +61,7 @@ class LatestMomentsController
         }
 
         return response()
-            ->view('core::community.new-moments', [
+            ->view('kopling-core::community.new-moments', [
                 'portal' => $portal,
                 'since' => $since->toIso8601String(),
                 'count' => $count,
@@ -81,7 +81,7 @@ class LatestMomentsController
 
         $moments = Moment::where('created_at', '>', $since)->latest()->get();
 
-        return view('core::community.loaded', [
+        return view('kopling-core::community.loaded', [
             'portal' => $portal,
             'moments' => $moments,
             'since' => optional($moments->first())->created_at?->toIso8601String() ?? $since->toIso8601String(),

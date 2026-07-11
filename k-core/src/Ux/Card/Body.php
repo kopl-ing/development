@@ -20,7 +20,7 @@ use Kopling\Core\Ux\UxEntry;
  */
 class Body extends Component
 {
-    public const SLOT = 'core::card.body';
+    public const SLOT = 'kopling-core::card.body';
 
     /**
      * @var Collection<int, UxEntry>
@@ -34,7 +34,7 @@ class Body extends Component
 
     public function render(): View
     {
-        return view('core::card.body');
+        return view('kopling-core::card.body');
     }
 
     public static function defaults(Ux $ux): void
