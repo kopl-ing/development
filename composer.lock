@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f8a45c68337aea047e94f878e82b72f0",
+    "content-hash": "a40f8226dddee435d9f2cc6f28f43d0f",
     "packages": [
         {
             "name": "brick/math",
@@ -1122,7 +1122,7 @@
         },
         {
             "name": "kopling/admin",
-            "version": "dev-main",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/admin",
@@ -1150,11 +1150,11 @@
         },
         {
             "name": "kopling/auth-email-password",
-            "version": "dev-main",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/auth-email-password",
-                "reference": "8e1a9705d58476164d6a7a79ebfc080f9a0d1a65"
+                "reference": "ae14d8d68000818aa27f0fef73c8d74ad1047543"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1171,14 +1171,14 @@
                     "email": "daniel@klabbers.email"
                 }
             ],
-            "description": "Email/password login for Kopling -- the first login-method extension, built on Core's ValidateLogin/AttemptLogin events.",
+            "description": "Email/password login and registration for Kopling -- the first login-method extension, built on Core's Validate/Attempt Login and Registration events.",
             "transport-options": {
                 "relative": true
             }
         },
         {
             "name": "kopling/core",
-            "version": "dev-main",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
                 "url": "./k-core",
@@ -1217,7 +1217,7 @@
         },
         {
             "name": "kopling/demo",
-            "version": "dev-main",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/demo",
@@ -1248,7 +1248,7 @@
         },
         {
             "name": "kopling/discussions",
-            "version": "dev-main",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/discussions",
@@ -1280,7 +1280,7 @@
         },
         {
             "name": "kopling/example",
-            "version": "dev-main",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/example",
@@ -1308,11 +1308,11 @@
         },
         {
             "name": "kopling/reactions",
-            "version": "dev-main",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/reactions",
-                "reference": "73db6729a79498dc094793f68156ceefcbaddae7"
+                "reference": "8b19c7428b4e02d12d19e562688ec8cd839fda79"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1335,17 +1335,17 @@
             }
         },
         {
-            "name": "kopling/theme-midnight",
-            "version": "dev-main",
+            "name": "kopling/tags",
+            "version": "dev-feat/reactions-card-footer",
             "dist": {
                 "type": "path",
-                "url": "./k-extensions/theme-midnight",
-                "reference": "b3f8a51ba804f5997b45192c9f3675b2a8f6e617"
+                "url": "./k-extensions/tags",
+                "reference": "5e7d3cb8f5594d3f0929039938c5a12944bf117c"
             },
             "type": "kopling-extension",
             "autoload": {
                 "psr-4": {
-                    "Kopling\\ThemeMidnight\\": "src/"
+                    "Kopling\\Tags\\": "src/"
                 }
             },
             "license": [
@@ -1353,11 +1353,39 @@
             ],
             "authors": [
                 {
-                    "name": "Daniël Klabbers",
-                    "email": "daniel@klabbers.email"
+                    "name": "Ernest Defoe",
+                    "email": "ernestdefoe@gmail.com"
                 }
             ],
-            "description": "Midnight -- a dark theme for Kopling, shipped as overrides on top of the compiled kopling daisyUI theme.",
+            "description": "Tags for Kopling -- categorise moments and browse everything under a tag.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "kopling/theme-delft",
+            "version": "dev-feat/reactions-card-footer",
+            "dist": {
+                "type": "path",
+                "url": "./k-extensions/theme-delft",
+                "reference": "ad6086a906ab3568f2c7cb080fc1ec236ff4ad01"
+            },
+            "type": "kopling-extension",
+            "autoload": {
+                "psr-4": {
+                    "Kopling\\ThemeDelft\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ernest Defoe",
+                    "email": "ernestdefoe@gmail.com"
+                }
+            ],
+            "description": "Delft -- the light Delft-blue brand theme for Kopling, shipped as token overrides on top of the compiled kopling daisyUI theme.",
             "transport-options": {
                 "relative": true
             }
@@ -6313,7 +6341,8 @@
         "kopling/discussions": 20,
         "kopling/example": 20,
         "kopling/reactions": 20,
-        "kopling/theme-midnight": 20
+        "kopling/tags": 20,
+        "kopling/theme-delft": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

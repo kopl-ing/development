@@ -7,7 +7,7 @@ namespace Kopling\Tags;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasCommands;
-use Kopling\Core\Ux\Ux;
+use Kopling\Core\Extend\Ux;
 use Kopling\Tags\Command\SeedDemoTagsCommand;
 
 class Extension extends AbstractExtension implements ChangesUx, HasCommands
@@ -33,9 +33,9 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands
         // `core::content` (see Card\Body::defaults), so the tag row sits above the title/body.
         return Ux::make()
             ->add('kopling-tags::tags')
-            ->in('core::card.body')
+            ->in('kopling-core::card.body')
             ->as('tags')
-            ->before('core::content');
+            ->before('kopling-core::content');
     }
 
     /**

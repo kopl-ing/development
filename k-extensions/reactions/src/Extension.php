@@ -6,7 +6,7 @@ namespace Kopling\Reactions;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
-use Kopling\Core\Ux\Ux;
+use Kopling\Core\Extend\Ux;
 
 class Extension extends AbstractExtension implements ChangesUx
 {
@@ -32,10 +32,10 @@ class Extension extends AbstractExtension implements ChangesUx
     {
         return Ux::make()
             ->add('kopling-reactions::rail')
-            ->in('core::card.footer')
+            ->in('kopling-core::card.footer')
             ->as('rail')
             ->add('kopling-reactions::words')
-            ->in('core::card.footer')
+            ->in('kopling-core::card.footer')
             ->as('words')
             ->after('rail');
     }
