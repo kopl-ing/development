@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Ux;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Kopling\Core\Extend\Relation;
+use Kopling\Core\Extension\Manager;
 use Kopling\Core\People\Person;
 use Kopling\Core\Portal\Portal;
 
@@ -24,11 +30,50 @@ use Kopling\Core\Portal\Portal;
 class Context
 {
     public function __construct(
-        public mixed $subject = null,
-        public ?Portal $portal = null,
-        public ?Request $request = null,
-        public ?Person $actor = null,
+        protected Builder|Model|null $subject = null,
+        public ?Portal             $portal = null,
+        public ?Request            $request = null,
+        public ?Person             $actor = null,
     ) {
         $this->actor ??= Auth::user();
+    }
+
+    public function getSubject(bool $fail = false): Model
+    {
+        if ($this->subject instanceof Model) {
+            return $this->subject;
+        }
+
+        return $fail
+            ? $this->getSubjectQuery()->firstOrFail()
+            : $this->getSubjectQuery()->first();
+    }
+
+    public function getSubjects(): Collection
+    {
+        return $this->getSubjectQuery()->get();
+    }
+
+    public function getSubjectPaginator(): LengthAwarePaginator
+    {
+        return $this->getSubjectQuery()->paginate();
+    }
+
+    protected function getSubjectQuery(): Builder
+    {
+        throw_unless($this->subject, 'No subject set on context.');
+        throw_unless($this->subject instanceof Builder, 'Subject must be a query builder.');
+
+        /** @var Manager $manager */
+        $manager = resolve(Manager::class);
+
+        $manager->relations()
+            ->where('model', $this->subject->getModel()->getMorphClass())
+            ->pluck('relations')
+            ->flatten(1)
+            ->keyBy('name')
+            ->each(fn (array $definition, string $relation) => $this->subject = $this->subject->with($relation));
+
+        return $this->subject;
     }
 }

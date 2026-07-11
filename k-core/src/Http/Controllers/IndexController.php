@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Kopling\Core\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Ux\Context;
@@ -25,7 +24,7 @@ class IndexController
         $portal = $request->attributes->get('portal');
 
         $context = new Context(
-            subject: Moment::query()->latest()->paginate(),
+            subject: Moment::query()->latest(),
             portal: $portal,
             request: $request,
         );

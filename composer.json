@@ -13,7 +13,7 @@
     ],
     "require": {
         "kopling/admin": "@dev",
-        "kopling/auth-password": "@dev",
+        "kopling/auth-email-password": "@dev",
         "kopling/core": "@dev",
         "kopling/demo": "@dev",
         "kopling/discussions": "@dev",

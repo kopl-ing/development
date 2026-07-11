@@ -19,7 +19,7 @@ class Author extends Component
     public function render(): View
     {
         return view('core::card.author', [
-            'name' => $this->context?->subject?->person?->name,
+            'name' => $this->context?->getSubject()?->person?->name,
         ]);
     }
 }

@@ -11,7 +11,7 @@
 --}}
 @php
 /** @var \Illuminate\Contracts\Pagination\LengthAwarePaginator<\Kopling\Core\Content\Moment> $moments */
-$moments = $context->subject;
+$moments = $context->getSubjectPaginator();
 /** @var \Kopling\Core\Portal\Portal $portal */
 $portal = $context->portal;
 $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->toIso8601String();

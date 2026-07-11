@@ -6,7 +6,7 @@
     discussion page. Reads `$context->subject` like every card leaf.
 --}}
 @php
-    $moment = $context?->subject;
+    $moment = $context?->getSubject();
     $stats = $moment ? Reply::statsFor($moment) : null;
 @endphp
 @if ($moment && $stats)

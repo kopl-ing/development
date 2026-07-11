@@ -19,7 +19,7 @@ class Timestamp extends Component
     public function render(): View
     {
         return view('core::card.timestamp', [
-            'value' => $this->context?->subject?->created_at?->diffForHumans(),
+            'value' => $this->context?->getSubject()?->created_at?->diffForHumans(),
         ]);
     }
 }

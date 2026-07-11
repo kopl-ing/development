@@ -27,6 +27,8 @@ use Kopling\Core\Ux\UxEntry;
 
 class Manager
 {
+    protected ?Collection $relations = null;
+
     /**
      * @var array<string, AbstractExtension>|null
      */
@@ -271,8 +273,10 @@ class Manager
      * every item it returns must actually be a `Kopling\Core\Extend\Relation` extender, not
      * some other value an implementor mistakenly returned.
      */
-    public function relations(): void
+    public function relations(): Collection
     {
+        if ($this->relations !== null) return $this->relations;
+
         $declared = collect();
 
         foreach ($this->extensions() as $extension) {
@@ -302,6 +306,10 @@ class Manager
                     );
                 }
             });
+
+        $this->relations = $declared;
+
+        return $declared;
     }
 
     /**

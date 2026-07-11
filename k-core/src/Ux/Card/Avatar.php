@@ -24,7 +24,7 @@ class Avatar extends Component
 
     public function render(): View
     {
-        $name = $this->context?->subject?->person?->name;
+        $name = $this->context?->getSubject()?->person?->name;
 
         return view('core::card.avatar', [
             'initials' => $this->initials($name),

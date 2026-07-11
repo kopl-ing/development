@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Kopling\Discussions;
 
 use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\HasModelRelations;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions
+class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions, HasModelRelations
 {
     public static function name(): string
     {
@@ -67,6 +70,16 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
                 __('kopling-discussions::permissions.reply.description'),
                 default: true,
             ),
+        ];
+    }
+
+    public function relations(): array
+    {
+        return [
+            (new Relation)
+                ->for(Moment::class)
+                ->hasMany('replies', Reply::class)
+                ->eagerLoad(),
         ];
     }
 }

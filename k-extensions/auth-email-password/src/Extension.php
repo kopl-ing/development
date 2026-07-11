@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Kopling\AuthPassword;
+namespace Kopling\AuthEmailPassword;
 
-use Kopling\AuthPassword\Listeners\AttemptPasswordLogin;
+use Kopling\AuthEmailPassword\Listeners\AttemptPasswordLogin;
 use Kopling\Core\Authentication\Event\AttemptLogin;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
@@ -15,12 +15,12 @@ class Extension extends AbstractExtension implements ChangesUx, ListensToEvents
 {
     public static function name(): string
     {
-        return 'Password login';
+        return 'Email/password login';
     }
 
     public static function description(): string
     {
-        return "Username/password sign-in -- the first login method built on Core's ValidateLogin/AttemptLogin events.";
+        return "Email/password sign-in -- the first login method built on Core's ValidateLogin/AttemptLogin events.";
     }
 
     public function ux(): Ux

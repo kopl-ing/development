@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Kopling\AuthPassword\Listeners;
+namespace Kopling\AuthEmailPassword\Listeners;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;

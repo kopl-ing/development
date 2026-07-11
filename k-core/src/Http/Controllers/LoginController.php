@@ -22,7 +22,7 @@ use Kopling\Core\People\Person;
  * of core Laravel in 6.0), so this is hand-written directly on the controller rather than
  * composed from it. Deliberately the full classic scaffold for now, not Kopling's own final
  * shape: actually handling the POST here is a placeholder. Once a real login-method extension
- * (e.g. `kopling/auth-password`) exists, this is the seam something like a captcha check would
+ * (e.g. `kopling/auth-email-password`) exists, this is the seam something like a captcha check would
  * need to hook into -- not solved yet. Trim down once that's settled.
  */
 class LoginController

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Kopling\AuthPassword;
+namespace Kopling\AuthEmailPassword;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -18,6 +18,6 @@ class LoginForm extends Component
 
     public function render(): View
     {
-        return view('kopling-auth-password::login-form');
+        return view('kopling-auth-email-password::login-form');
     }
 }

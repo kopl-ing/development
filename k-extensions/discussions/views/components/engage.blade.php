@@ -6,7 +6,7 @@
     first and this closes the footer.
 --}}
 @php
-    $moment = $context?->subject;
+    $moment = $context?->getSubject();
     $count = $moment ? Reply::statsFor($moment)['count'] : 0;
 @endphp
 @if ($moment)
