@@ -58,6 +58,7 @@ class ServiceProvider extends Provider
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
 
         $manager->listeners();
+        $manager->relations();
 
         foreach ($manager->extensions() as $package => $extension) {
             $id = $manager->id($package);

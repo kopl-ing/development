@@ -6,6 +6,7 @@ namespace Kopling\Core\Extension;
 
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
@@ -256,21 +257,21 @@ class Manager
     }
 
     /**
-     * Every model relation declared by every extension, combined into one Collection keyed by
-     * the fully-qualified model class it targets. A `Relation` extender is scoped to exactly
-     * one model (`Relation::for()` throws if called a second time on the same instance), so an
-     * extension contributes one `Relation` per model it extends; where more than one extension
-     * targets the same model, their `relations` arrays are merged onto that model's entry,
-     * keyed by relation name -- last write wins on a name collision, same rule `themes()`
-     * applies on token overlap.
+     * Registers every model relation declared by every extension directly against its target
+     * model via `Model::resolveRelationUsing()` -- a side effect, not an aggregation like
+     * `permissions()`/`portals()`, so there's nothing to return (mirrors `listeners()`). A
+     * `Relation` extender is scoped to exactly one model (`Relation::for()` throws if called a
+     * second time on the same instance); each entry in its `relations` array becomes one
+     * dynamically-resolved relation method on that model, callable exactly like a hand-written
+     * `public function posts(): HasMany` would be. Where more than one extension targets the
+     * same model with the same relation name, `resolveRelationUsing()`'s own array_replace --
+     * not Manager -- decides it, last one registered wins.
      *
      * `Collection::ensure(Relation::class)` guards `HasModelRelations::relations()` itself --
      * every item it returns must actually be a `Kopling\Core\Extend\Relation` extender, not
      * some other value an implementor mistakenly returned.
-     *
-     * @return Collection<string, array<string, array{class: class-string, constraint: array}>>
      */
-    public function relations(): Collection
+    public function relations(): void
     {
         $declared = collect();
 
@@ -282,15 +283,25 @@ class Manager
             $declared->push(...$extension->relations());
         }
 
-        $declared->ensure(Relation::class);
+        $declared
+            ->ensure(Relation::class)
+            ->each(function (Relation $relation) {
+                if (! class_exists($relation->model)) {
+                    return;
+                }
 
-        return $declared->reduce(
-            fn (Collection $relations, Relation $relation) => $relations->put(
-                $relation->model,
-                array_merge($relations->get($relation->model, []), $relation->relations)
-            ),
-            collect()
-        );
+                /** @var class-string<Model> $class */
+                $class = $relation->model;
+
+                foreach ($relation->relations as $definition) {
+                    $class::resolveRelationUsing(
+                        $definition['name'],
+                        function (Model $model) use ($definition) {
+                            return $model->{$definition['method']}(...$definition['constraint']);
+                        }
+                    );
+                }
+            });
     }
 
     /**

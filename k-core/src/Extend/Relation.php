@@ -35,77 +35,77 @@ class Relation
 
     public function hasOne(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => HasOne::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => HasOne::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function hasOneThrough(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => HasOneThrough::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => HasOneThrough::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function morphOne(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => MorphOne::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => MorphOne::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function belongsTo(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => BelongsTo::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => BelongsTo::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function morphTo(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => MorphTo::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => MorphTo::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function hasMany(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => HasMany::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => HasMany::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function hasManyThrough(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => HasManyThrough::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => HasManyThrough::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function morphMany(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => MorphMany::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => MorphMany::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function belongsToMany(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => BelongsToMany::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => BelongsToMany::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function morphToMany(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => MorphToMany::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => MorphToMany::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
 
     public function morphedByMany(string $relation, ...$args): self
     {
-        $this->relations[$relation] = ['class' => MorphToMany::class, 'constraint' => $args];
+        $this->relations[] = ['name' => $relation, 'class' => MorphToMany::class, 'method' => __FUNCTION__, 'constraint' => $args];
 
         return $this;
     }
