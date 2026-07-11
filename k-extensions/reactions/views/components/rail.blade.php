@@ -12,7 +12,7 @@
     ships (btn/btn-primary/btn-ghost + flex/gap).
 --}}
 @php
-    $moment = $context?->subject;
+    $moment = $context?->getSubject();
     $state = $moment ? Reaction::state($moment, $context?->actor) : null;
 @endphp
 @if ($state)

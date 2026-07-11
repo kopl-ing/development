@@ -8,7 +8,7 @@
     out-of-band so its counts stay current.
 --}}
 @php
-    $moment = $context?->subject;
+    $moment = $context?->getSubject();
     $actor = $context?->actor;
     $items = $moment ? Reaction::latestWorded($moment) : collect();
     $canReact = $actor !== null;

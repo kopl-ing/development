@@ -8,7 +8,7 @@
     "semantic colours only"); untinted tags fall back to daisyUI's own `badge`.
 --}}
 @php
-    $moment = $context?->subject;
+    $moment = $context?->getSubject();
     $tags = $moment ? Tag::forMoment($moment) : collect();
 @endphp
 @if ($tags->isNotEmpty())
