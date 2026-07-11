@@ -6,9 +6,11 @@ namespace Kopling\Reactions;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extend\Ux;
+use Kopling\Reactions\Command\SeedDemoReactionsCommand;
 
-class Extension extends AbstractExtension implements ChangesUx
+class Extension extends AbstractExtension implements ChangesUx, HasCommands
 {
     public static function name(): string
     {
@@ -18,6 +20,14 @@ class Extension extends AbstractExtension implements ChangesUx
     public static function description(): string
     {
         return 'Emoji and worded reactions for moments.';
+    }
+
+    /**
+     * @return array<class-string>
+     */
+    public function commands(): array
+    {
+        return [SeedDemoReactionsCommand::class];
     }
 
     /**
