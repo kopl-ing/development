@@ -7,6 +7,10 @@
         {
             "name": "Ernest Defoe",
             "email": "ernestdefoe@gmail.com"
+        },
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
         }
     ],
     "require": {

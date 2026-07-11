@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Kopling\Discussions;
 
+use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\HasCommands;
-use Kopling\Core\Ux\Ux;
+use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands
+class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions
 {
     public static function name(): string
     {
@@ -48,5 +50,21 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands
     public function commands(): array
     {
         return [SeedDemoRepliesCommand::class];
+    }
+
+    public function permissions(): array
+    {
+        return [
+            new Permission(
+                'view',
+                __('kopling-discussions::permissions.view.label'),
+                __('kopling-discussions::permissions.view.description'),
+            ),
+            new Permission(
+                'reply',
+                __('kopling-discussions::permissions.reply.label'),
+                __('kopling-discussions::permissions.reply.description'),
+            ),
+        ];
     }
 }
