@@ -1,6 +1,6 @@
 {
     "name": "kopling/auth-email-password",
-    "description": "Email/password login for Kopling -- the first login-method extension, built on Core's ValidateLogin/AttemptLogin events.",
+    "description": "Email/password login and registration for Kopling -- the first login-method extension, built on Core's Validate/Attempt Login and Registration events.",
     "type": "kopling-extension",
     "license": "MIT",
     "authors": [

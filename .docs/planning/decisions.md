@@ -1503,3 +1503,106 @@ before), it doesn't touch the other two.
 **Status:** Decided & implemented. `extend.html` (a separate repo, `../kopling-landing`) still
 documents Core's slot examples as `core::side-navigation` / `core::community.*` — flagged, not
 updated here since it's outside this repository.
+
+---
+
+## 2026-07-11 — `RegistrationController` carried through the same `Validate*`/`Attempt*` event-pair treatment as `LoginController`; `kopling/auth-email-password` now handles registration too, with `AttemptRegistration` carrying a possibly-unsaved `Person`
+
+**Decision:** `RegistrationController::register()` now mirrors `LoginController::login()`:
+`ValidateRegistration(Request $request)` dispatched via `$events->until()` first (same pure
+gate/veto shape as `ValidateLogin` — no real listener hooks it yet, same status `ValidateLogin`
+itself is still in), then `AttemptRegistration` (`?Person $person`, `ValidationException $e`
+defaulted to `withMessages([])`, `succeeded()`/`failed()` fluent mutators — same shape as
+`AttemptLogin`) constructed and dispatched via plain `dispatch()`, with `register()` holding its
+own local reference and checking `$event->person` — identical reasoning to `AttemptLogin` on why
+`until()`'s own return value isn't used. `validator()`/`create()` (the hardcoded
+name/email/password-against-`Person` scaffold from the previous entry) are gone from Core
+entirely.
+
+**The one real difference from `AttemptLogin`:** `AttemptRegistration::succeeded(Person $person)`
+does not mean "this person is saved" — login only ever authenticates an already-persisted
+`Person`, but registration has to create one. The `Person` a listener hands to `succeeded()` can
+be a fresh, unsaved instance; `register()` calls `$event->person->save()` exactly once, after
+`dispatch()` has run every registered listener, not inside any listener itself. This means a
+listener registered *after* the one that actually built the `Person` (a hypothetical future
+defaults/preferences extension, say) can still read and mutate the same `$event->person` instance
+in place before it's written — setting a locale, seeding a preference row's foreign key, etc. —
+without needing its own separate event or a second database write. Documented directly on
+`AttemptRegistration`'s own docblock since it's the one place this design reads as surprising
+next to `AttemptLogin`'s.
+
+**`kopling/auth-email-password` extension changes:** added `RegistrationForm` (mirrors
+`LoginForm` exactly — a `Context`-aware Blade component with `data`/`context` props) registered
+into the `kopling-core::auth.registration-form` slot, and `AttemptPasswordRegistration` (mirrors
+`AttemptPasswordLogin`) listening to `AttemptRegistration`. It validates `name`/`email`
+(`unique` against `Person`)/`password` (`confirmed` + `Password::defaults()`) via
+`Validator::make()->fails()` — deliberately not `->validate()`, same reasoning as
+`AttemptPasswordLogin`: a thrown exception from inside a listener would abort `dispatch()`'s
+loop before any listener registered after it gets a chance to run, so failure is communicated
+back through `$event->failed()` instead. On success it calls `$event->succeeded(new
+Person($validator->validated()))` — deliberately `new Person(...)`, not `Person::create(...)`,
+since creating this `Person` isn't this listener's job to finish, only to start.
+
+**Bug caught before it shipped:** `Manager::ux()` keys its aggregate registry by each entry's
+fully-qualified id globally (`$registry[$entry->id] = $entry` in `applyUxAdd()`), not scoped per
+slot. `LoginForm`'s existing entry used `.as('form')`; giving the new `RegistrationForm` entry
+the same local id would have collided on the same prefixed id
+(`kopling-auth-email-password::form`) despite targeting a different slot, silently dropping
+whichever `add()` ran second from the registry. Renamed both to `login-form`/`registration-form`.
+
+**Why the registration-page slot needed no new mechanism:** `Kopling\Core\Ux\Portal\Slot`
+already `@foreach`s every `UxEntry` registered into a slot, ordered by `after()`/`before()` — the
+exact same mechanism `kopling-core::card.header` already uses to stack `Avatar`/`Author`/
+`Timestamp`/`Control` from independent registrations. A future SSO/OAuth2 extension can add its
+own button into `kopling-core::auth.registration-form` (and `...login-form`) the same way,
+anchored against `kopling-auth-email-password::registration-form` — confirmed via
+`Manager::ux()` in tinker that both of `auth-email-password`'s entries resolve to distinct,
+correctly-slotted ids after the id-collision fix above. In practice an OAuth extension would most
+likely own its own redirect/callback routes entirely and never dispatch `AttemptRegistration` at
+all — but nothing prevents a future registration method that *does* want to reuse Core's shared
+`POST register` pipeline from listening to the same event, the same way a second `AttemptLogin`
+listener already could.
+
+**Verified end-to-end via `tinker`** (real `RegistrationController::register()` call wrapped in a
+rolled-back `DB` transaction, not a browser): a valid submission creates a `Person` with a
+bcrypt-hashed password, fires `Registered`, logs the person in (`Auth::check()` true), and
+redirects; an invalid submission (bad email, mismatched/short password) throws the expected
+`ValidationException` with per-field messages and creates no `Person` row.
+
+**Status:** Decided & implemented. Registration and login are now symmetric, both extension-owned
+via the same event-pair pattern. Not yet browser-verified by Daniël — see standing note that UI
+changes get a human click-through, not just tinker.
+
+---
+
+## 2026-07-11 — `kopling/auth-email-password` adds guest-only Log in / Register links into `kopling-core::community.topbar`
+
+**Decision:** Added `Kopling\AuthEmailPassword\AuthLink`, a small generic `label`/`route`/
+`variant` component — the same "one data-driven component, not one class per link" shape as
+`Kopling\Core\Ux\Portal\Navigation\Item` already uses for side-navigation — registered twice
+into `kopling-core::community.topbar` via `Extension::ux()`: a `btn-ghost` "Log in" link and a
+`btn-primary` "Register" link, `.after('login-link')` so ordering is stable. Both use
+`Item`'s underlying pattern rather than reusing `Item` itself: `Item`'s view is `<li>`-wrapped
+for a `<ul>` sidebar list (`k-core/views/portal/navigation/item.blade.php`), which isn't valid
+markup inside the topbar's flex row, so `AuthLink` ships its own `<a class="btn ...">` view
+instead.
+
+**Guest-only visibility:** both entries use `Ux::when()` with a closure, `fn (?Person $person):
+bool => $person === null`, not a permission id — this isn't a permission check, just "is anyone
+logged in," and `SlotResolver::passes()` already supports a closure receiving `Auth::user()`
+directly for exactly this case. Verified in `tinker`: `SlotResolver::resolve()` for the topbar
+slot returns both links when `Auth::user()` is `null` and zero entries once a `Person` is set via
+`Auth::setUser()`.
+
+**Reused Core's own translations instead of adding new ones:** the link labels call
+`__('kopling-core::auth.log_in')`/`__('kopling-core::auth.register')` directly rather than
+duplicating "Log in"/"Register" strings into `auth-email-password`'s own `lang/en/messages.php`
+— same English text already backs the `<h1>` on the pages these links go to, and the extension
+already depends on Core's routes/events, so depending on Core's `auth` translation namespace too
+isn't a new kind of coupling. Note this breaks from the sibling `Sidebar::defaults()`/`example`
+precedent of passing a hardcoded literal English label as `Item` data (`'label' => 'Home feed'`)
+— deliberately not followed here since a matching pre-existing translation was one call away.
+
+**Status:** Decided & implemented. Verified via `Blade::render('<x-k::portal.slot
+name="kopling-core::community.topbar" />')` in `tinker` (not a browser) that the rendered markup
+is correct for a guest and empty once `Auth::setUser()` is called.
