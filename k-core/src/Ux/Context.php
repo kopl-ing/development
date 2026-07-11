@@ -69,6 +69,21 @@ class Context
 
         $manager->relations()
             ->where('model', $this->subject->getModel()->getMorphClass())
+            ->filter(function (Relation $relation) {
+                if (is_bool($relation->eagerLoad)) return $relation->eagerLoad;
+
+                if (is_callable($relation->eagerLoad)) {
+                    $callable = $relation->eagerLoad;
+
+                    return $callable(
+                        $this->portal,
+                        $this->request,
+                        $this->actor,
+                    );
+                }
+
+                return false;
+            })
             ->pluck('relations')
             ->flatten(1)
             ->keyBy('name')

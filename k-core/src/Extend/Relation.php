@@ -20,7 +20,7 @@ class Relation
 {
     public ?string $model = null;
     public array $relations = [];
-    public mixed $eagerLoad = null;
+    public mixed $eagerLoad = false;
 
     public function for(string $model): self
     {
