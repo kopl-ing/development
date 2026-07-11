@@ -1606,3 +1606,54 @@ precedent of passing a hardcoded literal English label as `Item` data (`'label' 
 **Status:** Decided & implemented. Verified via `Blade::render('<x-k::portal.slot
 name="kopling-core::community.topbar" />')` in `tinker` (not a browser) that the rendered markup
 is correct for a guest and empty once `Auth::setUser()` is called.
+
+---
+
+## 2026-07-11 — Split Community's chrome out of `layouts/community.blade.php` into its own `Chrome` component, so non-feed pages can sit inside it too
+
+**Problem found:** `k-extensions/discussions/views/show.blade.php` (the `/m/{moment}` discussion
+page) wrapped its content directly in `<x-k::portal.layout>` — the bare html/head/body shell
+every portal layout is itself built on top of (see `Kopling\Core\Ux\Portal\Layout`'s own
+docblock: region markup is each portal layout's job to add, this component owns none of it).
+The topbar/sidebar/rail/composer chrome only existed inside `layouts/community.blade.php`, which
+the discussion page never rendered through — confirmed by rendering `kopling-discussions::show`
+in `tinker`: no `navbar` class, no "Home feed" sidebar link anywhere in the output. The
+page's own docblock ("reuses the base portal shell... no coupling to core's feed") described
+this as deliberate, but conflated two different things: not wanting the feed's
+pagination-shaped `Context` (`getSubjectPaginator()`) is a real constraint; losing the chrome
+entirely was an unintended side effect of the only escape hatch available at the time.
+
+**Why discussions couldn't just render through `layouts/community.blade.php` as-is:** that
+template hard-required a feed-shaped `Context` (`$context->getSubjectPaginator()`,
+`$context->portal`) right in its own `@php` block, and `DiscussionController::show()` has no
+Context at all — it renders a single `Moment`, not a paginated feed. There's also no Portal
+bound to discussions' routes: `InjectPortal` middleware resolves the current `Portal` from the
+*route name's* prefix (`Str::before($request->route()->getName(), '/')`), and
+`discussions.show`/`discussions.reply` (`k-extensions/discussions/routes/web.php`) aren't
+registered under the Community portal's own route group the way `community.php`'s routes are —
+extensions' own routes load standalone, with no portal-scoping mechanism to opt into an existing
+Portal's group (only `HasPortals` for declaring a *new* one).
+
+**Fix:** extracted the topbar/sidebar/rail/composer markup out of
+`layouts/community.blade.php` into a new component, `Kopling\Core\Ux\Community\Chrome`
+(`k-core/src/Ux/Community/Chrome.php` + `k-core/views/community/chrome.blade.php`), exposing a
+default slot (`{{ $slot }}`) for whatever main content the caller wants — the same `{{ $slot }}`
+convention `Portal\Layout` itself already uses. `Chrome` resolves the Community portal itself via
+`Manager::portals()->firstWhere('id', 'kopling-core::community')` in its own constructor, the
+same self-sufficient-DI pattern `Sidebar` already uses for its own slot entries — so a caller
+doesn't need a `Portal` instance on hand at all, sidestepping the missing-`InjectPortal`-binding
+problem instead of trying to fix routing/portal-scoping for extension routes (a much bigger,
+out-of-scope change). `layouts/community.blade.php` still owns everything feed-specific (tabs,
+the htmx poller, the moment loop) and still needs its own `Context`-bound `$portal`/`$moments` —
+it now just fills `<x-k::community.chrome>`'s slot instead of building the header/sidebar/rail
+markup itself. `discussions/show.blade.php` now wraps its content in the same
+`<x-k::community.chrome>` instead of the bare `<x-k::portal.layout>`.
+
+**Verified in `tinker`, both pages, no regressions:** rendering `kopling-discussions::show` now
+contains the navbar, the "Home feed" sidebar link, and the portal label "Community"; rendering
+the feed page (`view($portal->layout)->with('context', $context)`, same call `IndexController`
+makes) still contains the navbar, sidebar, tabs, the `#moments-feed` div, and the poll's
+`hx-get` — confirming the split didn't change the feed page's own output, only where its chrome
+markup physically lives.
+
+**Status:** Decided & implemented. Not yet browser-verified by Daniël.

@@ -1,11 +1,13 @@
 @php use Kopling\Core\Ux\Context; @endphp
 {{--
     The discussion page for one moment: the moment itself (through core's own card, so it
-    keeps its tags/reactions/etc.), then the reply thread and a composer. Reuses the base
-    portal shell like the tags page -- no coupling to core's feed.
+    keeps its tags/reactions/etc.), then the reply thread and a composer. Sits inside Community's
+    own chrome (see k-core/views/community/chrome.blade.php) so it keeps the topbar/sidebar even
+    though its route isn't registered under the Community portal's own route group -- Chrome
+    resolves the Community portal itself, this page doesn't need to.
 --}}
-<x-k::portal.layout>
-    <div class="mx-auto flex max-w-2xl flex-col gap-4 p-6">
+<x-k::community.chrome>
+    <div class="flex flex-col gap-4">
         <div>
             <a href="/" class="btn btn-ghost btn-sm">&larr; {{ __('kopling-discussions::messages.back') }}</a>
         </div>
@@ -43,4 +45,4 @@
             @endauth
         </div>
     </div>
-</x-k::portal.layout>
+</x-k::community.chrome>
