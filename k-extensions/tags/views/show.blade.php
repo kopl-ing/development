@@ -5,7 +5,7 @@
     Top/Body/Footer extensibility (tags, reactions, ...) as one in the feed -- and inherits
     the active theme -- without duplicating any card markup or coupling to the portal feed.
 --}}
-<x-k::portal.layout>
+<x-k::community.chrome>
     <div class="mx-auto flex max-w-2xl flex-col gap-4 p-6">
         <div>
             <a href="/" class="btn btn-ghost btn-sm">&larr; {{ __('kopling-tags::messages.back') }}</a>
@@ -24,4 +24,4 @@
             <p class="opacity-70">{{ __('kopling-tags::messages.empty') }}</p>
         @endforelse
     </div>
-</x-k::portal.layout>
+</x-k::community.chrome>
