@@ -23,7 +23,7 @@ class SeedFakeDataCommand extends Command
 
         $actions = [$resolvePerson];
 
-        for ($i = 0, $count = random_int(1, 3); $i < $count; $i++) {
+        for ($i = 0, $count = random_int(3, 9); $i < $count; $i++) {
             $actions[] = function () use ($resolvePerson): void {
                 Moment::create([
                     'person_id' => $resolvePerson()->id,

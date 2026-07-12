@@ -36,7 +36,7 @@ class SeedDemoReactionsCommand extends Command
         $total = 0;
 
         Moment::query()->get()->each(function (Moment $moment) use ($people, $words, &$total) {
-            $reactors = $people->shuffle()->take(random_int(0, min(6, $people->count())));
+            $reactors = $people->shuffle()->take(random_int(1, min(6, $people->count())));
 
             foreach ($reactors as $person) {
                 $emoji = Reaction::PALETTE[array_rand(Reaction::PALETTE)];
