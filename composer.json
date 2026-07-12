@@ -61,6 +61,8 @@
         }
     },
     "require-dev": {
-        "laravel/tinker": "^3.0"
+        "laravel/tinker": "^3.0",
+        "mockery/mockery": "^1.6",
+        "pestphp/pest": "^4.7"
     }
 }
