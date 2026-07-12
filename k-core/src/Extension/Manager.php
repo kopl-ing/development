@@ -8,10 +8,12 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
 use Kopling\Core\Database\Model as DatabaseModel;
 use Kopling\Core\Extend\Model as ExtendModel;
+use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
@@ -33,7 +35,17 @@ class Manager
     /**
      * @var array<string, AbstractExtension>|null
      */
+    protected ?array $discovered = null;
+
+    /**
+     * @var array<string, AbstractExtension>|null
+     */
     protected ?array $extensions = null;
+
+    /**
+     * @var array<string>|null
+     */
+    protected ?array $disabled = null;
 
     public function __construct(
         protected Manifest $manifest,
@@ -43,19 +55,51 @@ class Manager
     }
 
     /**
-     * `Core` (keyed `'kopling/core'`, its real Composer package name) is always the first
-     * entry, guaranteed present -- it isn't Composer-discovered the way the rest are (it
-     * declares no `"type": "kopling-extension"` package of its own), it's the one thing
-     * `Manager` always loads regardless. Every other entry is a genuinely discovered
-     * extension, keyed by Composer package name, instantiated once.
+     * Every installed extension, enabled or not -- `Core` (keyed `'kopling/core'`, its real
+     * Composer package name) always first, guaranteed present: it isn't Composer-discovered
+     * the way the rest are (it declares no `"type": "kopling-extension"` package of its own),
+     * it's the one thing `Manager` always loads regardless. Every other entry is a genuinely
+     * discovered extension, keyed by Composer package name, instantiated once.
      *
-     * TODO: every discovered extension is treated as enabled, unconditionally -- there is no
-     * "disabled" state at all yet, for any extension. Fine while every installed extension is
-     * something you deliberately chose to `composer require` (true today), a real gap once
-     * enabling/disabling an installed extension without uninstalling it is expected to exist
-     * (an admin toggle). `CannotBeDisabled` (Contract/CannotBeDisabled.php) already guards
-     * that future toggle -- the toggle itself isn't built, and this method is where its
-     * filtering would go once it is.
+     * This is the raw install list, before the enabled/disabled toggle -- what a management
+     * surface lists so it can offer to enable one that's currently off. Everything that
+     * actually *loads* an extension (routes, views, permissions, ux, ...) goes through
+     * `extensions()` instead, which is this filtered down to the enabled set.
+     *
+     * @return array<string, AbstractExtension>
+     */
+    public function discovered(): array
+    {
+        if ($this->discovered !== null) {
+            return $this->discovered;
+        }
+
+        $this->discovered = ['kopling/core' => new Core()];
+
+        foreach ($this->manifest->extensions() as $package => $extension) {
+            $class = $extension['namespace'].'Extension';
+
+            if (! class_exists($class) || ! is_subclass_of($class, AbstractExtension::class)) {
+                continue;
+            }
+
+            $this->discovered[$package] = new $class();
+        }
+
+        return $this->discovered;
+    }
+
+    /**
+     * The enabled extensions -- `discovered()` minus whatever the `extension_states` table
+     * marks disabled. This is what every collector below (and the ServiceProvider's own
+     * boot loop) iterates, so a disabled extension contributes nothing: no routes, views,
+     * migrations, listeners, permissions, ux, or theme. The same instances `discovered()`
+     * holds are reused, never re-instantiated, so per-instance state (and `models()`'s
+     * side effects) stay consistent between the two.
+     *
+     * A `CannotBeDisabled` extension is always kept, even if a stale row names it -- the
+     * contract is enforced here too, not only at the `disable()` call site, so no amount of
+     * hand-editing the table can take Core (or a host-bundled essential) offline.
      *
      * @return array<string, AbstractExtension>
      */
@@ -65,19 +109,121 @@ class Manager
             return $this->extensions;
         }
 
-        $this->extensions = ['kopling/core' => new Core()];
+        $disabled = $this->disabledPackages();
 
-        foreach ($this->manifest->extensions() as $package => $extension) {
-            $class = $extension['namespace'].'Extension';
-
-            if (! class_exists($class) || ! is_subclass_of($class, AbstractExtension::class)) {
-                continue;
-            }
-
-            $this->extensions[$package] = new $class();
-        }
+        $this->extensions = array_filter(
+            $this->discovered(),
+            fn (AbstractExtension $extension, string $package): bool =>
+                $extension instanceof CannotBeDisabled || ! in_array($package, $disabled, true),
+            ARRAY_FILTER_USE_BOTH,
+        );
 
         return $this->extensions;
+    }
+
+    /**
+     * Whether an installed extension is currently enabled. False for a disabled one, and for
+     * a package name that isn't installed at all.
+     */
+    public function isEnabled(string $package): bool
+    {
+        return isset($this->extensions()[$package]);
+    }
+
+    /**
+     * Turn a discovered extension off. Guarded twice over: an unknown package and a
+     * `CannotBeDisabled` one both throw rather than silently no-op, so a mistyped id or an
+     * attempt to disable Core is a loud error, not a quiet nothing. Idempotent -- disabling an
+     * already-disabled extension keeps its original `disabled_at`.
+     */
+    public function disable(string $package): void
+    {
+        $extension = $this->discovered()[$package] ?? null;
+
+        if ($extension === null) {
+            throw new \InvalidArgumentException("No installed extension [{$package}].");
+        }
+
+        if ($extension instanceof CannotBeDisabled) {
+            throw new \InvalidArgumentException("[{$package}] cannot be disabled.");
+        }
+
+        DB::table('extension_states')->insertOrIgnore([
+            'extension' => $package,
+            'disabled_at' => now(),
+        ]);
+
+        $this->forgetState();
+    }
+
+    /**
+     * Turn a discovered extension back on -- delete its disabled row (a no-op if it wasn't
+     * disabled). Throws on a package that isn't installed, same as `disable()`.
+     */
+    public function enable(string $package): void
+    {
+        if (! isset($this->discovered()[$package])) {
+            throw new \InvalidArgumentException("No installed extension [{$package}].");
+        }
+
+        DB::table('extension_states')->where('extension', $package)->delete();
+
+        $this->forgetState();
+    }
+
+    /**
+     * Resolve a Composer package name from what a human is likely to type: the full package
+     * ("kopling/example"), its id ("kopling-example"), or the short name ("example"). Matches
+     * over `discovered()`, so a disabled extension still resolves (you need to name it to
+     * enable it). Null when nothing installed matches.
+     */
+    public function resolvePackage(string $needle): ?string
+    {
+        foreach (array_keys($this->discovered()) as $package) {
+            if ($needle === $package
+                || $needle === $this->id($package)
+                || $needle === basename(str_replace('\\', '/', $package))
+            ) {
+                return $package;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The package names the `extension_states` table currently marks disabled. Read once per
+     * request and memoised. Deliberately swallows any database error to an empty set (all
+     * enabled): this is read during `boot()`, on a fresh install the table doesn't exist yet
+     * (nothing has migrated), and on a `migrate` run the query fires before its own migration
+     * has created it -- none of which should ever stop the app, or migrations, from booting.
+     * The same graceful-degradation instinct `Theme::resolve()` applies to a bad token row.
+     *
+     * @return array<string>
+     */
+    protected function disabledPackages(): array
+    {
+        if ($this->disabled !== null) {
+            return $this->disabled;
+        }
+
+        try {
+            $this->disabled = DB::table('extension_states')->pluck('extension')->all();
+        } catch (\Throwable) {
+            $this->disabled = [];
+        }
+
+        return $this->disabled;
+    }
+
+    /**
+     * Drop the memoised enabled set and disabled list after a toggle, so a later
+     * `extensions()` in the same process reflects the change rather than a stale snapshot.
+     */
+    protected function forgetState(): void
+    {
+        $this->extensions = null;
+        $this->disabled = null;
     }
 
     /**

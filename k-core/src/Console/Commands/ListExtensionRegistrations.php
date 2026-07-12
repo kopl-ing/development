@@ -31,7 +31,7 @@ class ListExtensionRegistrations extends Command
     public function handle(Manager $manager): int
     {
         $needle = $this->argument('extension');
-        $package = $this->resolvePackage($manager, $needle);
+        $package = $manager->resolvePackage($needle);
 
         if ($package === null) {
             $this->components->error("No installed extension matches [{$needle}].");
@@ -39,7 +39,10 @@ class ListExtensionRegistrations extends Command
             return self::FAILURE;
         }
 
-        $extension = $manager->extensions()[$package];
+        // discovered(), not extensions(): a disabled extension still registers all of this on
+        // paper -- being able to inspect exactly what turning it back on would load is the
+        // whole point of asking.
+        $extension = $manager->discovered()[$package];
         $id = $manager->id($package);
 
         $this->components->info(sprintf('%s (%s)', $extension::name(), $id));
@@ -48,6 +51,7 @@ class ListExtensionRegistrations extends Command
 
         $this->components->twoColumnDetail('Implements', $this->contracts($extension) ?: '<fg=gray>none</>');
         $this->components->twoColumnDetail('Cannot be disabled', $extension instanceof CannotBeDisabled ? 'yes' : 'no');
+        $this->components->twoColumnDetail('Status', $manager->isEnabled($package) ? '<fg=green>enabled</>' : '<fg=yellow>disabled</>');
         $this->newLine();
 
         $this->conventions($manager, $package, $id);

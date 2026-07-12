@@ -10,8 +10,11 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as Provider;
 use Illuminate\Support\Str;
+use Kopling\Core\Console\Commands\DisableExtension;
 use Kopling\Core\Console\Commands\DiscoverExtensions;
+use Kopling\Core\Console\Commands\EnableExtension;
 use Kopling\Core\Console\Commands\ListExtensionRegistrations;
+use Kopling\Core\Console\Commands\ListExtensions;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
 use Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated;
@@ -37,7 +40,10 @@ class ServiceProvider extends Provider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 DiscoverExtensions::class,
+                ListExtensions::class,
                 ListExtensionRegistrations::class,
+                EnableExtension::class,
+                DisableExtension::class,
                 ...$this->app->make(Manager::class)->commands(),
             ]);
         }
