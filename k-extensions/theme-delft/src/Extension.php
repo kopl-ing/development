@@ -32,16 +32,19 @@ class Extension extends AbstractExtension implements ChangesTheme
      */
     public function theme(): array
     {
+        // Values track the charter's stated Delft palette (kopl.ing/charter.html §10): a
+        // near-white base, a light-blue surface tint, slate text, deep-blue primary/secondary,
+        // and the reserved follow/sponsor orange as the single accent.
         return [
-            Token::ColorBase100->value => '#fbfcfc',
-            Token::ColorBase200->value => '#f1f4f8',
-            Token::ColorBase300->value => '#dfe6f0',
-            Token::ColorBaseContent->value => '#2a3346',
-            Token::ColorPrimary->value => '#2b4a9b',
+            Token::ColorBase100->value => '#fbfcfc',       // page
+            Token::ColorBase200->value => '#f2f4f3',       // raised surface (cards)
+            Token::ColorBase300->value => '#d9e2f1',       // light-blue borders / hover
+            Token::ColorBaseContent->value => '#3a4358',   // slate text
+            Token::ColorPrimary->value => '#2b4a9b',       // Delft blue
             Token::ColorPrimaryContent->value => '#ffffff',
-            Token::ColorSecondary->value => '#16295e',
+            Token::ColorSecondary->value => '#16295e',     // deep navy
             Token::ColorSecondaryContent->value => '#ffffff',
-            Token::ColorAccent->value => '#e8590c',
+            Token::ColorAccent->value => '#e8590c',        // follow / sponsor ONLY
             Token::ColorAccentContent->value => '#ffffff',
             Token::ColorNeutral->value => '#1f2b46',
             Token::ColorNeutralContent->value => '#e6ebf5',
