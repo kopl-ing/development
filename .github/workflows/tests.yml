@@ -1,0 +1,51 @@
+name: tests.yml
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Run test suite
+    steps:
+      -   uses: actions/checkout@v7
+
+      -   uses: shivammathur/setup-php@v2
+          with:
+            php-version: '8.4'
+            extensions: mbstring, pdo_sqlite, sqlite3
+            coverage: none
+
+      -   uses: actions/setup-node@v5
+          with:
+            node-version: 22
+            cache: npm
+
+      -   name: Cache composer dependencies
+          uses: actions/cache@v6
+          with:
+            path: vendor
+            key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+            restore-keys: composer-${{ runner.os }}-
+
+      -   name: Copy environment file
+          run: cp .env.example .env
+
+      -   name: Install PHP dependencies
+          run: composer install --no-interaction --prefer-dist
+
+      -   name: Install Node dependencies
+          run: npm ci
+
+      # Feature tests render real pages through @vite() -- the monorepo-dev build, not
+      # k-core/dist (see CLAUDE.md, "How k-core ships compiled assets") -- so the manifest
+      # has to exist before the suite runs, same as any local dev environment.
+      -   name: Build frontend assets
+          run: npm run build
+
+      -   name: Generate application key
+          run: php artisan key:generate
+
+      -   name: Run test suite
+          run: vendor/bin/pest --compact
