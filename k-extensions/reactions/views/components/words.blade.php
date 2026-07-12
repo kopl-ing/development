@@ -31,7 +31,7 @@
         @endif
 
         @if ($canReact)
-            <form hx-post="{{ route('reactions.word', $moment->id) }}"
+            <form hx-post="{{ route('kopling-core::community/reactions.word', $moment->id) }}"
                   hx-target="#rwords-{{ $moment->id }}"
                   hx-swap="outerHTML"
                   class="flex items-center gap-1.5">

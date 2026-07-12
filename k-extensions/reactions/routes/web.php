@@ -6,12 +6,12 @@ use Kopling\Core\Content\Moment;
 use Kopling\Core\Ux\Context;
 use Kopling\Reactions\Reaction;
 
-// Wrapped in the "web" + "auth" groups the same way k-core/src/routes/web.php and the
-// example extension apply their own -- loadRoutesFrom() only requires the file, it doesn't
-// apply middleware. "auth" is what makes a guest (or a since-expired session) throw an
-// AuthenticationException, which core's RedirectHtmxUnauthenticated turns into an HX-Redirect
-// to login for an htmx request -- a plain abort(401) would never reach that handler.
-Route::middleware(['web', 'auth'])->group(function () {
+// Required inside the Community portal's own Route::group() (see Extension::extendsPortals()),
+// so "web", the prefix and the name prefix all come from the portal. Only "auth" is declared
+// here -- it's what makes a guest (or a since-expired session) throw an AuthenticationException,
+// which core's RedirectHtmxUnauthenticated turns into an HX-Redirect to login for an htmx
+// request -- a plain abort(401) would never reach that handler.
+Route::middleware('auth')->group(function () {
     // Toggle the viewer's reaction for one emoji on one moment, then re-render the rail so
     // htmx can swap it in place (hx-swap="outerHTML"). The "auth" middleware guarantees an
     // actor, so Auth::user() is never null past here.

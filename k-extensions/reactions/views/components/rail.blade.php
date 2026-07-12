@@ -31,7 +31,7 @@
                 @endphp
                 @if ($canReact)
                     <button type="button"
-                            hx-post="{{ route('reactions.toggle', $moment->id) }}"
+                            hx-post="{{ route('kopling-core::community/reactions.toggle', $moment->id) }}"
                             hx-vals='{{ json_encode(['emoji' => $emoji], JSON_UNESCAPED_UNICODE | JSON_HEX_APOS) }}'
                             hx-target="#reactions-{{ $moment->id }}"
                             hx-swap="outerHTML"

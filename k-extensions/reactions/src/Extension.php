@@ -11,10 +11,12 @@ use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Reactions\Command\SeedDemoReactionsCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, HasCommands
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands
 {
     public static function name(): string
     {
@@ -69,5 +71,20 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, H
             ->in('kopling-core::card.footer')
             ->as('words')
             ->after('kopling-reactions::rail');
+    }
+
+    /**
+     * The toggle/word routes attach to Community — the only portal a card feed renders in.
+     * They ride the portal's own Route::group() (web + prefix + name) and keep their `auth`
+     * gate; route names are now kopling-core::community/reactions.toggle|word.
+     *
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/web.php'),
+        ];
     }
 }
