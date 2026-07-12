@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Fixtures\Extensions\ModelExtender;
+
+use Kopling\Core\Extend\Model as ExtendModel;
+use Kopling\Core\Extend\Relation;
+use Kopling\Core\Extension\AbstractExtension;
+use Kopling\Core\Extension\Contract\ExtendsModels;
+
+/**
+ * A fixture extension exercising `ExtendsModels` end to end: a `hasMany` relation (proves
+ * `Manager::models()`'s `resolveRelationUsing()` wiring actually resolves real rows) and a cast
+ * (proves `Database\Model::getCasts()` actually reads back what `registerCasts()` stored).
+ */
+class Extension extends AbstractExtension implements ExtendsModels
+{
+    public static function name(): string
+    {
+        return 'Model Extender Fixture';
+    }
+
+    public static function description(): string
+    {
+        return 'Adds a hasMany relation and a cast to a fixture model, for testing ExtendsModels.';
+    }
+
+    /**
+     * @return array<ExtendModel>
+     */
+    public function models(): array
+    {
+        return [
+            (new ExtendModel(Gadget::class))
+                ->relation((new Relation)->hasMany('parts', Part::class))
+                ->cast('metadata', 'array'),
+        ];
+    }
+}
