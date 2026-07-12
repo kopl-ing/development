@@ -51,6 +51,15 @@
                     </span>
                 @endif
             @endforeach
+            @if ($canReact)
+                {{-- Opens the one page-level picker modal against this moment (see modal.blade
+                     + js/app.js). x-data gives an Alpine scope that survives htmx rail swaps. --}}
+                <button type="button" x-data
+                        @click="$store.reactions.show('{{ route('kopling-core::community/reactions.word', $moment->id) }}', '#rwords-{{ $moment->id }}')"
+                        class="btn btn-xs btn-ghost rounded-full px-2 text-base leading-none"
+                        title="{{ __('kopling-reactions::messages.add_reaction') }}"
+                        aria-label="{{ __('kopling-reactions::messages.add_reaction') }}">＋</button>
+            @endif
         </div>
     @endif
 @endif

@@ -1,11 +1,11 @@
 @php use Kopling\Reactions\Reaction; @endphp
 @props(['data' => [], 'context' => null])
 {{--
-    The "Latest reactions" strip -- recent worded reactions on a moment, newest first, plus
-    an inline form for the viewer to add their own (emoji + a short word). Registered into
-    `core::card.footer` after the rail. Same context-reading + anonymous-component + htmx
-    conventions as the rail; the form's response swaps this strip and carries the rail back
-    out-of-band so its counts stay current.
+    The "Latest reactions" strip -- recent worded reactions on a moment, newest first.
+    Registered into `core::card.footer` after the rail. Adding a reaction is done through the
+    picker modal (opened by the rail's "+"), which posts to the word route and swaps this
+    strip; the container stays rendered for a signed-in viewer even when empty so it's a valid
+    htmx swap target.
 --}}
 @php
     $moment = $context?->getSubject();
@@ -28,26 +28,6 @@
                     </span>
                 @endforeach
             </div>
-        @endif
-
-        @if ($canReact)
-            <form hx-post="{{ route('kopling-core::community/reactions.word', $moment->id) }}"
-                  hx-target="#rwords-{{ $moment->id }}"
-                  hx-swap="outerHTML"
-                  class="flex items-center gap-1.5">
-                <select name="emoji" class="select select-xs w-16" aria-label="{{ __('kopling-reactions::messages.emoji') }}">
-                    @foreach (Reaction::PALETTE as $emoji)
-                        <option value="{{ $emoji }}">{{ $emoji }}</option>
-                    @endforeach
-                </select>
-                <input type="text" name="word" required
-                       maxlength="{{ Reaction::WORD_MAX }}"
-                       placeholder="{{ __('kopling-reactions::messages.word_placeholder') }}"
-                       class="input input-xs min-w-0 flex-1" />
-                <button type="submit" class="btn btn-xs btn-primary">
-                    {{ __('kopling-reactions::messages.word_submit') }}
-                </button>
-            </form>
         @endif
     </div>
 @endif

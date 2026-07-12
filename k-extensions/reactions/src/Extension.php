@@ -60,6 +60,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * component tag, not a class -- extensions get an auto view namespace but not a
      * class-component namespace, so `ComponentTag` passes the tag through untouched and the
      * footer renders each via `<x-dynamic-component>`.
+     *
+     * The `modal` (the picker) goes into the chrome's page-level `community.composer` slot, not
+     * the per-card footer -- it's one modal for the whole page, opened against whichever card's
+     * "+" the viewer clicked (see modal.blade + js/app.js).
      */
     public function ux(): Ux
     {
@@ -70,13 +74,17 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             ->add('kopling-reactions::words')
             ->in('kopling-core::card.footer')
             ->as('words')
-            ->after('kopling-reactions::rail');
+            ->after('kopling-reactions::rail')
+            ->add('kopling-reactions::modal')
+            ->in('kopling-core::community.composer')
+            ->as('modal');
     }
 
     /**
      * The toggle/word routes attach to Community — the only portal a card feed renders in.
      * They ride the portal's own Route::group() (web + prefix + name) and keep their `auth`
-     * gate; route names are now kopling-core::community/reactions.toggle|word.
+     * gate; route names are now kopling-core::community/reactions.toggle|word. js/app.js (the
+     * picker's Alpine store) is linked onto Community pages via the head-assets outlet.
      *
      * @return array<PortalExtension>
      */
@@ -84,7 +92,8 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     {
         return [
             new PortalExtension('kopling-core::community')
-                ->routes(__DIR__.'/../routes/web.php'),
+                ->routes(__DIR__.'/../routes/web.php')
+                ->js(__DIR__.'/../js/app.js'),
         ];
     }
 }
