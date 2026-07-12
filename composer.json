@@ -3,7 +3,10 @@
     "name": "kopling/development",
     "type": "project",
     "description": "The development environment for the Kopling community software.",
-    "keywords": ["kopling", "community"],
+    "keywords": [
+        "kopling",
+        "community"
+    ],
     "license": "MIT",
     "authors": [
         {
@@ -19,7 +22,8 @@
         "kopling/discussions": "@dev",
         "kopling/example": "@dev",
         "kopling/reactions": "@dev",
-        "kopling/theme-midnight": "@dev"
+        "kopling/theme-midnight": "@dev",
+        "kopling/widgets": "@dev"
     },
     "autoload": {
         "psr-4": {

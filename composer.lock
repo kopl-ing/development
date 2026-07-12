@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f8a45c68337aea047e94f878e82b72f0",
+    "content-hash": "8c73b5a234ede427a079027787204c68",
     "packages": [
         {
             "name": "brick/math",
@@ -1122,7 +1122,7 @@
         },
         {
             "name": "kopling/admin",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/admin",
@@ -1150,11 +1150,11 @@
         },
         {
             "name": "kopling/auth-email-password",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/auth-email-password",
-                "reference": "8e1a9705d58476164d6a7a79ebfc080f9a0d1a65"
+                "reference": "ae14d8d68000818aa27f0fef73c8d74ad1047543"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1171,14 +1171,14 @@
                     "email": "daniel@klabbers.email"
                 }
             ],
-            "description": "Email/password login for Kopling -- the first login-method extension, built on Core's ValidateLogin/AttemptLogin events.",
+            "description": "Email/password login and registration for Kopling -- the first login-method extension, built on Core's Validate/Attempt Login and Registration events.",
             "transport-options": {
                 "relative": true
             }
         },
         {
             "name": "kopling/core",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-core",
@@ -1217,7 +1217,7 @@
         },
         {
             "name": "kopling/demo",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/demo",
@@ -1248,7 +1248,7 @@
         },
         {
             "name": "kopling/discussions",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/discussions",
@@ -1280,7 +1280,7 @@
         },
         {
             "name": "kopling/example",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/example",
@@ -1308,11 +1308,11 @@
         },
         {
             "name": "kopling/reactions",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/reactions",
-                "reference": "73db6729a79498dc094793f68156ceefcbaddae7"
+                "reference": "8b19c7428b4e02d12d19e562688ec8cd839fda79"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1336,7 +1336,7 @@
         },
         {
             "name": "kopling/theme-midnight",
-            "version": "dev-main",
+            "version": "dev-feat/widgets",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/theme-midnight",
@@ -1358,6 +1358,33 @@
                 }
             ],
             "description": "Midnight -- a dark theme for Kopling, shipped as overrides on top of the compiled kopling daisyUI theme.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "kopling/widgets",
+            "version": "dev-feat/widgets",
+            "dist": {
+                "type": "path",
+                "url": "./k-extensions/widgets",
+                "reference": "dcef90184fdcbdcb1a94908c7b0670465e2ecab0"
+            },
+            "type": "kopling-extension",
+            "extra": {
+                "kopling-extension": {
+                    "name": "Widgets"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kopling\\Widgets\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Community pulse and popular tags in the feed rail.",
             "transport-options": {
                 "relative": true
             }
@@ -6313,7 +6340,8 @@
         "kopling/discussions": 20,
         "kopling/example": 20,
         "kopling/reactions": 20,
-        "kopling/theme-midnight": 20
+        "kopling/theme-midnight": 20,
+        "kopling/widgets": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
