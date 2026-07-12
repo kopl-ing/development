@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a40f8226dddee435d9f2cc6f28f43d0f",
+    "content-hash": "523d5d19817e4128ba8f24b406215faa",
     "packages": [
         {
             "name": "brick/math",
@@ -1386,6 +1386,34 @@
                 }
             ],
             "description": "Delft -- the light Delft-blue brand theme for Kopling, shipped as token overrides on top of the compiled kopling daisyUI theme.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "kopling/theme-midnight",
+            "version": "dev-feat/reactions-card-footer",
+            "dist": {
+                "type": "path",
+                "url": "./k-extensions/theme-midnight",
+                "reference": "b3f8a51ba804f5997b45192c9f3675b2a8f6e617"
+            },
+            "type": "kopling-extension",
+            "autoload": {
+                "psr-4": {
+                    "Kopling\\ThemeMidnight\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Daniël Klabbers",
+                    "email": "daniel@klabbers.email"
+                }
+            ],
+            "description": "Midnight -- a dark theme for Kopling, shipped as overrides on top of the compiled kopling daisyUI theme.",
             "transport-options": {
                 "relative": true
             }
@@ -6342,7 +6370,8 @@
         "kopling/example": 20,
         "kopling/reactions": 20,
         "kopling/tags": 20,
-        "kopling/theme-delft": 20
+        "kopling/theme-delft": 20,
+        "kopling/theme-midnight": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
