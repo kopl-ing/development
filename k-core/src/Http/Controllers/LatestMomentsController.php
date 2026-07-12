@@ -51,7 +51,6 @@ class LatestMomentsController
      */
     public function check(Request $request): Response
     {
-        $portal = $request->attributes->get('portal');
         $since = Carbon::parse($request->query('since'));
 
         $count = Moment::where('created_at', '>', $since)->count();
@@ -62,7 +61,6 @@ class LatestMomentsController
 
         return response()
             ->view('kopling-core::community.new-moments', [
-                'portal' => $portal,
                 'since' => $since->toIso8601String(),
                 'count' => $count,
             ])
@@ -76,13 +74,11 @@ class LatestMomentsController
      */
     public function load(Request $request): View
     {
-        $portal = $request->attributes->get('portal');
         $since = Carbon::parse($request->query('since'));
 
         $moments = Moment::where('created_at', '>', $since)->latest()->get();
 
         return view('kopling-core::community.loaded', [
-            'portal' => $portal,
             'moments' => $moments,
             'since' => optional($moments->first())->created_at?->toIso8601String() ?? $since->toIso8601String(),
         ]);

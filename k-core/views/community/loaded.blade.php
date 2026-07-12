@@ -3,10 +3,11 @@
     that was clicked, via outerHTML) is a resumed poller; the OOB block prepends the actual
     new cards into the feed independently of that primary swap.
 --}}
-@include('kopling-core::community.poll', ['portal' => $portal, 'since' => $since])
+{{-- $portal comes from InjectPortal's shared view global, not passed explicitly. --}}
+@include('kopling-core::community.poll', ['since' => $since])
 
 <div id="moments-feed" hx-swap-oob="afterbegin">
     @foreach ($moments as $moment)
-        @include('kopling-core::community.moment', ['moment' => $moment, 'portal' => $portal])
+        @include('kopling-core::community.moment', ['moment' => $moment])
     @endforeach
 </div>
