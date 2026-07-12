@@ -52,11 +52,13 @@
                 @endif
             @endforeach
             @if ($canReact)
-                {{-- Opens the one page-level picker modal against this moment (see modal.blade
-                     + js/app.js). x-data gives an Alpine scope that survives htmx rail swaps. --}}
+                {{-- Opens the one page-level picker modal against this moment via a window
+                     event (see modal.blade). x-data gives an Alpine scope for $dispatch that
+                     survives htmx rail swaps -- no store, since extension js can't register one
+                     before core's Alpine.start(). --}}
                 <button type="button" x-data
-                        @click="$store.reactions.show('{{ route('kopling-core::community/reactions.word', $moment->id) }}', '#rwords-{{ $moment->id }}')"
-                        class="btn btn-sm btn-ghost rounded-full px-2 text-base leading-none"
+                        @click="$dispatch('kop-react-open', { url: '{{ route('kopling-core::community/reactions.word', $moment->id) }}', target: '#rwords-{{ $moment->id }}' })"
+                        class="btn btn-sm btn-ghost rounded-full kop-radd"
                         title="{{ __('kopling-reactions::messages.add_reaction') }}"
                         aria-label="{{ __('kopling-reactions::messages.add_reaction') }}">＋</button>
             @endif

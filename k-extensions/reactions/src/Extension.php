@@ -83,8 +83,9 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     /**
      * The toggle/word routes attach to Community — the only portal a card feed renders in.
      * They ride the portal's own Route::group() (web + prefix + name) and keep their `auth`
-     * gate; route names are now kopling-core::community/reactions.toggle|word. js/app.js (the
-     * picker's Alpine store) is linked onto Community pages via the head-assets outlet.
+     * gate; route names are now kopling-core::community/reactions.toggle|word. css/app.css (the
+     * rail/chip/modal styling) is linked onto Community pages via the head-assets outlet -- the
+     * picker modal is event-driven local Alpine, so it needs no js of its own.
      *
      * @return array<PortalExtension>
      */
@@ -93,7 +94,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
         return [
             new PortalExtension('kopling-core::community')
                 ->routes(__DIR__.'/../routes/web.php')
-                ->js(__DIR__.'/../js/app.js'),
+                ->css(__DIR__.'/../css/app.css'),
         ];
     }
 }

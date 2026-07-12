@@ -27,12 +27,13 @@
                         $initials = strtoupper(mb_substr($parts[0], 0, 1).(count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
                         $hue = crc32((string) ($reaction->person?->id ?? $name)) % 360;
                     @endphp
-                    {{-- avatar circle · emoji · word (name on hover), matching the demo --}}
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-base-200 ps-1 pe-3 py-1 text-sm" title="{{ $name }}">
-                        <span class="w-6 h-6 shrink-0 rounded-full grid place-items-center text-[10px] font-bold leading-none text-white"
-                              style="background:hsl({{ $hue }}deg 45% 45%)">{{ $initials }}</span>
-                        <span aria-hidden="true" class="text-base leading-none">{{ $reaction->emoji }}</span>
-                        <span class="opacity-90">{{ $reaction->word }}</span>
+                    {{-- avatar circle · emoji · word (name on hover), matching the demo.
+                         Explicit .kop-rchip classes (css/app.css) -- utility classes used only
+                         in an extension view aren't in core's compiled stylesheet. --}}
+                    <span class="kop-rchip" title="{{ $name }}">
+                        <span class="kop-rchip__avatar" style="background:hsl({{ $hue }}deg 45% 45%)">{{ $initials }}</span>
+                        <span class="kop-rchip__emoji" aria-hidden="true">{{ $reaction->emoji }}</span>
+                        <span class="kop-rchip__word">{{ $reaction->word }}</span>
                     </span>
                 @endforeach
             </div>

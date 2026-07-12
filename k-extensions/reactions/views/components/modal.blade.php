@@ -1,65 +1,63 @@
 @php use Kopling\Reactions\Reaction; @endphp
 {{--
     The reaction picker: one modal for the whole page (registered into the chrome's composer
-    slot so it renders once), driven by the `reactions` Alpine store (js/app.js). Any card's
-    rail "+" calls $store.reactions.show(url, target) to open it against that moment; submit
-    posts emoji + optional word via htmx. Authed only -- guests never react.
+    slot so it renders once). Event-driven with a LOCAL x-data -- not an Alpine store -- because
+    extension js loads after core's Alpine.start(), so an alpine:init-registered store never
+    exists. A card's rail "+" does $dispatch('kop-react-open', {url, target}); this listens on
+    the window, opens, and submits emoji + optional word via htmx (core adds the CSRF header).
+    Styling is css/app.css (core's compiled build doesn't include extension utility classes).
 --}}
 @auth
-    <div x-data x-show="$store.reactions.open" x-cloak
-         class="fixed inset-0 z-[60] grid place-items-center p-4"
-         @keydown.escape.window="$store.reactions.close()">
-        <div class="absolute inset-0 bg-neutral/40" @click="$store.reactions.close()"></div>
+    <div x-data="{ open: false, url: null, target: null, emoji: null, word: '' }"
+         @kop-react-open.window="open = true; url = $event.detail.url; target = $event.detail.target; emoji = null; word = ''"
+         @keydown.escape.window="open = false"
+         x-show="open" x-cloak class="kop-rmodal">
+        <div class="kop-rmodal__backdrop" @click="open = false"></div>
 
-        <div class="relative w-full max-w-sm card bg-base-100 border border-base-300 rounded-box shadow-xl p-4 flex flex-col gap-3.5"
-             x-show="$store.reactions.open"
-             x-transition:enter="transition ease-out duration-150"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100">
-            <div class="flex items-center justify-between">
-                <h2 class="font-bold text-lg leading-tight">{{ __('kopling-reactions::messages.add_reaction') }}</h2>
-                <button type="button" @click="$store.reactions.close()"
-                        class="btn btn-ghost btn-sm btn-square" aria-label="{{ __('kopling-reactions::messages.close') }}">✕</button>
+        <div class="kop-rmodal__panel"
+             x-show="open"
+             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+            <div class="kop-rmodal__head">
+                <h2 class="kop-rmodal__title">{{ __('kopling-reactions::messages.add_reaction') }}</h2>
+                <button type="button" @click="open = false" class="btn btn-ghost btn-sm btn-square"
+                        aria-label="{{ __('kopling-reactions::messages.close') }}">✕</button>
             </div>
 
             {{-- emoji picker --}}
-            <div class="grid grid-cols-6 gap-1.5">
+            <div class="kop-rmodal__grid">
                 @foreach (Reaction::PALETTE as $emoji)
-                    <button type="button" @click="$store.reactions.emoji = @js($emoji)"
-                            class="aspect-square rounded-box text-2xl grid place-items-center hover:bg-base-200 transition-colors"
-                            :class="$store.reactions.emoji === @js($emoji) ? 'bg-base-300 ring-2 ring-primary' : ''">{{ $emoji }}</button>
+                    <button type="button" class="kop-rmodal__emoji"
+                            @click="emoji = @js($emoji)"
+                            :class="emoji === @js($emoji) && 'is-picked'">{{ $emoji }}</button>
                 @endforeach
             </div>
 
             {{-- optional short word --}}
             <div>
-                <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-xs font-bold uppercase tracking-wide opacity-60">
-                        {{ __('kopling-reactions::messages.add_word') }}
-                        <span class="opacity-60">· {{ __('kopling-reactions::messages.optional') }}</span>
-                    </span>
-                    <span class="text-xs font-mono opacity-50" x-text="$store.reactions.word.length + '/{{ Reaction::WORD_MAX }}'"></span>
+                <div class="kop-rmodal__wordhead">
+                    <span>{{ __('kopling-reactions::messages.add_word') }} · {{ __('kopling-reactions::messages.optional') }}</span>
+                    <span x-text="word.length + '/{{ Reaction::WORD_MAX }}'"></span>
                 </div>
-                <input type="text" maxlength="{{ Reaction::WORD_MAX }}" x-model="$store.reactions.word"
+                <input type="text" maxlength="{{ Reaction::WORD_MAX }}" x-model="word"
                        placeholder="{{ __('kopling-reactions::messages.say_it') }}"
-                       @keydown.enter.prevent="$store.reactions.submit()"
+                       @keydown.enter.prevent="if (emoji) { window.htmx.ajax('POST', url, { target, swap: 'outerHTML', values: { emoji, word } }); open = false }"
                        class="input input-bordered input-sm w-full">
-                <div class="flex flex-wrap gap-1.5 mt-2">
+                <div class="kop-rmodal__quips">
                     @foreach ((array) __('kopling-reactions::messages.quips') as $quip)
-                        <button type="button" @click="$store.reactions.word = @js($quip)"
-                                class="badge badge-ghost cursor-pointer hover:badge-neutral">{{ $quip }}</button>
+                        <button type="button" class="badge badge-ghost" @click="word = @js($quip)">{{ $quip }}</button>
                     @endforeach
                 </div>
             </div>
 
             {{-- live preview + submit --}}
-            <div class="flex items-center gap-2 pt-2 border-t border-base-200">
-                <span class="text-sm opacity-70" x-show="$store.reactions.emoji">
-                    <span x-text="$store.reactions.emoji"></span>
-                    <span class="italic" x-show="$store.reactions.word.trim()" x-text="'“' + $store.reactions.word.trim() + '”'"></span>
+            <div class="kop-rmodal__foot">
+                <span class="kop-rmodal__preview" x-show="emoji">
+                    <span x-text="emoji"></span>
+                    <span x-show="word.trim()" x-text="'“' + word.trim() + '”'"></span>
                 </span>
-                <button type="button" @click="$store.reactions.submit()" :disabled="!$store.reactions.emoji"
-                        class="btn btn-primary btn-sm ms-auto">{{ __('kopling-reactions::messages.word_submit') }}</button>
+                <button type="button" :disabled="!emoji"
+                        @click="window.htmx.ajax('POST', url, { target, swap: 'outerHTML', values: { emoji, word } }); open = false"
+                        class="btn btn-primary btn-sm" style="margin-inline-start:auto">{{ __('kopling-reactions::messages.word_submit') }}</button>
             </div>
         </div>
     </div>
