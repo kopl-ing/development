@@ -1,7 +1,8 @@
 /* Plain, hand-written CSS -- no Tailwind, no build step. Extensions get a safelisted layout
    utility subset (flex/grid/gap/spacing) plus <x-k::*> components for anything else; this
-   file is for the rare custom need that falls outside both. Not yet linked onto the page --
-   that needs the head.assets outlet, not built yet (see CLAUDE.md TODO). */
+   file is for the rare custom need that falls outside both. Linked onto the page via
+   Extension::extendsPortals()'s ->css() call whenever the current request resolves to the
+   Portal it's attached to. */
 .example-hello {
     color: var(--color-accent);
 }

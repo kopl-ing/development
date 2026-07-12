@@ -9,9 +9,11 @@ use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
@@ -25,7 +27,7 @@ use Kopling\Core\Ux\Community\Sidebar;
  * as a special case; writing local ids here and letting `Manager` prefix them the same way it
  * prefixes any extension's removes that asymmetry -- one declaration mechanism, not two.
  */
-class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, HasPermissions, HasPortals
+class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, ExtendsPortals, HasPermissions, HasPortals
 {
     public static function name(): string
     {
@@ -72,8 +74,18 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Has
                 label: 'Community',
                 path: '',
                 layout: 'kopling-core::layouts.community',
-            )
-                ->routes(__DIR__ . '/../routes/community.php'),
+            ),
+        ];
+    }
+
+    /**
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/community.php'),
         ];
     }
 
