@@ -10,7 +10,7 @@
     $stats = $moment ? Reply::statsFor($moment) : null;
 @endphp
 @if ($moment && $stats)
-    <a href="{{ route('discussions.show', $moment->id) }}"
+    <a href="{{ route('kopling-core::community/discussions.show', $moment->id) }}"
        class="mt-1 block text-sm opacity-70 transition-opacity hover:opacity-100">
         @if ($stats['count'] === 0)
             {{ __('kopling-discussions::messages.teaser_empty') }}

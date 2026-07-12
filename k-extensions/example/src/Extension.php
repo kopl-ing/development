@@ -8,8 +8,11 @@ use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
+use Kopling\Core\Extension\LoadOrder\HasLoadOrder;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Storage\StorageAccess;
 use Kopling\Core\Storage\StoragePermission;
 use Kopling\Core\Storage\StorageRequest;
@@ -22,7 +25,7 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
  * sibling directories (views/, css/, js/, migrations/, routes/, lang/, icon/) and
  * CLAUDE.md ("Extension conventions") for what each one does.
  */
-class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions
+class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, HasLoadOrder, ExtendsPortals
 {
     public static function name(): string
     {
@@ -84,9 +87,55 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     public function ux(): Ux
     {
         return Ux::make()
-            ->add(Item::class, ['label' => 'Hello', 'route' => 'example.hello'])
+            ->add(Item::class, ['label' => 'Hello', 'route' => 'kopling-core::community/example.hello'])
             ->in('kopling-core::side-navigation')
             ->as('hello')
             ->when('manage-things');
+    }
+
+    /**
+     * Demonstrates all three of `PortalExtension`'s attachments at once, targeting Core's own
+     * Community portal -- routes/, css/, js/ are the sibling directories this class's own
+     * docblock already points at, now wired up rather than sitting unused.
+     *
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/web.php')
+                ->css(__DIR__.'/../css/app.css')
+                ->js(__DIR__.'/../js/app.js'),
+        ];
+    }
+
+    /**
+     * Illustrative only, like storage() above -- this extension doesn't actually register
+     * anything into Admin's own Portal slots, but an extension that did (a settings screen, a
+     * tools link) would need Admin's Portal already registered first, and this is the explicit,
+     * self-declared way to say so: "I need to come after this specific package." A reference to
+     * a package that isn't installed is silently ignored, never an error, the same
+     * graceful-degradation rule ux()'s after()/before() apply to a dangling reference.
+     *
+     * See `Kopling\Core\Extension\LoadOrder\InfluencesLoadOrder` for the other half of the
+     * mechanism -- letting a contract's own owner (a future Admin `HasSettings`, say) declare
+     * this same relationship for every extension implementing it, without either side needing
+     * to know the other's package name. Not demonstrated here since no such contract is built
+     * yet; see `kopling/admin`'s own Extension.php.
+     *
+     * @return array<string>
+     */
+    public function loadAfter(): array
+    {
+        return ['kopling/admin'];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function loadBefore(): array
+    {
+        return [];
     }
 }

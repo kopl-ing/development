@@ -54,6 +54,7 @@ class ServiceProvider extends Provider
         Blade::componentNamespace('Kopling\\Core\\Ux', 'k');
 
         $this->loadMigrationsFrom(__DIR__.'/../migrations');
+        $this->loadRoutesFrom(__DIR__.'/../../routes/assets.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
 
         $manager->listeners();
@@ -75,16 +76,9 @@ class ServiceProvider extends Provider
                 $this->loadViewsFrom($conventions['views'], $id);
             }
 
-            if (isset($conventions['routes'])) {
-                $this->loadRoutesFrom($conventions['routes'].'/web.php');
-            }
-
             if (isset($conventions['lang'])) {
                 $this->loadTranslationsFrom($conventions['lang'], $id);
             }
-
-            // css/js conventions are exposed via Manager::conventions() but not yet linked
-            // onto the page -- that needs the head-assets outlet mechanism, not built yet.
         }
 
         foreach ($manager->permissions() as $permission) {
