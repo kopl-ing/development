@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -17,7 +18,14 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('moment_id')->constrained(table: 'moments')->cascadeOnDelete();
             $table->foreignUuid('person_id')->constrained(table: 'people')->cascadeOnDelete();
-            $table->string('emoji');
+            // Binary collation on MySQL/MariaDB: their default (utf8mb4_*_ci) collates distinct
+            // emoji as EQUAL (👍 == 😂), which would collapse them in the unique key below and
+            // make the toggle's `where('emoji', …)` match the wrong reaction -- reacting with a
+            // second emoji would silently delete the first. SQLite already compares text
+            // byte-exact and doesn't know this collation name, so pin it only on MySQL.
+            $table->string('emoji')->collation(
+                DB::connection()->getDriverName() === 'mysql' ? 'utf8mb4_bin' : null
+            );
             // Optional short word that turns a plain emoji reaction into a "worded" one --
             // the demo's "Latest reactions" strip. Null for a plain rail toggle; a reaction
             // is the same row whether or not it carries a word (one per moment+person+emoji).
