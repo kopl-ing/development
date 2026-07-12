@@ -7,8 +7,6 @@
 @php
 /** @var \Illuminate\Contracts\Pagination\LengthAwarePaginator<\Kopling\Core\Content\Moment> $moments */
 $moments = $context->getSubjectPaginator();
-/** @var \Kopling\Core\Portal\Portal $portal */
-$portal = $context->portal;
 $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->toIso8601String();
 @endphp
 <x-k::community.chrome>
@@ -20,11 +18,12 @@ $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->t
 
     <x-k::portal.slot name="kopling-core::community.content-top" />
 
-    @include('kopling-core::community.poll', ['portal' => $portal, 'since' => $since])
+    {{-- $portal comes from InjectPortal's shared view global, not passed explicitly. --}}
+    @include('kopling-core::community.poll', ['since' => $since])
 
     <div id="moments-feed" class="flex flex-col gap-4">
         @foreach ($moments as $moment)
-            @include('kopling-core::community.moment', ['moment' => $moment, 'portal' => $portal])
+            @include('kopling-core::community.moment', ['moment' => $moment])
         @endforeach
     </div>
 </x-k::community.chrome>

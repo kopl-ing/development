@@ -14,11 +14,15 @@ use Kopling\Core\Portal\Portal;
  * `layouts/community.blade.php` so a page that isn't the feed itself -- discussions' show page,
  * a future tags page, anything that still wants to sit inside the same site experience -- can
  * wrap its own content in this without also inheriting the feed's `Context`/pagination
- * requirement. Resolves the Community portal itself via `Manager`, the same way `Sidebar`
- * already resolves its own slot entries independently, rather than asking every caller to look
- * it up and pass it in -- a page rendering this has no reason to already have a `Portal`
- * instance on hand (`InjectPortal` only resolves one for routes registered under a Portal's own
- * route group, which a page like discussions' isn't).
+ * requirement. Resolves the Community portal itself via `Manager` rather than trusting whatever
+ * `InjectPortal` already resolved for the current request (available as the shared `$portal`
+ * view variable, or `$request->attributes->get('portal')`) -- deliberately: this component's
+ * whole purpose is Community's own chrome, specifically, so it hardcodes that target the same
+ * way `Extension::extendsPortals()` targets a Portal by its fully-qualified id rather than an
+ * ambient one. That both of today's call sites happen to already be grouped under Community
+ * (discussions' routes now are too, via `ExtendsPortals`) is incidental, not the reason for this
+ * -- a future page embedding Community's chrome from underneath some other Portal entirely would
+ * still need Community's own instance here, not whatever that other Portal resolved to.
  */
 class Chrome extends Component
 {

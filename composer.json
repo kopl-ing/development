@@ -20,6 +20,8 @@
         "kopling/discussions": "@dev",
         "kopling/example": "@dev",
         "kopling/reactions": "@dev",
+        "kopling/tags": "@dev",
+        "kopling/theme-delft": "@dev",
         "kopling/theme-midnight": "@dev"
     },
     "autoload": {
@@ -62,6 +64,9 @@
         }
     },
     "require-dev": {
-        "laravel/tinker": "^3.0"
+        "laravel/tinker": "^3.0",
+        "mockery/mockery": "^1.6",
+        "pestphp/pest": "^4.7",
+        "pestphp/pest-plugin-laravel": "^4.1"
     }
 }
