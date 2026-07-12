@@ -1,0 +1,142 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Kopling\Core\Extension\LoadOrder;
+
+use Kopling\Core\Extension\AbstractExtension;
+
+/**
+ * Orders `Manager::extensions()`'s raw, discovery-order map into one that respects every
+ * `HasLoadOrder`/`InfluencesLoadOrder` constraint. Composer's `installed.json` order (the
+ * order the map arrives in) carries no meaning -- it's discarded in favour of alphabetical by
+ * package, the deterministic base this sorts from when two extensions have no relation to each
+ * other at all. `kopling/core` is pinned first unconditionally, the same guarantee
+ * `Manager::extensions()` already made before this existed; it never enters the graph.
+ */
+class Resolver
+{
+    /**
+     * @param  array<string, AbstractExtension>  $extensions
+     * @return array<string, AbstractExtension>
+     */
+    public static function resolve(array $extensions): array
+    {
+        $core = $extensions['kopling/core'] ?? null;
+        unset($extensions['kopling/core']);
+
+        ksort($extensions);
+
+        $sorted = static::sort(array_keys($extensions), static::edges($extensions));
+
+        $result = $core !== null ? ['kopling/core' => $core] : [];
+
+        foreach ($sorted as $package) {
+            $result[$package] = $extensions[$package];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Builds a package => "packages it must load after" adjacency list. `HasLoadOrder`
+     * constraints are collected first, recording which pairs each package already has an
+     * explicit opinion about; `InfluencesLoadOrder` rules are then applied only where the
+     * matched extension has no explicit opinion about the declaring package already --
+     * explicit always wins over inferred (see `HasLoadOrder`).
+     *
+     * @param  array<string, AbstractExtension>  $extensions
+     * @return array<string, array<string>>
+     */
+    protected static function edges(array $extensions): array
+    {
+        $after = [];
+        $explicit = [];
+
+        foreach ($extensions as $package => $extension) {
+            if (! $extension instanceof HasLoadOrder) {
+                continue;
+            }
+
+            foreach ($extension->loadAfter() as $other) {
+                if (! isset($extensions[$other])) {
+                    continue;
+                }
+
+                $after[$package][] = $other;
+                $explicit[$package][$other] = true;
+            }
+
+            foreach ($extension->loadBefore() as $other) {
+                if (! isset($extensions[$other])) {
+                    continue;
+                }
+
+                $after[$other][] = $package;
+                $explicit[$package][$other] = true;
+            }
+        }
+
+        foreach ($extensions as $package => $extension) {
+            if (! $extension instanceof InfluencesLoadOrder) {
+                continue;
+            }
+
+            foreach ($extension->loadOrderRules() as $contract => $directive) {
+                foreach ($extensions as $candidate => $instance) {
+                    if ($candidate === $package || ! $instance instanceof $contract) {
+                        continue;
+                    }
+
+                    if (isset($explicit[$candidate][$package])) {
+                        continue;
+                    }
+
+                    match ($directive) {
+                        Directive::After => $after[$candidate][] = $package,
+                        Directive::Before => $after[$package][] = $candidate,
+                    };
+                }
+            }
+        }
+
+        return $after;
+    }
+
+    /**
+     * Kahn's algorithm, tie-broken alphabetically: `$nodes` already arrives alphabetical (see
+     * `resolve()`), and each pass picks the first still-blocked-free node in `$remaining`,
+     * whose relative order never changes -- so ties resolve alphabetically for free.
+     *
+     * @param  array<string>  $nodes
+     * @param  array<string, array<string>>  $after  package => packages it must load after
+     * @return array<string>
+     */
+    protected static function sort(array $nodes, array $after): array
+    {
+        $remaining = $nodes;
+        $placed = [];
+
+        while ($remaining !== []) {
+            $ready = null;
+
+            foreach ($remaining as $package) {
+                if (array_diff($after[$package] ?? [], $placed) === []) {
+                    $ready = $package;
+                    break;
+                }
+            }
+
+            if ($ready === null) {
+                throw new \LogicException(
+                    'Extension load order has a cycle involving: '.implode(', ', $remaining)
+                );
+            }
+
+            $placed[] = $ready;
+            $remaining = array_values(array_diff($remaining, [$ready]));
+        }
+
+        return $placed;
+    }
+}

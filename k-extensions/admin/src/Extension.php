@@ -17,15 +17,14 @@ use Kopling\Core\Portal\Portal;
  * here instead. Declared through the exact same contracts any other extension would use;
  * nothing about being "the admin panel" gets Core-only special treatment.
  *
- * TODO: this extension needs to be discovered/loaded early -- other extensions that want to
- * place their own settings/tools into this Portal's slots may want to anchor `after()`/
- * `before()` against entries this Portal registers, or `replace()`/`remove()` them, both of
- * which only work against an already-processed (earlier-loaded) extension (see
- * `Manager::ux()`). `Manager::extensions()` today only guarantees `Core` loads first;
- * Composer-discovered extensions (this one included) load in whatever order `installed.json`
- * happens to list them -- not yet controllable. A `composer.json`-declared load-priority
- * (e.g. an `extra.kopling.priority` int, `Manifest`/`Manager` sorting by it before instantiating)
- * is the likely shape, not decided or built yet.
+ * TODO: load order is now controllable (`Extension\LoadOrder\HasLoadOrder`/
+ * `InfluencesLoadOrder`, resolved by `Extension\LoadOrder\Resolver` inside
+ * `Manager::extensions()`), but Admin doesn't need either yet -- there's no `HasSettings`-style
+ * contract yet for other extensions to place their own settings/tools into this Portal's slots
+ * against, so nothing here is order-sensitive today. Once that contract exists, Admin should
+ * implement `InfluencesLoadOrder` and return `[HasSettings::class => Directive::After]` from
+ * `loadOrderRules()`, so anything implementing it loads after Admin without either side ever
+ * needing to know the other's Composer package name.
  */
 class Extension extends AbstractExtension implements CannotBeDisabled, HasPermissions, HasPortals
 {

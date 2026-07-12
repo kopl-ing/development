@@ -20,6 +20,7 @@ use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\ListensToEvents;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
+use Kopling\Core\Extension\LoadOrder\Resolver;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Storage\StorageRequest;
 use Kopling\Core\Ux\Theme\Token;
@@ -47,7 +48,9 @@ class Manager
      * entry, guaranteed present -- it isn't Composer-discovered the way the rest are (it
      * declares no `"type": "kopling-extension"` package of its own), it's the one thing
      * `Manager` always loads regardless. Every other entry is a genuinely discovered
-     * extension, keyed by Composer package name, instantiated once.
+     * extension, keyed by Composer package name, instantiated once, then ordered by
+     * `LoadOrder\Resolver` -- Composer's own `installed.json` order carries no meaning beyond
+     * being the alphabetical tie-break base `Resolver::resolve()` sorts from.
      *
      * TODO: every discovered extension is treated as enabled, unconditionally -- there is no
      * "disabled" state at all yet, for any extension. Fine while every installed extension is
@@ -65,7 +68,7 @@ class Manager
             return $this->extensions;
         }
 
-        $this->extensions = ['kopling/core' => new Core()];
+        $discovered = ['kopling/core' => new Core()];
 
         foreach ($this->manifest->extensions() as $package => $extension) {
             $class = $extension['namespace'].'Extension';
@@ -74,10 +77,10 @@ class Manager
                 continue;
             }
 
-            $this->extensions[$package] = new $class();
+            $discovered[$package] = new $class();
         }
 
-        return $this->extensions;
+        return $this->extensions = Resolver::resolve($discovered);
     }
 
     /**

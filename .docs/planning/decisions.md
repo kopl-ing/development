@@ -1657,3 +1657,66 @@ makes) still contains the navbar, sidebar, tabs, the `#moments-feed` div, and th
 markup physically lives.
 
 **Status:** Decided & implemented. Not yet browser-verified by Daniël.
+
+---
+
+## 2026-07-12 — Extension load order: contract-dispatched rules, not a numeric priority
+
+**Problem:** `Manager::extensions()` had no ordering control at all beyond `Core` always loading
+first — every Composer-discovered extension loaded in whatever order `installed.json` happened
+to list them. `k-extensions/admin`'s own docblock already flagged this as a real gap: other
+extensions wanting to place settings/tools into Admin's Portal slots need Admin registered
+first, and its TODO sketched the obvious next idea, a `composer.json`-declared
+`extra.kopling.priority` int sorted by `Manifest`/`Manager`.
+
+**Why a numeric priority was rejected:** a flat int scale is a single global namespace every
+extension author — Kopling's own or a community author's, this is meant to support third-party
+extensions the same way Flarum does — has to reason about collectively, and it degrades as more
+extensions land between two existing values. It also can't express the actual relationship
+("I need to come after Admin specifically"), only a rough position in a line every author has to
+guess at.
+
+**Decision:** two contracts in a new `Kopling\Core\Extension\LoadOrder` namespace
+(`k-core/src/Extension/LoadOrder/`), resolved by a `Resolver` inside `Manager::extensions()`:
+
+- `HasLoadOrder::loadAfter()`/`loadBefore()` — explicit, self-declared constraints, an array of
+  Composer package names. The escape hatch for the rare extension with a genuine opinion about a
+  specific other package.
+- `InfluencesLoadOrder::loadOrderRules()` — `array<class-string, Directive>`, letting an
+  extension place constraints on *other* extensions dispatched by capability contract rather
+  than by package name. The extension that owns a contract (e.g. a future `HasSettings` Admin
+  would own) declares `[HasSettings::class => Directive::After]` once; `Resolver` matches it
+  against whichever installed extensions — including ones that don't exist yet, Kopling's own or
+  a community author's — happen to implement that contract, via `instanceof`. Neither side ever
+  needs to know the other's package name. This is the piece that actually solves Admin's problem
+  without hardcoding "Admin loads first" anywhere in `Manager` — nothing about being "the admin
+  panel" gets special-cased, matching the extension's own stated design goal.
+- Explicit `HasLoadOrder` always wins over an inferred `InfluencesLoadOrder` rule for the same
+  pair (`Resolver::edges()`), so a `HasSettings` implementor can still opt out and load before
+  Admin if it genuinely needs to.
+- `Resolver::sort()` is Kahn's algorithm; extensions with no relation to each other at all fall
+  back to alphabetical-by-package order (deterministic, replacing `installed.json`'s
+  unspecified order) rather than "whatever Composer happened to list." A genuine cycle throws
+  `LogicException` naming the packages involved, same "throw on an extension author's own
+  mistake" convention `Manager::themes()` already uses for an unrecognized theme token.
+- New classes grouped under `Extension/LoadOrder/` rather than dropped into the existing flat
+  `Extension/Contract/` — this feature is a related cluster (two contracts, an enum, a resolver),
+  not a single marker interface, so it gets its own subtree the same way `Ux/` and `Extend/` do.
+
+**Alternatives considered:** WordPress-style numeric priority (including a "named tiers" variant
+mapping symbolic constants to ints under the hood) — rejected for the reasons above, a named
+tier is still a flat global scale underneath. A single `dependencies(): array` ("load after
+these") instead of two directions — rejected: can't express Admin's own stated rare case, an
+extension needing to load *before* a package that never declared anything about it, without that
+package's cooperation. Admin itself enumerating dependent extensions by package name — rejected
+first in conversation, before this decision: admin can't know what community extensions will
+exist, the same reasoning Flarum's own extension ecosystem has to solve for.
+
+**Not built as part of this:** `HasSettings` itself, or any settings-registration mechanism on
+Admin — this decision only lands the general load-order mechanism. Admin's own docblock TODO
+now points at implementing `InfluencesLoadOrder` once `HasSettings` (or an equivalent contract)
+actually exists.
+
+**Status:** Decided & implemented (`HasLoadOrder`, `InfluencesLoadOrder`, `Directive`,
+`Resolver`, wired into `Manager::extensions()`). Not yet covered by an automated test; not yet
+verified beyond reading the code.

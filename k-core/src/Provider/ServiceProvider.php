@@ -76,7 +76,11 @@ class ServiceProvider extends Provider
             }
 
             if (isset($conventions['routes'])) {
-                $this->loadRoutesFrom($conventions['routes'].'/web.php');
+                $path = $conventions['routes'].'/web.php';
+
+                if (file_exists($path)) {
+                    $this->loadRoutesFrom($path);
+                }
             }
 
             if (isset($conventions['lang'])) {
