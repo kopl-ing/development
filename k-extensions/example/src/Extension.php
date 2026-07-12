@@ -8,9 +8,11 @@ use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Extension\LoadOrder\HasLoadOrder;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Storage\StorageAccess;
 use Kopling\Core\Storage\StoragePermission;
 use Kopling\Core\Storage\StorageRequest;
@@ -23,7 +25,7 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
  * sibling directories (views/, css/, js/, migrations/, routes/, lang/, icon/) and
  * CLAUDE.md ("Extension conventions") for what each one does.
  */
-class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, HasLoadOrder
+class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, HasLoadOrder, ExtendsPortals
 {
     public static function name(): string
     {
@@ -85,10 +87,27 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     public function ux(): Ux
     {
         return Ux::make()
-            ->add(Item::class, ['label' => 'Hello', 'route' => 'example.hello'])
+            ->add(Item::class, ['label' => 'Hello', 'route' => 'kopling-core::community/example.hello'])
             ->in('kopling-core::side-navigation')
             ->as('hello')
             ->when('manage-things');
+    }
+
+    /**
+     * Demonstrates all three of `PortalExtension`'s attachments at once, targeting Core's own
+     * Community portal -- routes/, css/, js/ are the sibling directories this class's own
+     * docblock already points at, now wired up rather than sitting unused.
+     *
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/web.php')
+                ->css(__DIR__.'/../css/app.css')
+                ->js(__DIR__.'/../js/app.js'),
+        ];
     }
 
     /**

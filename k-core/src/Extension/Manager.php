@@ -15,6 +15,7 @@ use Kopling\Core\Extend\Model as ExtendModel;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
@@ -22,6 +23,7 @@ use Kopling\Core\Extension\Contract\ListensToEvents;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Extension\LoadOrder\Resolver;
 use Kopling\Core\Portal\Portal;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Storage\StorageRequest;
 use Kopling\Core\Ux\Theme\Token;
 use Kopling\Core\Ux\UxAction;
@@ -84,9 +86,13 @@ class Manager
     }
 
     /**
-     * Directory-convention paths this package declares, keyed by kind. An extension gets
-     * these registered (migrations, views, routes, lang) or made available (css, js) purely
-     * by the directory existing -- no contract to implement, no code to write.
+     * Directory-convention paths this package declares, keyed by kind. An extension gets these
+     * registered purely by the directory existing -- no contract to implement, no code to write.
+     *
+     * Deliberately doesn't include routes/css/js: those always need a target Portal to attach
+     * to (which prefix/middleware, which page's `<head>`), so a bare "the directory exists" rule
+     * can't express them the way it can migrations/views/lang -- see `ExtendsPortals`/
+     * `PortalExtension` instead.
      *
      * @return array<string, string>
      */
@@ -100,7 +106,7 @@ class Manager
 
         $conventions = [];
 
-        foreach (['migrations', 'views', 'css', 'js', 'routes', 'lang'] as $kind) {
+        foreach (['migrations', 'views', 'lang'] as $kind) {
             $find = realpath($path.'/'.$kind);
 
             if ($find && is_dir($path.'/'.$kind)) {
@@ -261,6 +267,86 @@ class Manager
         }
 
         return collect($portals)->keyBy('id');
+    }
+
+    /**
+     * Every `PortalExtension` declared by every extension, grouped by the target Portal's
+     * fully-qualified id -- the routes/css/js attachment counterpart to `portals()`'s identity
+     * declarations. `PortalExtension::$portal` is a foreign reference (same convention as
+     * `ux()`'s `after`/`before`), never prefixed here: targeting a Portal id that isn't actually
+     * registered (a typo, or the declaring extension isn't installed) is a silent no-op, the
+     * same graceful-degradation rule a dangling `ux()` anchor gets -- nothing to attach to, so
+     * nothing happens, never an error.
+     *
+     * @return Collection<string, Collection<int, PortalExtension>>
+     */
+    public function portalExtensions(): Collection
+    {
+        $extensions = [];
+
+        foreach ($this->extensions() as $extension) {
+            if (! $extension instanceof ExtendsPortals) {
+                continue;
+            }
+
+            $declared = collect($extension->extendsPortals())->ensure(PortalExtension::class);
+
+            foreach ($declared as $portalExtension) {
+                $extensions[$portalExtension->portal][] = $portalExtension;
+            }
+        }
+
+        return collect($extensions)->map(fn (array $group) => collect($group));
+    }
+
+    /**
+     * Flat, key-addressable registry of every css/js file any `PortalExtension` declared, keyed
+     * by a stable hash of its own already-validated absolute path rather than anything derived
+     * from a request -- `Http\Controllers\ExtensionAssetController` looks a request's `key` up
+     * against this map and serves exactly the matched path, so a request can never walk this
+     * into an arbitrary filesystem read the way a raw `{package}/{path}`-shaped route parameter
+     * would invite.
+     *
+     * @return Collection<string, array{path: string, mime: string}>
+     */
+    public function extensionAssets(): Collection
+    {
+        $assets = [];
+
+        foreach ($this->portalExtensions() as $group) {
+            foreach ($group as $portalExtension) {
+                foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
+                    $path = $portalExtension->{$kind};
+
+                    if ($path === null) {
+                        continue;
+                    }
+
+                    $assets[static::assetKey($path)] = ['path' => $path, 'mime' => $mime];
+                }
+            }
+        }
+
+        return collect($assets);
+    }
+
+    /**
+     * The URL a `<link>`/`<script>` tag should point at for a `PortalExtension`'s css/js file,
+     * or null when it didn't declare one -- shared by `views/layouts/partials/head.blade.php`
+     * and `extensionAssets()` so both always agree on the same key.
+     */
+    public static function assetUrl(?string $path): ?string
+    {
+        if ($path === null) {
+            return null;
+        }
+
+        return route('kopling-core::assets', ['key' => static::assetKey($path)]);
+    }
+
+    protected static function assetKey(string $path): string
+    {
+        return hash('xxh3', $path);
     }
 
     /**

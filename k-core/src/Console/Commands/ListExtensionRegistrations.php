@@ -9,6 +9,7 @@ use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
@@ -53,6 +54,7 @@ class ListExtensionRegistrations extends Command
         $this->conventions($manager, $package, $id);
         $this->permissions($manager, $id);
         $this->portals($manager, $id);
+        $this->portalExtensions($manager, $package, $id);
         $this->storage($manager, $id);
         $this->ux($manager, $id);
         $this->theme($manager, $id);
@@ -80,6 +82,7 @@ class ListExtensionRegistrations extends Command
             ChangesUx::class => 'ChangesUx',
             HasPermissions::class => 'HasPermissions',
             HasPortals::class => 'HasPortals',
+            ExtendsPortals::class => 'ExtendsPortals',
             RequestsStorageDriver::class => 'RequestsStorageDriver',
             CannotBeDisabled::class => 'CannotBeDisabled',
             ChangesTheme::class => 'ChangesTheme',
@@ -117,18 +120,6 @@ class ListExtensionRegistrations extends Command
         foreach ($this->langExamples($conventions['lang'] ?? null, $id) as $example) {
             $this->line("    <fg=gray>{$example}</>");
         }
-
-        $this->components->twoColumnDetail('routes', isset($conventions['routes']) ? 'present' : 'not present');
-        foreach ($this->routeNames($conventions['routes'] ?? null) as $name) {
-            $this->line("    <fg=gray>route('{$name}')</>");
-        }
-
-        $this->components->twoColumnDetail('css', isset($conventions['css'])
-            ? 'present (not yet linked onto the page automatically -- see decisions.md)'
-            : 'not present');
-        $this->components->twoColumnDetail('js', isset($conventions['js'])
-            ? 'present (not yet linked onto the page automatically -- see decisions.md)'
-            : 'not present');
 
         $this->components->twoColumnDetail('icon', is_file($path.'/icon/lg.png') ? 'present' : 'not present');
 
@@ -208,18 +199,28 @@ class ListExtensionRegistrations extends Command
         return $flat;
     }
 
-    /**
-     * @return array<string>
-     */
-    protected function routeNames(?string $path): array
+    protected function portalExtensions(Manager $manager, string $package, string $id): void
     {
-        if ($path === null || ! is_file($path.'/web.php')) {
-            return [];
+        $this->components->info('Portal attachments (ExtendsPortals)');
+
+        $extension = $manager->extensions()[$package];
+
+        if (! $extension instanceof ExtendsPortals) {
+            $this->line('  <fg=gray>none</>');
+            $this->newLine();
+
+            return;
         }
 
-        preg_match_all('/->name\(\s*[\'"]([^\'"]+)[\'"]\s*\)/', file_get_contents($path.'/web.php'), $matches);
+        foreach ($extension->extendsPortals() as $portalExtension) {
+            $this->components->twoColumnDetail($portalExtension->portal, implode(', ', array_filter([
+                $portalExtension->routes ? 'routes' : null,
+                $portalExtension->css ? 'css' : null,
+                $portalExtension->js ? 'js' : null,
+            ])) ?: 'nothing declared');
+        }
 
-        return $matches[1] ?? [];
+        $this->newLine();
     }
 
     protected function permissions(Manager $manager, string $id): void
