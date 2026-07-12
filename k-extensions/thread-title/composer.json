@@ -1,0 +1,16 @@
+{
+    "name": "kopling/thread-title",
+    "description": "On a discussion page, the moment's title slides into the sticky topbar as you scroll.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kopling\\ThreadTitle\\": "src/"
+        }
+    },
+    "extra": {
+        "kopling-extension": {
+            "name": "Thread title"
+        }
+    }
+}

@@ -1,0 +1,37 @@
+/* Linked onto Community pages via Extension::extendsPortals()'s ->css(). Explicit CSS because
+   core's precompiled build only scans its own blades. Uses daisyUI theme vars. */
+
+/* The sticky thread title eases in as an absolute overlay covering the sticky header, centering
+   the moment title once you scroll past the OP -- visually replacing the header controls
+   (the "everything hides, the title takes over" behaviour). The header (navbar) is
+   position:sticky, a positioning context, so inset:0 spans it. */
+.kop-thread {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 60px;
+    background: var(--color-base-100, #fff);
+    z-index: 5;
+}
+.kop-thread__icon { opacity: .5; flex: 0 0 auto; }
+.kop-thread__link {
+    max-width: min(70ch, 68vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: .01em;
+    color: var(--color-base-content, #1f2937);
+}
+.kop-thread__link:hover { color: var(--color-primary, #2b4a9b); }
+
+/* Roomier on desktop. */
+@media (min-width: 768px) {
+    .kop-thread { gap: 10px; }
+    .kop-thread__link { font-size: 18px; }
+    .kop-thread__icon { width: 17px; height: 17px; }
+}
