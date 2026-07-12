@@ -3,6 +3,8 @@
 use Illuminate\Events\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\People\Group;
+use Kopling\Core\People\Person;
 use Tests\Support\FakeManifest;
 use Tests\TestCase;
 
@@ -60,4 +62,27 @@ expect()->extend('toBeOne', function () {
 function fakeManager(array $extensions = []): Manager
 {
     return new Manager(new FakeManifest($extensions), new Dispatcher());
+}
+
+/**
+ * A person with no groups and therefore no grants.
+ */
+function makePerson(): Person
+{
+    return Person::create([
+        'name' => 'Test Person',
+        'email' => uniqid('person', true).'@example.test',
+        'password' => 'secret',
+    ]);
+}
+
+/**
+ * Grants `$permission` to `$person` the only way a grant exists: through a group
+ * (see Person::hasPermission -- there is no per-person grant).
+ */
+function grantThroughGroup(Person $person, string $permission): void
+{
+    $group = Group::create(['name' => uniqid('Testers', true)]);
+    $group->people()->attach($person->id);
+    $group->givePermissionTo($permission);
 }

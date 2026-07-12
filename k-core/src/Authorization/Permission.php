@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Authorization;
 
+use Kopling\Core\People\Person;
+
 /**
  * A named, granular capability -- never a hardcoded "is admin" check. `$id` is set by the
  * author (core or an extension) as just the local part, e.g. "manage-people"; Manager
@@ -20,7 +22,9 @@ namespace Kopling\Core\Authorization;
 class Permission
 {
     /**
-     * @param  ?\Closure(\Kopling\Core\People\Person, mixed ...$args): bool  $callback
+     * @param  ?\Closure(?Person, mixed ...$args): bool  $callback  `Person` is nullable: a
+     *         default-granted permission reaches the callback for guests too (e.g. "may
+     *         view, but only non-hidden records").
      */
     public function __construct(
         public string $id,
@@ -29,5 +33,25 @@ class Permission
         public readonly ?bool $default = null,
         public readonly ?\Closure $callback = null,
     ) {
+    }
+
+    /**
+     * The decision every registered Gate ability delegates to, in exactly the precedence the
+     * class docblock states. The base grant first: held via one of the person's groups, else
+     * this permission's declared default. Then `$callback`, when present, as a further
+     * condition on top of that grant -- narrowing "may reply" down to "and owns this
+     * specific record" via whatever the Gate check passed along in `$args`. A denied base
+     * grant is final: the callback is never consulted, so it can never grant access on its
+     * own.
+     */
+    public function authorize(?Person $person, mixed ...$args): bool
+    {
+        $granted = ($person?->hasPermission($this->id) ?? false) || ($this->default ?? false);
+
+        if (! $granted) {
+            return false;
+        }
+
+        return $this->callback === null || (bool) ($this->callback)($person, ...$args);
     }
 }

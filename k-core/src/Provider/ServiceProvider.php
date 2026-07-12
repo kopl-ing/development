@@ -82,27 +82,12 @@ class ServiceProvider extends Provider
         }
 
         foreach ($manager->permissions() as $permission) {
-            Gate::define($permission->id, function (?Person $person, ...$args) use ($permission) {
-                // If permission is stored in the database.
-                $gated = $person?->hasPermission($permission->id);
-
-                if ($gated === true) return true;
-
-                // Use the callback if provided.
-                $gated = $permission->callback !== null
-                    ? ($permission->callback)($person, ...$args)
-                    : null;
-
-                if ($gated !== null) return $gated;
-
-                // Use the default value if provided.
-                if ($permission->default) $gated = $permission->default;
-
-                if ($gated !== null) return $gated;
-
-                // Block otherwise.
-                return false;
-            });
+            // The precedence itself (base grant, then callback layered on top) lives on
+            // Permission::authorize -- the same class whose docblock states the contract.
+            Gate::define(
+                $permission->id,
+                fn (?Person $person, mixed ...$args) => $permission->authorize($person, ...$args)
+            );
         }
     }
 }
