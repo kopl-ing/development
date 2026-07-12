@@ -14,7 +14,7 @@
 @if ($tags->isNotEmpty())
     <div class="mb-1 flex flex-wrap items-center gap-1.5">
         @foreach ($tags as $tag)
-            <a href="{{ route('tags.show', $tag->slug) }}"
+            <a href="{{ route('kopling-core::community/tags.show', $tag->slug) }}"
                class="badge badge-sm no-underline"
                @if ($tag->color) style="background-color:{{ $tag->color }};border-color:{{ $tag->color }};color:#fff" @endif
                title="{{ __('kopling-tags::messages.browse', ['name' => $tag->name]) }}">

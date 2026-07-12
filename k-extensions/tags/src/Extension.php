@@ -11,10 +11,12 @@ use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Tags\Command\SeedDemoTagsCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, HasCommands
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands
 {
     public static function name(): string
     {
@@ -63,6 +65,21 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, H
         return [
             (new Model(Moment::class))
                 ->relation((new Relation)->belongsToMany('tags', Tag::class, 'moment_tag')->eagerLoad()),
+        ];
+    }
+
+    /**
+     * The public tag page (/tag/{slug}) attaches to Community — it reuses the base portal
+     * shell + core's card component. Rides the portal's own group (web + prefix + name); route
+     * name is now kopling-core::community/tags.show.
+     *
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/web.php'),
         ];
     }
 }
