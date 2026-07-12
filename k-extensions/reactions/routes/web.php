@@ -40,10 +40,12 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('reactions.toggle');
 
-    // Attach a short word to the viewer's reaction (the demo's "Latest reactions" strip),
-    // then re-render the strip; the response also carries the rail back out-of-band so its
-    // counts stay in sync. updateOrCreate keeps it the same one-per-(moment,person,emoji)
-    // row whether or not it already existed as a plain rail toggle.
+    // Add (or update) the viewer's reaction from the picker modal: an emoji plus an OPTIONAL
+    // short word. Then re-render the "Latest reactions" strip; the response also carries the
+    // rail back out-of-band so its counts stay in sync. updateOrCreate keeps it the same
+    // one-per-(moment,person,emoji) row whether or not it already existed as a plain toggle.
+    // The word is optional so this one endpoint serves both the modal's "emoji only" and
+    // "emoji + word" cases (an empty word stores null -- the strip only lists worded ones).
     Route::post('/_reactions/{moment}/word', function (Moment $moment) {
         $actor = Auth::user();
 
@@ -51,11 +53,11 @@ Route::middleware('auth')->group(function () {
         abort_unless(in_array($emoji, Reaction::PALETTE, true), 422);
 
         $word = trim((string) request()->input('word', ''));
-        abort_if($word === '' || mb_strlen($word) > Reaction::WORD_MAX, 422);
+        abort_if(mb_strlen($word) > Reaction::WORD_MAX, 422);
 
         Reaction::updateOrCreate(
             ['moment_id' => $moment->id, 'person_id' => $actor->id, 'emoji' => $emoji],
-            ['word' => $word],
+            ['word' => $word === '' ? null : $word],
         );
 
         return view('kopling-reactions::components.words-response', [
