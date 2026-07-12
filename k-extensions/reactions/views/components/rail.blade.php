@@ -37,16 +37,16 @@
                             hx-swap="outerHTML"
                             aria-pressed="{{ $active ? 'true' : 'false' }}"
                             title="{{ __('kopling-reactions::messages.react', ['emoji' => $emoji]) }}"
-                            class="btn btn-xs rounded-full gap-1 {{ $active ? 'btn-primary' : 'btn-ghost' }}">
-                        <span aria-hidden="true">{{ $emoji }}</span>
+                            class="btn btn-sm rounded-full gap-1 {{ $active ? 'btn-primary' : 'btn-ghost' }}">
+                        <span aria-hidden="true" class="text-base leading-none">{{ $emoji }}</span>
                         @if ($count > 0)
                             <span class="tabular-nums opacity-70">{{ $count }}</span>
                         @endif
                     </button>
                 @elseif ($count > 0)
                     {{-- Guests see the calm aggregate only -- counts, no toggles. --}}
-                    <span class="btn btn-xs btn-ghost no-animation pointer-events-none rounded-full gap-1">
-                        <span aria-hidden="true">{{ $emoji }}</span>
+                    <span class="btn btn-sm btn-ghost no-animation pointer-events-none rounded-full gap-1">
+                        <span aria-hidden="true" class="text-base leading-none">{{ $emoji }}</span>
                         <span class="tabular-nums opacity-70">{{ $count }}</span>
                     </span>
                 @endif
@@ -56,7 +56,7 @@
                      + js/app.js). x-data gives an Alpine scope that survives htmx rail swaps. --}}
                 <button type="button" x-data
                         @click="$store.reactions.show('{{ route('kopling-core::community/reactions.word', $moment->id) }}', '#rwords-{{ $moment->id }}')"
-                        class="btn btn-xs btn-ghost rounded-full px-2 text-base leading-none"
+                        class="btn btn-sm btn-ghost rounded-full px-2 text-base leading-none"
                         title="{{ __('kopling-reactions::messages.add_reaction') }}"
                         aria-label="{{ __('kopling-reactions::messages.add_reaction') }}">＋</button>
             @endif
