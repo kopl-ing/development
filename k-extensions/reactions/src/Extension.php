@@ -47,6 +47,6 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands
             ->add('kopling-reactions::words')
             ->in('kopling-core::card.footer')
             ->as('words')
-            ->after('rail');
+            ->after('kopling-reactions::rail');
     }
 }

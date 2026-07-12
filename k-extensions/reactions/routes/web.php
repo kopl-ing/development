@@ -6,15 +6,17 @@ use Kopling\Core\Content\Moment;
 use Kopling\Core\Ux\Context;
 use Kopling\Reactions\Reaction;
 
-// Wrapped in the "web" group the same way k-core/src/routes/web.php and the example
-// extension do -- loadRoutesFrom() only requires the file, it doesn't apply middleware.
-Route::middleware('web')->group(function () {
+// Wrapped in the "web" + "auth" groups the same way k-core/src/routes/web.php and the
+// example extension apply their own -- loadRoutesFrom() only requires the file, it doesn't
+// apply middleware. "auth" is what makes a guest (or a since-expired session) throw an
+// AuthenticationException, which core's RedirectHtmxUnauthenticated turns into an HX-Redirect
+// to login for an htmx request -- a plain abort(401) would never reach that handler.
+Route::middleware(['web', 'auth'])->group(function () {
     // Toggle the viewer's reaction for one emoji on one moment, then re-render the rail so
-    // htmx can swap it in place (hx-swap="outerHTML"). A guest hitting this aborts 401,
-    // which core's RedirectHtmxUnauthenticated turns into a login redirect for htmx.
+    // htmx can swap it in place (hx-swap="outerHTML"). The "auth" middleware guarantees an
+    // actor, so Auth::user() is never null past here.
     Route::post('/_reactions/{moment}', function (Moment $moment) {
         $actor = Auth::user();
-        abort_unless($actor !== null, 401);
 
         $emoji = (string) request()->input('emoji', '');
         abort_unless(in_array($emoji, Reaction::PALETTE, true), 422);
@@ -44,7 +46,6 @@ Route::middleware('web')->group(function () {
     // row whether or not it already existed as a plain rail toggle.
     Route::post('/_reactions/{moment}/word', function (Moment $moment) {
         $actor = Auth::user();
-        abort_unless($actor !== null, 401);
 
         $emoji = (string) request()->input('emoji', '');
         abort_unless(in_array($emoji, Reaction::PALETTE, true), 422);
