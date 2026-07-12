@@ -7,7 +7,9 @@ namespace Kopling\Composer;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\People\Person;
+use Kopling\Core\Portal\PortalExtension;
 
 /**
  * A "share a moment" composer at the top of the feed -- the compose-first entry the charter
@@ -16,7 +18,7 @@ use Kopling\Core\People\Person;
  * and only for a signed-in person (`when()`); a guest sees the topbar's sign-in instead.
  * Posting prepends the new moment through core's own card, live, via htmx.
  */
-class Extension extends AbstractExtension implements ChangesUx
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
 {
     public static function name(): string
     {
@@ -35,5 +37,21 @@ class Extension extends AbstractExtension implements ChangesUx
             ->in('kopling-core::community.content-top')
             ->as('composer')
             ->when(fn (?Person $person) => $person !== null);
+    }
+
+    /**
+     * The compose route + the [x-cloak] rule attach to Community, since the composer only ever
+     * shows in that portal's feed. Routes ride the portal's own group (prefix + name +
+     * "web" middleware); the css is linked onto Community pages via the head-assets outlet.
+     *
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/web.php')
+                ->css(__DIR__.'/../css/app.css'),
+        ];
     }
 }

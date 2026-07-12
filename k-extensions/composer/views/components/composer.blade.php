@@ -1,15 +1,13 @@
 @php $me = auth()->user(); @endphp
-{{-- x-cloak rule isn't shipped by core; scope it here so the collapsed extras don't flash. --}}
-<style>[x-cloak]{display:none !important}</style>
-
 {{-- Compose-first: a calm one-line box that grows on focus into title (optional) + body.
      Posting hx-prepends the new moment onto #moments-feed and collapses back. Inline Alpine +
-     htmx only — no bundled JS, so it works without the (pending) extension-asset outlet. --}}
+     htmx only — no bundled JS. The [x-cloak] rule now ships as css/app.css, linked onto
+     Community pages via Extension::extendsPortals(). --}}
 <div x-data="{ open: false }"
      @htmx:after-request="if ($event.detail.successful) { open = false; $refs.form.reset() }"
      class="card bg-base-100 hair border border-base-300 rounded-box mb-4 shadow-sm">
     <form x-ref="form"
-          hx-post="{{ route('compose.store') }}"
+          hx-post="{{ route('kopling-core::community/compose.store') }}"
           hx-target="#moments-feed"
           hx-swap="afterbegin"
           class="card-body gap-3 p-4">
