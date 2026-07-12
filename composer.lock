@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f8a45c68337aea047e94f878e82b72f0",
+    "content-hash": "9f69389ca4bf869673800aab23eae43c",
     "packages": [
         {
             "name": "brick/math",
@@ -1122,7 +1122,7 @@
         },
         {
             "name": "kopling/admin",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/admin",
@@ -1150,11 +1150,11 @@
         },
         {
             "name": "kopling/auth-email-password",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/auth-email-password",
-                "reference": "8e1a9705d58476164d6a7a79ebfc080f9a0d1a65"
+                "reference": "ae14d8d68000818aa27f0fef73c8d74ad1047543"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1171,14 +1171,41 @@
                     "email": "daniel@klabbers.email"
                 }
             ],
-            "description": "Email/password login for Kopling -- the first login-method extension, built on Core's ValidateLogin/AttemptLogin events.",
+            "description": "Email/password login and registration for Kopling -- the first login-method extension, built on Core's Validate/Attempt Login and Registration events.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "kopling/composer",
+            "version": "dev-feat/composer",
+            "dist": {
+                "type": "path",
+                "url": "./k-extensions/composer",
+                "reference": "2ea6733075e0885bf023f46ab075b1966fd9fd21"
+            },
+            "type": "kopling-extension",
+            "extra": {
+                "kopling-extension": {
+                    "name": "Composer"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kopling\\Composer\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Share a moment from the top of the feed.",
             "transport-options": {
                 "relative": true
             }
         },
         {
             "name": "kopling/core",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-core",
@@ -1217,7 +1244,7 @@
         },
         {
             "name": "kopling/demo",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/demo",
@@ -1248,7 +1275,7 @@
         },
         {
             "name": "kopling/discussions",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/discussions",
@@ -1280,7 +1307,7 @@
         },
         {
             "name": "kopling/example",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/example",
@@ -1308,11 +1335,11 @@
         },
         {
             "name": "kopling/reactions",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/reactions",
-                "reference": "73db6729a79498dc094793f68156ceefcbaddae7"
+                "reference": "8b19c7428b4e02d12d19e562688ec8cd839fda79"
             },
             "type": "kopling-extension",
             "autoload": {
@@ -1336,7 +1363,7 @@
         },
         {
             "name": "kopling/theme-midnight",
-            "version": "dev-main",
+            "version": "dev-feat/composer",
             "dist": {
                 "type": "path",
                 "url": "./k-extensions/theme-midnight",
@@ -6308,6 +6335,7 @@
     "stability-flags": {
         "kopling/admin": 20,
         "kopling/auth-email-password": 20,
+        "kopling/composer": 20,
         "kopling/core": 20,
         "kopling/demo": 20,
         "kopling/discussions": 20,

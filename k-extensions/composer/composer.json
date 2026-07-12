@@ -1,0 +1,16 @@
+{
+    "name": "kopling/composer",
+    "description": "Share a moment from the top of the feed.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Composer\\": "src/"
+        }
+    },
+    "extra": {
+        "kopling-extension": {
+            "name": "Composer"
+        }
+    }
+}
