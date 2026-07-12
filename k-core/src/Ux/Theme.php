@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Ux;
 
-use Illuminate\Support\Facades\DB;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Ux\Theme\ThemeToken;
 use Kopling\Core\Ux\Theme\Token;
 
 /**
@@ -104,7 +104,7 @@ class Theme
             $tokens = app(Manager::class)->themes()->get($active, []);
         }
 
-        foreach (DB::table('theme_tokens')->pluck('value', 'token') as $token => $value) {
+        foreach (ThemeToken::query()->pluck('value', 'token') as $token => $value) {
             $case = Token::tryFrom($token);
 
             if ($case !== null && $case->matches($value)) {
