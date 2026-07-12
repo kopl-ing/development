@@ -29,7 +29,7 @@
                 <form hx-post="{{ route('kopling-core::community/discussions.reply', $moment->id) }}"
                       hx-target="#replies-{{ $moment->id }}"
                       hx-swap="beforeend"
-                      hx-on::after-request="if (event.detail.successful) this.reset()"
+                      hx-on::after:request="if ((event.detail?.ctx?.response?.status ?? 500) < 400) this.reset()"
                       class="flex flex-col gap-2">
                     <textarea name="body" required rows="3"
                               class="textarea textarea-bordered w-full"
