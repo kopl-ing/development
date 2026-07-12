@@ -26,7 +26,7 @@
             </div>
 
             @auth
-                <form hx-post="{{ route('discussions.reply', $moment->id) }}"
+                <form hx-post="{{ route('kopling-core::community/discussions.reply', $moment->id) }}"
                       hx-target="#replies-{{ $moment->id }}"
                       hx-swap="beforeend"
                       hx-on::after-request="if (event.detail.successful) this.reset()"

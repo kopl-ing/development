@@ -1720,3 +1720,97 @@ actually exists.
 **Status:** Decided & implemented (`HasLoadOrder`, `InfluencesLoadOrder`, `Directive`,
 `Resolver`, wired into `Manager::extensions()`). Not yet covered by an automated test; not yet
 verified beyond reading the code.
+
+---
+
+## 2026-07-12 — Routes (and now css/js) attach to a Portal via `ExtendsPortals`, not a directory convention
+
+**Decision:** Routes, css, and js no longer register through `Manager::conventions()`'s bare
+"the directory exists" rule. A new contract, `Extension\Contract\ExtendsPortals::extendsPortals():
+array<Portal\PortalExtension>`, is now the only way anything attaches to a Portal's route group —
+including for the extension that declared the Portal in the first place. `PortalExtension`
+targets a Portal by its fully-qualified id (`'kopling-core::community'`, written out by the
+author, same convention as `Ux::after()`/`Ux::before()`'s foreign references — `Manager` never
+prefixes it), and offers `->routes()`/`->css()`/`->js()`, each validating the given path with
+`file_exists()` the same way `Portal::routes()` used to.
+
+**Why now:** Two real, already-documented problems, not a hypothetical: (1) `discussions`'
+routes lived entirely outside any Portal (loaded via the directory convention), so `InjectPortal`
+never resolved a Portal for its request and `Ux\Community\Chrome` had to hardcode
+`firstWhere('id', 'kopling-core::community')` as a workaround, documented in its own docblock;
+(2) `kopling/admin`'s Portal never called `->routes()`, so it silently registered zero routes —
+`Arr::wrap(null) === []` swallows the `Route::group()` call with no error, no warning. Grouping
+every route under an explicit Portal target, with one mechanism for owner and non-owner alike,
+makes both classes of bug structurally harder to reintroduce: a route without a declared target
+Portal doesn't get registered at all, and a Portal with nothing attached is exactly as visible
+(`kopling:extensions:registrations` now reports "Portal attachments (ExtendsPortals)" per
+extension) as one that does.
+
+**What moved:**
+- `Portal` (`k-core/src/Portal/Portal.php`) drops `$routes`/`routes()`/the already-dead
+  `$middleware` constructor property entirely — it's identity only (id/label/path/layout/
+  permission) again, matching its own docblock's stated intent.
+- The portal route loop (`k-core/routes/web.php`) still computes `web` + optional
+  `can:{permission}` middleware once per Portal, but now `require`s every attached extension's
+  routes file inside that same `Route::group()`, via `Manager::portalExtensions()->get($portal
+  ->id)` — order across extensions targeting the same Portal falls out of the already-solved
+  `LoadOrder\Resolver` ordering, nothing new needed there.
+- `Core::portals()` now only declares Community's identity; `Core::extendsPortals()` attaches
+  its routes. `kopling-discussions`/`kopling-example` both migrated the same way, and both routes
+  files dropped their now-redundant `Route::middleware('web')->group()` self-wrap (`loadRoutesFrom
+  ()`'s own reason for needing it doesn't apply once the file is `require`d inside the Portal's
+  own group). Route names shifted accordingly: `discussions.show` → `kopling-core::community/
+  discussions.show`, `example.hello` → `kopling-core::community/example.hello` — every `route()`
+  call and the one `Ux::add()` reference to `example.hello` updated to match. Verified end-to-end
+  via `php artisan route:list`.
+
+**css/js, previously unwired, landed in the same pass:** `Manager::conventions()` used to expose
+`css`/`js` directory paths that nothing ever consumed (`ServiceProvider::boot()`'s own comment
+said so directly) — pending a "head-assets outlet," not built. That outlet is now
+`views/layouts/partials/head.blade.php`, reading `$portal` (see below) and looping
+`Manager::portalExtensions()->get($portal->id)` for each extension's `css`/`js`.
+
+**How a browser actually fetches a package-directory file — the part that made this "not too
+hard" only after solving safely:** these files live inside `k-extensions/*`/`vendor/*`, not
+`public/`, so nothing made them web-reachable. Rather than a route parameter shaped like
+`{package}/{path}` (a path-traversal hazard: user input would be concatenated toward a filesystem
+path), `Manager::extensionAssets()` builds a flat registry keyed by `hash('xxh3', $absolutePath)`
+of every already-`file_exists()`-validated css/js path declared through `PortalExtension`.
+`Http\Controllers\ExtensionAssetController` (route: `GET /_kopling/assets/{key}`, named
+`kopling-core::assets`, registered outside any Portal group in the new `k-core/routes/assets.php`)
+only ever looks `{key}` up against that map — a request can resolve to one of those specific
+known-safe paths or nothing at all, never an arbitrary read. `Manager::assetUrl(?string $path):
+?string` is the one place the same hash gets computed for both the registry and the `<link>`/
+`<script>` tag, so they can't drift apart. Verified end-to-end: rendered `head.blade.php` in
+tinker with Community's Portal bound and confirmed the emitted `<link>`/`<script>` tags for
+`kopling-example`'s `css/app.css`/`js/app.js` point at `/_kopling/assets/{key}` with the right
+`Content-Type`.
+
+**`InjectPortal` now shares `$portal` as a view global (`View::share`), not just a request
+attribute:** needed so `head.blade.php` (included inside `Ux\Portal\Layout`'s own view, which the
+top-level Portal-rendering controller never threads `$portal` into — only `IndexController`'s own
+`$context` carries it) can read the resolved Portal without new prop-plumbing through `Portal
+\Layout`. Doesn't change `Chrome.php`'s own reasoning for hardcoding Community's lookup instead
+of relying on injection — that's about rendering Community's chrome regardless of which Portal
+(if any) the current route actually resolves to, an intentionally different question from "what
+Portal is this request under."
+
+**Alternatives considered:** Keeping `Portal::routes()` as a shortcut for the declaring extension
+and `ExtendsPortals` only for attaching to *someone else's* Portal — rejected, two ways to do the
+same thing, and it would have left the Admin-registers-nothing failure mode's root cause (an
+easy-to-forget standalone call) in place for the one case (self-declared routes) it didn't cover.
+Publishing/symlinking css/js into `public/` at install time — rejected: no Node/build step is
+supposed to run on a Kopling host, and a publish command is one more thing an extension author has
+to remember to run, the same asymmetry the load-order and route-middleware problems already came
+from.
+
+**Not built as part of this:** per-`PortalExtension` middleware beyond what the target Portal
+itself already applies (`discussions` still authorizes inside its own controller, as before) —
+deferred until a real case needs it, most likely once a Moderation Portal exists.
+
+**Status:** Decided & implemented (`ExtendsPortals`, `PortalExtension`, `Manager::
+portalExtensions()`/`extensionAssets()`/`assetUrl()`, `ExtensionAssetController`, `routes/
+assets.php`, the rewritten portal loop in `routes/web.php`, `Portal`'s trimmed constructor,
+`InjectPortal`'s `View::share`, and `Core`/`kopling-discussions`/`kopling-example` migrated).
+Verified via `php artisan route:list`, `php artisan kopling:extensions:registrations`, and a
+tinker-rendered `head.blade.php`. Not yet covered by an automated test.

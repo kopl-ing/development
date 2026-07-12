@@ -1,0 +1,19 @@
+{
+    "name": "kopling/tags",
+    "description": "Tags for Kopling -- categorise moments and browse everything under a tag.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ernest Defoe",
+            "email": "ernestdefoe@gmail.com"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Tags\\": "src/"
+        }
+    }
+}

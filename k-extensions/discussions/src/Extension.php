@@ -12,11 +12,13 @@ use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions, ExtendsModels
+class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions, ExtendsModels, ExtendsPortals
 {
     public static function name(): string
     {
@@ -79,6 +81,22 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
         return [
             (new Model(Moment::class))
                 ->relation((new Relation)->hasMany('replies', Reply::class)->eagerLoad()),
+        ];
+    }
+
+    /**
+     * The discussion page (`/m/{moment}`) renders inside Community's chrome, so its routes are
+     * attached to the Community portal rather than left ungrouped -- this is what lets
+     * `InjectPortal` resolve a real Portal for it now, instead of `Ux\Community\Chrome` having
+     * to hardcode the lookup itself.
+     *
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/web.php'),
         ];
     }
 }

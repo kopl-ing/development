@@ -1,0 +1,7 @@
+/* Linked onto Community pages via Extension::extendsPortals()'s ->css() call. Core doesn't ship
+   an [x-cloak] rule, so the composer provides one for its own grow-on-focus fields (and any
+   other Community-portal component that uses x-cloak) -- keeps the collapsed extras from
+   flashing on first paint before Alpine initializes. */
+[x-cloak] {
+    display: none !important;
+}

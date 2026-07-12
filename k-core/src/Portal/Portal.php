@@ -9,11 +9,15 @@ namespace Kopling\Core\Portal;
  * gating mechanism itself: routes registered under a Portal still check their own granular
  * `Kopling\Core\Authorization\Permission` exactly as they would anywhere else (see the charter,
  * D29 -- a Portal is never a disguised "is admin" flag).
+ *
+ * Carries no routes/js/css of its own -- not even for the extension that declares it. See
+ * `Kopling\Core\Extension\Contract\ExtendsPortals`/`PortalExtension` for how anything actually
+ * ends up registered under a Portal; this is deliberately the only mechanism, so a Portal with
+ * nothing yet attached to it (silently registering zero routes, as `kopling/admin`'s did before
+ * this split) is exactly as discoverable as one that does.
  */
 class Portal
 {
-    public ?string $routes = null;
-
     public function __construct(
         public string $id,
         public readonly string $label,
@@ -22,18 +26,6 @@ class Portal
         public readonly ?string $icon = null,
         public readonly ?string $description = null,
         public ?string $permission = null,
-        public readonly ?array $middleware = null,
     ) {
-    }
-
-    public function routes(string $path): self
-    {
-        if (! file_exists($path)) {
-            throw new \InvalidArgumentException("Portal routes path does not exist for portal $this->id: $path");
-        }
-
-        $this->routes = $path;
-
-        return $this;
     }
 }
