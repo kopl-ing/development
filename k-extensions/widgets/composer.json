@@ -1,0 +1,16 @@
+{
+    "name": "kopling/widgets",
+    "description": "Community pulse and popular tags in the feed rail.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Widgets\\": "src/"
+        }
+    },
+    "extra": {
+        "kopling-extension": {
+            "name": "Widgets"
+        }
+    }
+}
