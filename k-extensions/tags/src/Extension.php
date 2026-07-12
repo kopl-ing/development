@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Kopling\Tags;
 
+use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Model;
+use Kopling\Core\Extend\Relation;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\HasCommands;
-use Kopling\Core\Extend\Ux;
 use Kopling\Tags\Command\SeedDemoTagsCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, HasCommands
 {
     public static function name(): string
     {
@@ -44,5 +48,21 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands
     public function commands(): array
     {
         return [SeedDemoTagsCommand::class];
+    }
+
+    /**
+     * Adds a `tags` relation to core's `Moment` (the pivot side, declared here so core's model
+     * stays untouched), eager-loaded so a feed's tag rows read one batch-loaded relation per
+     * moment instead of a `whereHas` per card -- the O(cards) cost issue #4 measured.
+     * `Tag::forMoment` reads this relation.
+     *
+     * @return array<Model>
+     */
+    public function models(): array
+    {
+        return [
+            (new Model(Moment::class))
+                ->relation((new Relation)->belongsToMany('tags', Tag::class, 'moment_tag')->eagerLoad()),
+        ];
     }
 }

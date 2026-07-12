@@ -38,6 +38,15 @@ class Reaction extends Model
         'word',
     ];
 
+    /**
+     * Always carry the author: the "Latest reactions" strip renders `$reaction->person->name`
+     * in the feed, so when the feed eager-loads a moment's `reactions` (see Extension::models)
+     * this nests the people into that same batch -- one `whereIn` for the whole page instead of
+     * one per worded reaction. The rail (counts only) never reads it; the single tiny over-read
+     * on the toggle re-render is well worth avoiding an N+1 across the feed.
+     */
+    protected $with = ['person'];
+
     public function moment(): BelongsTo
     {
         return $this->belongsTo(Moment::class);
@@ -58,43 +67,50 @@ class Reaction extends Model
      */
     public static function state(Moment $moment, ?Person $actor): array
     {
-        $counts = static::query()
-            ->where('moment_id', $moment->id)
-            ->selectRaw('emoji, count(*) as aggregate')
-            ->groupBy('emoji')
-            ->pluck('aggregate', 'emoji')
-            ->all();
-
-        $mine = $actor
-            ? static::query()
-                ->where('moment_id', $moment->id)
-                ->where('person_id', $actor->id)
-                ->pluck('emoji')
-                ->all()
-            : [];
+        $reactions = static::onMoment($moment);
 
         return [
-            'counts' => $counts,
-            'mine' => $mine,
+            'counts' => $reactions->groupBy('emoji')->map->count()->all(),
+            'mine' => $actor
+                ? $reactions->where('person_id', $actor->id)->pluck('emoji')->values()->all()
+                : [],
             'canReact' => $actor !== null,
         ];
     }
 
     /**
-     * The most recent worded reactions on a moment (newest first), each with its author
-     * eager-loaded -- the "Latest reactions" strip. Plain (wordless) rail toggles are
-     * excluded; only reactions that actually carry a word show here.
+     * The most recent worded reactions on a moment (newest first) -- the "Latest reactions"
+     * strip. Plain (wordless) rail toggles are excluded. Authors ride along via `$with`.
      *
      * @return \Illuminate\Support\Collection<int, static>
      */
     public static function latestWorded(Moment $moment, int $limit = self::WORDS_LIMIT): \Illuminate\Support\Collection
     {
-        return static::query()
-            ->with('person')
-            ->where('moment_id', $moment->id)
+        return static::onMoment($moment)
             ->whereNotNull('word')
-            ->latest()
-            ->limit($limit)
-            ->get();
+            ->sortByDesc('created_at')
+            ->take($limit)
+            ->values();
+    }
+
+    /**
+     * One moment's reactions, read from the `reactions` relation the feed eager-loads (see
+     * Extension::models) rather than re-querying per card -- on the feed the whole page's
+     * reactions arrive in one `whereIn`. Falls back to a query for a single moment that wasn't
+     * loaded that way (the toggle re-render, a htmx fragment). Same shared-read pattern as
+     * discussions' Reply::statsFor.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, static>
+     */
+    protected static function onMoment(Moment $moment): \Illuminate\Database\Eloquent\Collection
+    {
+        // load(), not a bare ->get(): the rail (state) and the strip (latestWorded) both call
+        // this for the same moment, so caching the relation on the model means a single-moment
+        // re-render (the toggle/word htmx fragment) queries once, not once each.
+        if (! $moment->relationLoaded('reactions')) {
+            $moment->load('reactions');
+        }
+
+        return $moment->getRelation('reactions');
     }
 }

@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Kopling\Reactions;
 
+use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Model;
+use Kopling\Core\Extend\Relation;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\HasCommands;
-use Kopling\Core\Extend\Ux;
 use Kopling\Reactions\Command\SeedDemoReactionsCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, HasCommands
 {
     public static function name(): string
     {
@@ -28,6 +32,23 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands
     public function commands(): array
     {
         return [SeedDemoReactionsCommand::class];
+    }
+
+    /**
+     * Adds a `reactions` relation to core's `Moment` (from the extension side, never touching
+     * the core model), eager-loaded so a feed's rails and "Latest reactions" strips read one
+     * batch-loaded relation per moment instead of each firing its own per-card queries -- the
+     * O(cards) cost issue #4 measured. `Reaction::state`/`latestWorded` read this relation;
+     * `$with = ['person']` on Reaction nests the authors into the same batch.
+     *
+     * @return array<Model>
+     */
+    public function models(): array
+    {
+        return [
+            (new Model(Moment::class))
+                ->relation((new Relation)->hasMany('reactions', Reaction::class)->eagerLoad()),
+        ];
     }
 
     /**

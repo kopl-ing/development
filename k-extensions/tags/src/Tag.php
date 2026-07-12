@@ -31,16 +31,20 @@ class Tag extends Model
     }
 
     /**
-     * The tags on one moment, alphabetical -- read via the pivot so nothing needs adding to
-     * `Moment` itself.
+     * The tags on one moment, alphabetical. Read from the `tags` relation the feed eager-loads
+     * onto every Moment (see Extension::models) rather than a per-card `whereHas` -- on the feed
+     * the whole page's tags arrive in one batch. Falls back to a query for a single moment that
+     * wasn't loaded that way (e.g. the tag page's own cards). Same shared-read pattern as
+     * discussions' Reply::statsFor.
      *
      * @return Collection<int, static>
      */
     public static function forMoment(Moment $moment): Collection
     {
-        return static::query()
-            ->whereHas('moments', fn ($query) => $query->whereKey($moment->id))
-            ->orderBy('name')
-            ->get();
+        if (! $moment->relationLoaded('tags')) {
+            $moment->load('tags');
+        }
+
+        return $moment->getRelation('tags')->sortBy('name')->values();
     }
 }
