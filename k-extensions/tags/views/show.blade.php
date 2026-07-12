@@ -1,9 +1,10 @@
 @php use Kopling\Core\Ux\Context; @endphp
 {{--
-    The tag page: everything under one tag. Reuses the base portal shell (`<x-k::portal.
-    layout>`) and core's own card component, so a card here renders through the exact same
-    Top/Body/Footer extensibility (tags, reactions, ...) as one in the feed -- and inherits
-    the active theme -- without duplicating any card markup or coupling to the portal feed.
+    The tag page: everything under one tag. Reuses Community's own chrome (`<x-k::community.
+    chrome>`, see k-core/views/community/chrome.blade.php) and core's own card component, so a
+    card here renders through the exact same Top/Body/Footer extensibility (tags, reactions,
+    ...) as one in the feed -- and inherits the active theme -- without duplicating any card
+    markup or coupling to the portal feed.
 --}}
 <x-k::community.chrome>
     <div class="mx-auto flex max-w-2xl flex-col gap-4 p-6">
