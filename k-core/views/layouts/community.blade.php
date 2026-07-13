@@ -10,12 +10,6 @@ $moments = $context->getSubjectPaginator();
 $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->toIso8601String();
 @endphp
 <x-k::community.chrome>
-    <div role="tablist" class="tabs tabs-border mb-4">
-        <button role="tab" class="tab tab-active">Latest</button>
-        <button role="tab" class="tab">Top</button>
-        <button role="tab" class="tab">New</button>
-    </div>
-
     <x-k::portal.slot name="kopling-core::community.content-top" />
 
     {{-- $portal comes from InjectPortal's shared view global, not passed explicitly. --}}
@@ -26,4 +20,7 @@ $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->t
             @include('kopling-core::community.moment', ['moment' => $moment])
         @endforeach
     </div>
+
+
+    <x-k::portal.slot name="kopling-core::community.content-bottom" />
 </x-k::community.chrome>

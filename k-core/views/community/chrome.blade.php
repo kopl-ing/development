@@ -23,7 +23,7 @@
 
         <div class="flex flex-1">
             <div class="flex w-full max-w-7xl mx-auto">
-                <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0">
+                <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0" id="sidebar">
                     <x-k::community.sidebar />
                 </aside>
 
@@ -33,13 +33,13 @@
                     </div>
                 </main>
 
-                <aside class="w-72 border-l border-base-300 p-4 hidden xl:block">
+                <aside class="w-72 border-l border-base-300 p-4 hidden xl:block" id="rail">
                     <x-k::portal.slot name="kopling-core::community.rail" />
                 </aside>
             </div>
         </div>
 
-        <footer class="border-t border-base-300 p-4">
+        <footer class="border-t border-base-300 p-4" id="composer">
             <x-k::portal.slot name="kopling-core::community.composer" />
         </footer>
     </div>

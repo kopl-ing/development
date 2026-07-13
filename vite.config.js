@@ -10,7 +10,10 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['k-core/src/Ux/css/app.css', 'k-core/src/Ux/js/app.js'],
+            input: [
+                'k-core/src/Ux/css/app.css',
+                'k-core/src/Ux/js/app.js'
+            ],
             refresh: [
                 'k-core/src/**/*.blade.php',
                 'k-extensions/**/*.blade.php',
