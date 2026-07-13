@@ -1814,3 +1814,87 @@ assets.php`, the rewritten portal loop in `routes/web.php`, `Portal`'s trimmed c
 `InjectPortal`'s `View::share`, and `Core`/`kopling-discussions`/`kopling-example` migrated).
 Verified via `php artisan route:list`, `php artisan kopling:extensions:registrations`, and a
 tinker-rendered `head.blade.php`. Not yet covered by an automated test.
+
+## 2026-07-13 — Navigation split out of Sidebar into its own slot; nav-item rendering (menu vs. mobile dock) decided at the render call site, not at registration
+
+The Community sidebar and right rail both ate too much horizontal width on mobile with no
+responsive handling at all (`aside` was a fixed `w-64`, no breakpoint classes). A drawer wasn't
+the right fit for the primary nav specifically -- Daniël wanted mobile nav links to land in a
+bottom bar (daisyUI's `dock`, the renamed `btm-nav` in daisyUI 5) instead, which raised a real
+modeling question: `Sidebar` (`kopling-core::community.sidebar`) mixed two unrelated things in
+one slot -- `Sidebar::defaults()`'s own "Home feed" nav link, and `kopling-widgets`' `pulse`/
+`tags` widgets (registered into the same slot, per that extension's own comment: "widgets on the
+left, not the right rail"). Those widgets render `<div class="card">` blocks, so they were
+already sitting inside `sidebar.blade.php`'s `<ul class="menu">` as invalid HTML (`<div>` isn't a
+valid `<ul>` child) -- a real bug independent of mobile, just never surfaced. A dock needs a slot
+guaranteed to hold nothing but nav-shaped entries, which this conflated slot couldn't provide.
+
+**Registration itself needed no changes.** `Ux::add()`/`UxEntry`/`SlotResolver` are already fully
+generic -- slot name + Blade component tag + an opaque `data` array, no coupling to navigation or
+any other concept. The fix is entirely at the two layers above that:
+
+- **New `Kopling\Core\Ux\Community\Navigation` component**, owning a new
+  `kopling-core::community.navigation` slot -- nav links only. `Sidebar::defaults()`'s Home feed
+  registration moved here; `Sidebar` itself keeps `kopling-core::community.sidebar` but drops its
+  `defaults()` entirely (nothing in Core registers into it now, only extensions like
+  `kopling-widgets` do) and `sidebar.blade.php`'s wrapper changed from `<ul class="menu p-4">` to
+  a plain `<div class="p-4">`, fixing the invalid-HTML nesting as a side effect.
+- **`Item` (`k-core/src/Ux/Portal/Navigation/Item.php`) gained a `$variant` constructor prop**
+  (`'menu'` default, or `'dock'`), switching which half of `item.blade.php` it renders -- the
+  existing `<li><a>` for `menu`, a new flat `<a>` (not daisyUI's example `<button>`; this is a
+  real link, needs working right-click/open-in-new-tab, no JS required) with `dock-label` for
+  `dock`. `$variant` deliberately isn't part of `UxEntry::$data` -- `$data` is static,
+  author-declared config the registering extension controls (per `UxEntry`'s own docblock), but
+  which markup an entry renders as is a render-time layout decision the extension has no business
+  making. Instead whoever resolves the slot passes `variant="dock"` as a plain extra attribute
+  into `<x-dynamic-component :component :data>` -- Blade drops unrecognized attributes into a
+  component's `$attributes` bag rather than erroring, so any other component registered into this
+  slot that doesn't declare a `$variant` prop just ignores it harmlessly; this needed no change to
+  `UxEntry`, `SlotResolver`, or `Manager` at all.
+- **`community/chrome.blade.php` renders `<x-k::community.navigation>` twice** -- once inside the
+  now `hidden md:block` sidebar `<aside>` (default `variant="menu"`), once as `variant="dock"` as
+  its own top-level sibling, deliberately *outside* that `<aside>`: `display:none` on an ancestor
+  hides descendants outright regardless of the dock's own `position:fixed`/`md:hidden`, so the two
+  variants can't share one DOM location. Each call is an independent `SlotResolver::resolve()`,
+  same cost pattern `Slot` already uses for topbar/rail/composer (no caching layer exists anywhere
+  in `Manager::ux()`, so this isn't a new inefficiency). The right rail keeps its pre-existing
+  `hidden xl:block` treatment (it was already fine) rather than getting its own mobile variant --
+  its one real consumer, `kopling-widgets`, is supplementary content, same as the sidebar's
+  widgets, not something mobile needs a replacement surface for.
+- Added `pb-16 md:pb-0` to chrome's content wrapper so the fixed-position mobile dock doesn't
+  cover the composer footer, and `viewport-fit=cover` to `head.blade.php`'s viewport meta --
+  daisyUI's own docs call this out as required for the dock to sit correctly inside iOS's safe
+  area.
+
+**Alternatives considered:** A daisyUI `drawer` for both sidebar and rail on mobile -- explicitly
+ruled out per Daniël's ask, an off-canvas drawer doesn't match a bottom-nav mobile pattern.
+Passing a `variant` through `UxEntry::$data` instead of as a render-time attribute -- rejected,
+would have made every registering extension respsonsible for knowing about layout variants that
+don't exist yet when it registers, the same coupling the `$context`/`$data` split on `UxEntry`
+already exists to avoid. Keeping widgets and nav in one slot and just filtering by component type
+at render time -- rejected, reintroduces a "does the slot consumer need to know what shape its
+entries are" coupling that a slot boundary is supposed to remove; a second slot is one line of
+`->in()` difference and costs nothing.
+
+**Not built as part of this:** active-route highlighting (`dock-active`/menu equivalent) --
+`Item`'s `menu` variant never had it either, out of scope here. A mobile treatment for the right
+rail -- deferred until something real needs to live there on mobile (today it's just
+supplementary widget content, same as the sidebar's).
+
+**Same-day follow-up:** the `$variant` prop was renamed to `$surface` on both `Item` and
+`Navigation` -- Daniël flagged `variant` as reading like a per-entry choice ("this item picks
+menu or dock"), when every entry always renders into both surfaces unconditionally; nothing is
+ever selected out, so the name shouldn't imply picking one. `as` was considered and rejected --
+it collides with `Ux::add()->as()` (an entry's stable id), an unrelated concept, right next to it
+in the same file. Also added a `Navigation::HOME_ICON` (inline `<svg>`, same style as every other
+icon in this codebase -- theme-switcher, card controls, reply-dock, thread-title all use inline
+SVG, none use an icon-font class) to the Home entry, rendered via `{!! $icon !!}` in both
+surfaces. And made the mobile dock scrollable rather than letting daisyUI's default even-
+distribution (`flex-basis:100%`, shrinking children) squeeze icons unreadably thin as more nav
+entries are added: `overflow-x-auto justify-start [&>*]:shrink-0 [&>*]:basis-auto` on the `.dock`
+wrapper, overriding daisyUI's own layered CSS the way daisyUI is designed to be overridden.
+
+**Status:** Decided & implemented (`Navigation`, `Item::$surface`, `Navigation::HOME_ICON`,
+`sidebar.blade.php`/`navigation.blade.php`/`item.blade.php`, `chrome.blade.php`,
+`head.blade.php`'s viewport meta, `Core::ux()` swapped to `Navigation::defaults()`). Not yet
+browser-verified by Daniël.

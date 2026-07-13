@@ -51,7 +51,7 @@ it('silently no-ops a replace()/remove() whose target was never registered', fun
         'tests-fixtures/ux-remover' => $remover,
     ]);
 
-    // Core itself always contributes real entries (Top/Footer/Body/Sidebar defaults), so the
+    // Core itself always contributes real entries (Top/Footer/Body/Navigation defaults), so the
     // resolved collection is never empty -- assert the dangling targets just don't appear.
     expect(fn () => $manager->ux())->not->toThrow(Throwable::class)
         ->and($manager->ux()->pluck('id'))
