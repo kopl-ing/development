@@ -23,9 +23,11 @@
         "kopling/discussions": "@dev",
         "kopling/example": "@dev",
         "kopling/reactions": "@dev",
+        "kopling/reply-dock": "@dev",
         "kopling/tags": "@dev",
         "kopling/theme-delft": "@dev",
         "kopling/theme-midnight": "@dev",
+        "kopling/thread-title": "@dev",
         "kopling/widgets": "@dev"
     },
     "autoload": {
