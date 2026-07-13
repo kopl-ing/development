@@ -1,0 +1,16 @@
+{
+    "name": "kopling/reply-dock",
+    "description": "A sticky reply dock on discussion pages — a bar that morphs into a composer.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kopling\\ReplyDock\\": "src/"
+        }
+    },
+    "extra": {
+        "kopling-extension": {
+            "name": "Reply dock"
+        }
+    }
+}
