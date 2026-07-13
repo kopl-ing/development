@@ -4,7 +4,7 @@
      htmx only — no bundled JS. The [x-cloak] rule now ships as css/app.css, linked onto
      Community pages via Extension::extendsPortals(). --}}
 <div x-data="{ open: false }"
-     @htmx:after-request="if ($event.detail.successful) { open = false; $refs.form.reset() }"
+     @htmx:after:request="if (($event.detail?.ctx?.response?.status ?? 500) < 400) { open = false; $refs.form.reset() }"
      class="card bg-base-100 hair border border-base-300 rounded-box mb-4 shadow-sm">
     <form x-ref="form"
           hx-post="{{ route('kopling-core::community/compose.store') }}"
