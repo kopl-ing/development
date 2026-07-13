@@ -11,7 +11,7 @@
 @endphp
 
 @if (count($themes) > 1)
-    <form method="POST" action="{{ route('kopling-core::community/theme.set') }}">
+    <form method="POST" action="{{ route('kopling-core::community/theme.set') }}" class="inline-block">
         @csrf
         <input type="hidden" name="theme" value="{{ $next }}">
         <button type="submit" class="btn btn-ghost btn-sm btn-square"
