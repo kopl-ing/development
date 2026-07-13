@@ -29,12 +29,13 @@ class Extension extends AbstractExtension implements ChangesUx
 
     public function ux(): Ux
     {
+        // Left sidebar (matches the reference layout — widgets on the left, not the right rail).
         return Ux::make()
             ->add('kopling-widgets::pulse')
-            ->in('kopling-core::community.rail')
+            ->in('kopling-core::community.sidebar')
             ->as('pulse')
             ->add('kopling-widgets::tags')
-            ->in('kopling-core::community.rail')
+            ->in('kopling-core::community.sidebar')
             ->as('tags')
             ->after('pulse');
     }
