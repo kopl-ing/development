@@ -1,8 +1,17 @@
-<li>
+@if ($surface === 'dock')
     <a href="{{ route($route) }}">
         @if ($icon)
-            <span class="{{ $icon }}"></span>
+            {!! $icon !!}
         @endif
-        {{ $label }}
+        <span class="dock-label">{{ $label }}</span>
     </a>
-</li>
+@else
+    <li>
+        <a href="{{ route($route) }}">
+            @if ($icon)
+                {!! $icon !!}
+            @endif
+            {{ $label }}
+        </a>
+    </li>
+@endif

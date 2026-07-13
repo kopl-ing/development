@@ -21,9 +21,10 @@
             </div>
         </header>
 
-        <div class="flex flex-1">
+        <div class="flex flex-1 pb-16 md:pb-0">
             <div class="flex w-full max-w-7xl mx-auto">
-                <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0" id="sidebar">
+                <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0 hidden md:block" id="sidebar">
+                    <x-k::community.navigation />
                     <x-k::community.sidebar />
                 </aside>
 
@@ -38,6 +39,13 @@
                 </aside>
             </div>
         </div>
+
+        {{--
+            Own DOM location, deliberately outside the `hidden md:block` sidebar aside above --
+            `display:none` on an ancestor hides descendants outright regardless of the dock's own
+            `position:fixed`/`md:hidden`, so it can't be nested inside it and still show below md.
+        --}}
+        <x-k::community.navigation surface="dock" />
 
         <footer class="border-t border-base-300 p-4" id="composer">
             <x-k::portal.slot name="kopling-core::community.composer" />

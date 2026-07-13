@@ -17,7 +17,7 @@ use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
-use Kopling\Core\Ux\Community\Sidebar;
+use Kopling\Core\Ux\Community\Navigation;
 use Kopling\Core\Ux\Community\ThemeSwitcher;
 
 /**
@@ -101,7 +101,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Ext
         Top::defaults($ux);
         Footer::defaults($ux);
         Body::defaults($ux);
-        Sidebar::defaults($ux);
+        Navigation::defaults($ux);
         ThemeSwitcher::defaults($ux);
 
         return $ux;
