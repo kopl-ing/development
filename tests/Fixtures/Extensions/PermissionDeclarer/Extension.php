@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Extensions\PermissionDeclarer;
 
-use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\HasPermissions;
 

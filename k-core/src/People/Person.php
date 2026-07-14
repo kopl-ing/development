@@ -42,7 +42,7 @@ class Person extends Authenticatable
     /**
      * True if any of this person's groups has been granted this permission. This is the
      * base grant check every registered Gate ability runs first -- a Permission's optional
-     * callback (see Kopling\Core\Authorization\Permission) only ever narrows this further,
+     * callback (see Kopling\Core\Extend\Permission) only ever narrows this further,
      * never replaces it.
      */
     public function hasPermission(string $id): bool

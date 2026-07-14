@@ -17,7 +17,7 @@ use Kopling\Core\Ux\UxEntry;
  * The card's own action menu -- resolves/renders `SLOT` the same way `Top`/`Footer` do, wrapped
  * in the generic `Kopling\Core\Ux\Dropdown` for the actual trigger/menu markup. An extension
  * targets `SLOT` with the same `Ux::add()`/`replace()`/`remove()`/`after()`/`before()`/`when()`
- * calls it already knows from `kopling-core::side-navigation` to add a real per-moment action
+ * calls it already knows from `kopling-core::community.navigation` to add a real per-moment action
  * (edit, delete, report, pin, ...). `defaults()` deliberately registers nothing, same reasoning
  * as `Footer::defaults()` -- no fake actions, a real one registers into this slot when it exists.
  */

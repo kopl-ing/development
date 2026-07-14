@@ -7,7 +7,8 @@ namespace Kopling\Core\People;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Kopling\Core\Authorization\Permission;
 
 class Group extends Model
 {
@@ -23,30 +24,28 @@ class Group extends Model
     }
 
     /**
-     * Checks the raw grant, e.g. "kopling-core::manage-people" or "kopling-example::do-a-thing" --
-     * there's no Permission row to relate to, permission definitions live in code.
+     * The raw grants themselves -- e.g. "kopling-core::manage-people" or
+     * "kopling-example::do-a-thing" -- as real `Authorization\Permission` rows. A permission's
+     * own definition (label/description/etc.) still lives entirely in code; only the grant is
+     * a row (see `Authorization\Permission`'s own docblock).
      */
+    public function permissions(): HasMany
+    {
+        return $this->hasMany(Permission::class);
+    }
+
     public function hasPermission(string $id): bool
     {
-        return DB::table('group_permission')
-            ->where('group_id', $this->id)
-            ->where('permission', $id)
-            ->exists();
+        return $this->permissions()->where('permission', $id)->exists();
     }
 
     public function givePermissionTo(string $id): void
     {
-        DB::table('group_permission')->insertOrIgnore([
-            'group_id' => $this->id,
-            'permission' => $id,
-        ]);
+        $this->permissions()->firstOrCreate(['permission' => $id]);
     }
 
     public function revokePermissionTo(string $id): void
     {
-        DB::table('group_permission')
-            ->where('group_id', $this->id)
-            ->where('permission', $id)
-            ->delete();
+        $this->permissions()->where('permission', $id)->delete();
     }
 }

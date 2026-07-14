@@ -7,9 +7,10 @@
     `$context->subject` (the Moment) and `$context->actor` (the viewer) the same way every
     core card leaf reads its context -- never a loose array threaded through `$data`.
 
-    Presentational only + safelisted daisyUI/layout classes: extension CSS can't be linked
-    onto the page yet (no head-assets outlet), so this leans entirely on classes core already
-    ships (btn/btn-primary/btn-ghost + flex/gap).
+    Presentational only, mixing core's daisyUI/layout classes (btn/btn-primary/btn-ghost +
+    flex/gap) with this extension's own explicit CSS (`css/app.css`, linked via
+    `Extension::extendsPortals()`'s `->css()` -- see the head-assets outlet in
+    `views/layouts/partials/head.blade.php`).
 --}}
 @php
     $moment = $context?->getSubject();

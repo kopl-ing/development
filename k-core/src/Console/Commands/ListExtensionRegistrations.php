@@ -10,6 +10,7 @@ use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasAdminSettings;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
@@ -58,6 +59,7 @@ class ListExtensionRegistrations extends Command
         $this->storage($manager, $id);
         $this->ux($manager, $id);
         $this->theme($manager, $id);
+        $this->adminSettings($manager, $id);
 
         return self::SUCCESS;
     }
@@ -86,6 +88,7 @@ class ListExtensionRegistrations extends Command
             RequestsStorageDriver::class => 'RequestsStorageDriver',
             CannotBeDisabled::class => 'CannotBeDisabled',
             ChangesTheme::class => 'ChangesTheme',
+            HasAdminSettings::class => 'HasAdminSettings',
         ];
 
         $implemented = array_intersect_key($known, class_implements($extension));
@@ -336,6 +339,26 @@ class ListExtensionRegistrations extends Command
 
         foreach ($tokens as $token => $value) {
             $this->components->twoColumnDetail($token, $value);
+        }
+
+        $this->newLine();
+    }
+
+    protected function adminSettings(Manager $manager, string $id): void
+    {
+        $this->components->info('Admin settings (HasAdminSettings)');
+
+        $fields = $manager->adminSettings()[$id] ?? [];
+
+        if ($fields === []) {
+            $this->line('  <fg=gray>none</>');
+            $this->newLine();
+
+            return;
+        }
+
+        foreach ($fields as $field) {
+            $this->components->twoColumnDetail($field->id, "{$field->label} ({$field->component})");
         }
 
         $this->newLine();

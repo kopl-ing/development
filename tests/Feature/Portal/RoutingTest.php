@@ -46,14 +46,12 @@ it('serves a PortalExtension\'s css file through the key-based asset route with 
         ->assertHeader('Content-Type', 'text/css; charset=utf-8');
 });
 
-it('does not break the app when a declared Portal has no attachments at all', function () {
-    // kopling/admin's own Portal declares no ExtendsPortals attachment today -- the exact
-    // "Portal with nothing attached" shape the routing refactor set out to make harmless
-    // (see decisions.md, 2026-07-12). Booting/serving requests must still work fine.
-    $manager = app(Manager::class);
+it('routes kopling/admin\'s own settings page under its own Portal prefix, gated behind its own permission', function () {
+    // kopling/admin now attaches its settings route via ExtendsPortals (see its own
+    // Extension::extendsPortals()) -- a guest still can't reach it (the Portal's own
+    // `can:access-admin` middleware denies before the route's own `manage-settings` gate is
+    // ever reached), but the route itself exists and answers under the right prefix.
+    expect(route('kopling-admin::admin/settings'))->toContain('/admin/settings');
 
-    expect($manager->portals()->has('kopling-admin::admin'))->toBeTrue()
-        ->and($manager->portalExtensions()->get('kopling-admin::admin', collect()))->toBeEmpty();
-
-    $this->get('/')->assertOk();
+    $this->get('/admin/settings')->assertForbidden();
 });

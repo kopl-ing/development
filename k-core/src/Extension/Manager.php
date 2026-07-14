@@ -8,14 +8,15 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Support\Collection;
-use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Core;
 use Kopling\Core\Database\Model as DatabaseModel;
 use Kopling\Core\Extend\Model as ExtendModel;
+use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasAdminSettings;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
@@ -25,6 +26,7 @@ use Kopling\Core\Extension\LoadOrder\Resolver;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Storage\StorageRequest;
+use Kopling\Core\Ux\Form\Field;
 use Kopling\Core\Ux\Theme\Token;
 use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
@@ -167,6 +169,37 @@ class Manager
         }
 
         return $requests;
+    }
+
+    /**
+     * Every admin-editable setting declared by every extension, grouped by owning extension id
+     * -- same reasoning `storageDrivers()` groups by owner, so Admin's settings page can section
+     * fields by which extension owns them. `Field::$id` is prefixed the same way
+     * `permissions()`/`portals()` prefix theirs, so it doubles as a collision-safe persistence
+     * key (see `Settings`).
+     *
+     * @return Collection<string, array<Field>>
+     */
+    public function adminSettings(): Collection
+    {
+        $settings = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof HasAdminSettings) {
+                continue;
+            }
+
+            $prefix = $this->id($package).'::';
+            $declared = collect($extension->adminSettings())->ensure(Field::class);
+
+            foreach ($declared as $field) {
+                $field->id = $prefix.$field->id;
+            }
+
+            $settings[$this->id($package)] = $declared->all();
+        }
+
+        return collect($settings);
     }
 
     /**

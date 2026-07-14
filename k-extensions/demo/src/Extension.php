@@ -6,6 +6,7 @@ namespace Kopling\Demo;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Demo\Command\SeedAdminCommand;
 use Kopling\Demo\Command\SeedFakeDataCommand;
 
 class Extension extends AbstractExtension implements HasCommands
@@ -23,6 +24,6 @@ class Extension extends AbstractExtension implements HasCommands
 
     public function commands(): array
     {
-        return [SeedFakeDataCommand::class];
+        return [SeedFakeDataCommand::class, SeedAdminCommand::class];
     }
 }

@@ -6,7 +6,7 @@ namespace Kopling\Core\Ux;
 
 /**
  * One piece of UI an extension (or core) places into a named slot -- e.g. a link in
- * `kopling-core::side-navigation`. Unlike `Permission`/`Portal`/`StorageRequest`, deliberately not
+ * `kopling-core::community.navigation`. Unlike `Permission`/`Portal`/`StorageRequest`, deliberately not
  * readonly: `Ux::add()` returns an entry that `in()`/`after()`/`before()`/`as()`/`when()`
  * mutate incrementally as the fluent chain continues, and `Manager::ux()` mutates `component`/
  * `data` (and whichever of `slot`/`after`/`before`/`condition` were set) in place on an
@@ -19,7 +19,7 @@ namespace Kopling\Core\Ux;
  * being targeted -- written out in full, the same as `$after`/`$before`, never prefixed.
  *
  * `$slot` is a fully-qualified string the author writes out in full (e.g.
- * "kopling-core::side-navigation") and is never auto-prefixed by Manager -- it names a shared
+ * "kopling-core::community.navigation") and is never auto-prefixed by Manager -- it names a shared
  * rendezvous point other extensions must be able to reference exactly, unlike a Permission
  * id which is private to its own Gate check. `$after`/`$before` reference another entry's
  * id within the same slot; a reference to a missing/uninstalled entry is ignored, never an
@@ -47,7 +47,7 @@ class UxEntry
     /**
      * Set by `SlotResolver::resolve()` right before rendering, when the slot being resolved
      * is bound to something (a `Moment`'s Card header, say) -- `null` for slots that aren't
-     * (page-level ones like `kopling-core::side-navigation`). See `Context` itself for why this
+     * (page-level ones like `kopling-core::community.navigation`). See `Context` itself for why this
      * carries the binding instead of a loose array merged into `$data`.
      */
     public ?Context $context = null;

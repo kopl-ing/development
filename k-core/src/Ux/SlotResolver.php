@@ -20,7 +20,7 @@ class SlotResolver
     /**
      * `$context`, when given, is set on every surviving entry -- for a slot bound to
      * something (a `Moment`'s Card header, say), not for a page-level one like
-     * `kopling-core::side-navigation`, which has nothing to bind and passes `null`.
+     * `kopling-core::community.navigation`, which has nothing to bind and passes `null`.
      *
      * @param  Collection<int, UxEntry>  $entries
      * @return Collection<int, UxEntry>

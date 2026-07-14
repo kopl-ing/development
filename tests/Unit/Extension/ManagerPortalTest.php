@@ -59,7 +59,6 @@ it('does not throw when an ExtendsPortals attachment targets a Portal nothing ev
     // The dangling reference is stored exactly as declared -- portalExtensions() doesn't know or
     // care whether a matching Portal exists. Graceful degradation happens one layer up, in the
     // route loop (k-core/routes/web.php), which only ever looks attachments up per real,
-    // declared Portal -- see tests/Feature/Portal/RoutingTest.php for that guarantee exercised
-    // against the real app (kopling/admin's own Portal has zero attachments today, the same
-    // shape, and the app still boots and serves requests fine).
+    // declared Portal, defaulting to an empty collection when nothing attached at all -- see
+    // tests/Feature/Portal/RoutingTest.php for that guarantee exercised against the real app.
 });

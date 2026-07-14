@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Example;
 
-use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
@@ -88,7 +88,7 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     {
         return Ux::make()
             ->add(Item::class, ['label' => 'Hello', 'route' => 'kopling-core::community/example.hello'])
-            ->in('kopling-core::side-navigation')
+            ->in('kopling-core::community.navigation')
             ->as('hello')
             ->when('manage-things');
     }
@@ -119,10 +119,10 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
      * graceful-degradation rule ux()'s after()/before() apply to a dangling reference.
      *
      * See `Kopling\Core\Extension\LoadOrder\InfluencesLoadOrder` for the other half of the
-     * mechanism -- letting a contract's own owner (a future Admin `HasSettings`, say) declare
-     * this same relationship for every extension implementing it, without either side needing
-     * to know the other's package name. Not demonstrated here since no such contract is built
-     * yet; see `kopling/admin`'s own Extension.php.
+     * mechanism -- letting a contract's own owner declare this same relationship for every
+     * extension implementing it, without either side needing to know the other's package name.
+     * `kopling/admin` itself now does exactly this for `HasAdminSettings` -- see its own
+     * Extension.php.
      *
      * @return array<string>
      */

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Core;
 
-use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;

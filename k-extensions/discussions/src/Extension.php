@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Kopling\Discussions;
 
-use Kopling\Core\Authorization\Permission;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extend\Model;
+use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;

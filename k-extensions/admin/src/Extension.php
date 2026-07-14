@@ -4,29 +4,33 @@ declare(strict_types=1);
 
 namespace Kopling\Admin;
 
-use Kopling\Core\Authorization\Permission;
+use Kopling\Core\Extend\Permission;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
+use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasAdminSettings;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
+use Kopling\Core\Extension\LoadOrder\Directive;
+use Kopling\Core\Extension\LoadOrder\InfluencesLoadOrder;
 use Kopling\Core\Portal\Portal;
+use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Portal\Navigation\Item;
 
 /**
  * The Admin portal, split out of Core into its own extension -- Core keeps only the Community
- * portal, everything admin-facing (people/group management today, theme controls later) lives
+ * portal, everything admin-facing (people/group management, settings, theme controls) lives
  * here instead. Declared through the exact same contracts any other extension would use;
  * nothing about being "the admin panel" gets Core-only special treatment.
  *
- * TODO: load order is now controllable (`Extension\LoadOrder\HasLoadOrder`/
- * `InfluencesLoadOrder`, resolved by `Extension\LoadOrder\Resolver` inside
- * `Manager::extensions()`), but Admin doesn't need either yet -- there's no `HasSettings`-style
- * contract yet for other extensions to place their own settings/tools into this Portal's slots
- * against, so nothing here is order-sensitive today. Once that contract exists, Admin should
- * implement `InfluencesLoadOrder` and return `[HasSettings::class => Directive::After]` from
- * `loadOrderRules()`, so anything implementing it loads after Admin without either side ever
- * needing to know the other's Composer package name.
+ * Now implements `InfluencesLoadOrder` per its own former TODO: anything implementing
+ * `HasAdminSettings` loads after Admin, so its own `ChangesUx`/settings-page registration is
+ * always in place first, without either side ever needing to know the other's Composer package
+ * name (see `Extension\LoadOrder\Resolver`, and decisions.md, 2026-07-12).
  */
-class Extension extends AbstractExtension implements CannotBeDisabled, HasPermissions, HasPortals
+class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx, ExtendsPortals, HasPermissions, HasPortals, InfluencesLoadOrder
 {
     public static function name(): string
     {
@@ -49,6 +53,11 @@ class Extension extends AbstractExtension implements CannotBeDisabled, HasPermis
                 label: __('kopling-admin::permissions.access-admin.label'),
                 description: __('kopling-admin::permissions.access-admin.description'),
             ),
+            new Permission(
+                id: 'manage-settings',
+                label: __('kopling-admin::permissions.manage-settings.label'),
+                description: __('kopling-admin::permissions.manage-settings.description'),
+            ),
         ];
     }
 
@@ -65,6 +74,39 @@ class Extension extends AbstractExtension implements CannotBeDisabled, HasPermis
                 layout: 'kopling-admin::layouts.admin',
                 permission: 'access-admin',
             ),
+        ];
+    }
+
+    /**
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-admin::admin')
+                ->routes(__DIR__.'/../routes/web.php'),
+        ];
+    }
+
+    public function ux(): Ux
+    {
+        return Ux::make()
+            ->add(Item::class, [
+                'label' => __('kopling-admin::messages.settings'),
+                'route' => 'kopling-admin::admin/settings',
+            ])
+            ->in('kopling-admin::admin.navigation')
+            ->as('settings')
+            ->when('manage-settings');
+    }
+
+    /**
+     * @return array<class-string, Directive>
+     */
+    public function loadOrderRules(): array
+    {
+        return [
+            HasAdminSettings::class => Directive::After,
         ];
     }
 }
