@@ -62,6 +62,12 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Ext
                 label: 'Manage people',
                 description: 'Create, edit, and remove people and groups.',
             ),
+            new Permission(
+                id: 'guest',
+                label: 'Guest',
+                description: 'Granted only to a signed-out visitor -- for UI that should show only when signed out (e.g. sign-in links).',
+                allowsGuests: true,
+            ),
         ];
     }
 

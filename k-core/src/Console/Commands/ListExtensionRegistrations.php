@@ -312,11 +312,7 @@ class ListExtensionRegistrations extends Command
         }
 
         foreach ($entries as $entry) {
-            $condition = match (true) {
-                $entry->condition === null => 'always visible',
-                $entry->condition instanceof \Closure => 'closure condition',
-                default => "requires {$entry->condition}",
-            };
+            $condition = $entry->condition === null ? 'always visible' : "requires {$entry->condition}";
 
             $this->components->twoColumnDetail($entry->id, "{$entry->slot} ({$entry->component}), {$condition}");
         }

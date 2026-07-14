@@ -11,11 +11,11 @@ namespace Kopling\Core\Extend;
  * Gate -- "kopling-example::manage-things", same `::` separator as views and translations --
  * so an author never has to think about collisions with another extension's names.
  *
- * `$callback` is an escape hatch, not the default path: most permissions are a flat "does
- * this person hold it via one of their groups" check, registered with no callback at all.
- * When present, it's an *additional* condition layered on top of that base grant check
- * (e.g. "must hold the permission AND own this specific record") -- it can never grant
- * access on its own.
+ * `$default`, when true, grants this permission to literally everyone -- guest included, no
+ * Group grant needed. `$allowsGuests` is a separate, narrower flag: it only ever matters when
+ * `$default` is *not* set, granting the permission to a guest specifically, with no blanket
+ * grant to anyone else (e.g. a "sign in" link that should show only when signed out). The two
+ * don't compose into a third meaning -- `$default` already covers "everyone" on its own.
  *
  * Lives in `Extend`, not `Authorization`, alongside `Extend\Model`/`Extend\Ux` -- it's what an
  * extension's `HasPermissions::permissions()` declares, the same kind of thing those are, not a
@@ -24,15 +24,37 @@ namespace Kopling\Core\Extend;
  */
 class Permission
 {
-    /**
-     * @param  ?\Closure(\Kopling\Core\People\Person, mixed ...$args): bool  $callback
-     */
     public function __construct(
         public string $id,
         public readonly string $label,
         public readonly string $description,
         public readonly ?bool $default = null,
-        public readonly ?\Closure $callback = null,
+        public readonly bool $allowsGuests = false,
     ) {
+    }
+
+    /**
+     * @return array{id: string, label: string, description: string, default: ?bool, allowsGuests: bool}
+     */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'label' => $this->label,
+            'description' => $this->description,
+            'default' => $this->default,
+            'allowsGuests' => $this->allowsGuests,
+        ];
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            id: $data['id'],
+            label: $data['label'],
+            description: $data['description'],
+            default: $data['default'],
+            allowsGuests: $data['allowsGuests'],
+        );
     }
 }

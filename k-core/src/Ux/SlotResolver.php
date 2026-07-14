@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Kopling\Core\Ux;
 
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -115,10 +114,6 @@ class SlotResolver
 
     protected static function passes(UxEntry $entry): bool
     {
-        return match (true) {
-            $entry->condition === null => true,
-            $entry->condition instanceof \Closure => (bool) ($entry->condition)(Auth::user()),
-            default => Gate::allows($entry->condition),
-        };
+        return $entry->condition === null || Gate::allows($entry->condition);
     }
 }

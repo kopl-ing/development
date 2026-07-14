@@ -23,9 +23,12 @@ namespace Kopling\Core\Ux;
  * rendezvous point other extensions must be able to reference exactly, unlike a Permission
  * id which is private to its own Gate check. `$after`/`$before` reference another entry's
  * id within the same slot; a reference to a missing/uninstalled entry is ignored, never an
- * error (see SlotResolver). `$condition` is `null` (always visible), a local permission id
- * (a string, prefixed by Manager the same way `Permission::$id` is, then checked via Gate),
- * or a closure `fn (Person $person): bool` for anything a permission can't express.
+ * error (see SlotResolver). `$condition` is `null` (always visible), a local permission id (a
+ * string, prefixed by Manager the same way `Permission::$id` is), or another extension's (or
+ * Core's) already fully-qualified permission id (e.g. "kopling-core::guest") -- Manager tells
+ * the two apart by whether it already contains "::", same convention `$after`/`$before` use,
+ * and never re-prefixes the latter. Deliberately never a closure, so every entry stays plain
+ * data an extension author can reason about without running it, and cacheable to a flatfile.
  */
 class UxEntry
 {
@@ -39,10 +42,7 @@ class UxEntry
 
     public ?string $before = null;
 
-    /**
-     * @var string|(\Closure(?\Kopling\Core\People\Person): bool)|null
-     */
-    public string|\Closure|null $condition = null;
+    public ?string $condition = null;
 
     /**
      * Set by `SlotResolver::resolve()` right before rendering, when the slot being resolved
@@ -72,5 +72,38 @@ class UxEntry
     ) {
         $this->id = $component;
         $this->component = ComponentTag::resolve($component);
+    }
+
+    /**
+     * `$action`/`$context` are deliberately not included: by the time an entry survives into
+     * `Manager::ux()`'s final, cacheable collection, every survivor's `$action` is already
+     * `UxAction::Add` (`Replace`/`Remove` are operations applied against the registry, never
+     * survivors themselves -- see `Manager::applyUxReplace()`/`applyUxRemove()`), and `$context`
+     * is a render-time binding `SlotResolver::resolve()` sets per request, never part of the
+     * static, cacheable shape.
+     */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'slot' => $this->slot,
+            'after' => $this->after,
+            'before' => $this->before,
+            'condition' => $this->condition,
+            'component' => $this->component,
+            'data' => $this->data,
+        ];
+    }
+
+    public static function fromArray(array $data): self
+    {
+        $entry = new self($data['component'], $data['data']);
+        $entry->id = $data['id'];
+        $entry->slot = $data['slot'];
+        $entry->after = $data['after'];
+        $entry->before = $data['before'];
+        $entry->condition = $data['condition'];
+
+        return $entry;
     }
 }

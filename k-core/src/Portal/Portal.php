@@ -28,4 +28,30 @@ class Portal
         public ?string $permission = null,
     ) {
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'label' => $this->label,
+            'path' => $this->path,
+            'layout' => $this->layout,
+            'icon' => $this->icon,
+            'description' => $this->description,
+            'permission' => $this->permission,
+        ];
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            id: $data['id'],
+            label: $data['label'],
+            path: $data['path'],
+            layout: $data['layout'],
+            icon: $data['icon'],
+            description: $data['description'],
+            permission: $data['permission'],
+        );
+    }
 }

@@ -43,6 +43,7 @@ class Manager
     public function __construct(
         protected Manifest $manifest,
         protected Dispatcher $events,
+        protected RegistrationCache $cache,
     )
     {
     }
@@ -151,6 +152,12 @@ class Manager
      */
     public function storageDrivers(): array
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['storageDrivers'])
+                ->map(fn (array $requests) => array_map(fn (array $data) => StorageRequest::fromArray($data), $requests))
+                ->all();
+        }
+
         $requests = [];
 
         foreach ($this->extensions() as $package => $extension) {
@@ -182,6 +189,11 @@ class Manager
      */
     public function adminSettings(): Collection
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['adminSettings'])
+                ->map(fn (array $fields) => array_map(fn (array $data) => Field::fromArray($data), $fields));
+        }
+
         $settings = [];
 
         foreach ($this->extensions() as $package => $extension) {
@@ -217,6 +229,10 @@ class Manager
      */
     public function commands(): array
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return $cached['commands'];
+        }
+
         $commands = [];
 
         foreach ($this->extensions() as $extension) {
@@ -248,6 +264,10 @@ class Manager
      */
     public function permissions(): array
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return array_map(fn (array $data) => Permission::fromArray($data), $cached['permissions']);
+        }
+
         $permissions = [];
 
         foreach ($this->extensions() as $package => $extension) {
@@ -278,6 +298,10 @@ class Manager
      */
     public function portals(): Collection
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['portals'])->map(fn (array $data) => Portal::fromArray($data))->keyBy('id');
+        }
+
         $portals = [];
 
         foreach ($this->extensions() as $package => $extension) {
@@ -315,6 +339,12 @@ class Manager
      */
     public function portalExtensions(): Collection
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['portalExtensions'])->map(
+                fn (array $group) => collect($group)->map(fn (array $data) => PortalExtension::fromArray($data))
+            );
+        }
+
         $extensions = [];
 
         foreach ($this->extensions() as $extension) {
@@ -471,6 +501,10 @@ class Manager
      */
     public function themes(): Collection
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['themes']);
+        }
+
         $themes = [];
 
         foreach ($this->extensions() as $package => $extension) {
@@ -543,6 +577,10 @@ class Manager
      */
     public function ux(): Collection
     {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['ux'])->map(fn (array $data) => UxEntry::fromArray($data));
+        }
+
         $registry = [];
 
         foreach ($this->extensions() as $package => $extension) {
@@ -592,7 +630,10 @@ class Manager
     {
         $entry->id = $prefix.$entry->id;
 
-        if (is_string($entry->condition)) {
+        // A condition already containing "::" is a foreign reference to another extension's
+        // (or Core's) already-qualified permission id -- same convention $after/$before/
+        // PortalExtension::$portal already use -- left exactly as written, never prefixed.
+        if (is_string($entry->condition) && ! str_contains($entry->condition, '::')) {
             $entry->condition = $prefix.$entry->condition;
         }
 

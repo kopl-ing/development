@@ -10,12 +10,15 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as Provider;
 use Illuminate\Support\Str;
+use Kopling\Core\Console\Commands\CacheRegistrations;
 use Kopling\Core\Console\Commands\DiscoverExtensions;
 use Kopling\Core\Console\Commands\ListExtensionRegistrations;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
+use Kopling\Core\Extension\RegistrationCache;
 use Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated;
 use Kopling\Core\Http\Middleware\InjectPortal;
+use Kopling\Core\People\Guest;
 use Kopling\Core\People\Person;
 
 class ServiceProvider extends Provider
@@ -32,11 +35,18 @@ class ServiceProvider extends Provider
             );
         });
 
+        $this->app->singleton(RegistrationCache::class, function ($app) {
+            return new RegistrationCache(
+                $app->bootstrapPath('cache/kopling-registrations.php'),
+            );
+        });
+
         $this->app->singleton(Manager::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([
                 DiscoverExtensions::class,
+                CacheRegistrations::class,
                 ListExtensionRegistrations::class,
                 ...$this->app->make(Manager::class)->commands(),
             ]);
@@ -82,26 +92,15 @@ class ServiceProvider extends Provider
         }
 
         foreach ($manager->permissions() as $permission) {
-            Gate::define($permission->id, function (?Person $person, ...$args) use ($permission) {
-                // If permission is stored in the database.
-                $gated = $person?->hasPermission($permission->id);
+            Gate::define($permission->id, function (?Person $person) use ($permission) {
+                $person ??= new Guest();
 
-                if ($gated === true) return true;
+                if ($permission->default) {
+                    return true;
+                }
 
-                // Use the callback if provided.
-                $gated = $permission->callback !== null
-                    ? ($permission->callback)($person, ...$args)
-                    : null;
-
-                if ($gated !== null) return $gated;
-
-                // Use the default value if provided.
-                if ($permission->default) $gated = $permission->default;
-
-                if ($gated !== null) return $gated;
-
-                // Block otherwise.
-                return false;
+                return $person->hasPermission($permission->id)
+                    || ($person instanceof Guest && $permission->allowsGuests);
             });
         }
     }

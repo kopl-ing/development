@@ -33,4 +33,28 @@ class Field
         $this->id = $id;
         $this->component = ComponentTag::resolve($component);
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'label' => $this->label,
+            'component' => $this->component,
+            'default' => $this->default,
+            'description' => $this->description,
+            'data' => $this->data,
+        ];
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            id: $data['id'],
+            label: $data['label'],
+            component: $data['component'],
+            default: $data['default'],
+            description: $data['description'],
+            data: $data['data'],
+        );
+    }
 }

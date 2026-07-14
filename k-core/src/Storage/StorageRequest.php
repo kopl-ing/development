@@ -25,4 +25,28 @@ class StorageRequest
         public readonly StoragePermission $permission,
     ) {
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'label' => $this->label,
+            'description' => $this->description,
+            'access' => $this->access->value,
+            'retention' => $this->retention->value,
+            'permission' => $this->permission->value,
+        ];
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            id: $data['id'],
+            label: $data['label'],
+            description: $data['description'],
+            access: StorageAccess::from($data['access']),
+            retention: StorageRetention::from($data['retention']),
+            permission: StoragePermission::from($data['permission']),
+        );
+    }
 }

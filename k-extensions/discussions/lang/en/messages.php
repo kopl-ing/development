@@ -9,4 +9,6 @@ return [
     'composer_submit' => 'Reply',
     'login_to_reply' => 'Log in to join the discussion.',
     'someone' => 'Someone',
+    'quote' => '+ Quote',
+    'unquote' => '− Quote',
 ];

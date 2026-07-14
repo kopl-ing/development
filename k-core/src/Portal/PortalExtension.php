@@ -58,4 +58,28 @@ class PortalExtension
 
         return $this;
     }
+
+    public function toArray(): array
+    {
+        return [
+            'portal' => $this->portal,
+            'routes' => $this->routes,
+            'css' => $this->css,
+            'js' => $this->js,
+        ];
+    }
+
+    /**
+     * Bypasses `routes()`/`css()`/`js()`'s own `file_exists()` validation -- paths were already
+     * validated once, when the cache this reconstructs from was built.
+     */
+    public static function fromArray(array $data): self
+    {
+        $instance = new self($data['portal']);
+        $instance->routes = $data['routes'];
+        $instance->css = $data['css'];
+        $instance->js = $data['js'];
+
+        return $instance;
+    }
 }

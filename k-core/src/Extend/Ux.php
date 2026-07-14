@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extend;
 
-use Closure;
 use Illuminate\Support\Collection;
 use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
@@ -124,7 +123,7 @@ class Ux
         return $this;
     }
 
-    public function when(string|Closure $condition): static
+    public function when(string $condition): static
     {
         $this->current->condition = $condition;
 
