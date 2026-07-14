@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Kopling\Core\Extend\Model as ExtendModel;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\People\Person;
 use Kopling\Core\Portal\Portal;
@@ -56,6 +57,39 @@ class Context
     public function getSubjectPaginator(): LengthAwarePaginator
     {
         return $this->getSubjectQuery()->paginate();
+    }
+
+    /**
+     * The URL an extension declared this subject's cards should link out to, via
+     * `Extend\Model::linksTo()` -- `null` if nothing was declared, or if a declared `$when`
+     * evaluates false for this request/actor. Where more than one extension declares a link for
+     * the same model, the last-registered one wins, the same rule `Manager::models()` already
+     * applies to cast collisions.
+     */
+    public function getSubjectUrl(): ?string
+    {
+        $subject = $this->getSubject();
+
+        $link = resolve(Manager::class)->models()
+            ->filter(fn (ExtendModel $model) => $model->model === $subject->getMorphClass() && $model->link !== null)
+            ->last()
+            ?->link;
+
+        if (! $link) {
+            return null;
+        }
+
+        $when = $link['when'];
+
+        if (! (is_callable($when) ? $when($this->portal, $this->request, $this->actor) : $when)) {
+            return null;
+        }
+
+        $parameters = is_callable($link['parameters'])
+            ? ($link['parameters'])($subject)
+            : ($link['parameters'] ?: [$subject->getKey()]);
+
+        return route($link['route'], $parameters);
     }
 
     protected function getSubjectQuery(): Builder

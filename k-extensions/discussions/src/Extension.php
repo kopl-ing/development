@@ -80,7 +80,8 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
     {
         return [
             (new Model(Moment::class))
-                ->relation((new Relation)->hasMany('replies', Reply::class)->eagerLoad()),
+                ->relation((new Relation)->hasMany('replies', Reply::class)->eagerLoad())
+                ->linksTo('kopling-core::community/discussions.show'),
         ];
     }
 

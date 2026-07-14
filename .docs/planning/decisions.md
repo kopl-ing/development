@@ -1898,3 +1898,82 @@ wrapper, overriding daisyUI's own layered CSS the way daisyUI is designed to be 
 `sidebar.blade.php`/`navigation.blade.php`/`item.blade.php`, `chrome.blade.php`,
 `head.blade.php`'s viewport meta, `Core::ux()` swapped to `Navigation::defaults()`). Not yet
 browser-verified by Daniël.
+
+## 2026-07-14 — `Extend\Model::linksTo()`: a Moment card's detail-page link is a declared, native cascade, not a template override
+
+`discussions` wants Moment cards to link out to its own discussion-thread page. The naive fix
+(the extension overriding/replacing Core's `kopling-core::content` slot entry to add the `<a>`
+itself) was rejected up front: Daniël wants this baked into Core as first-class functionality,
+not an override — Core's own default title rendering should just know how to link out when an
+extension has declared that it should, the same way `Content` already knows how to read
+`title`/`body` off `$context->getSubject()` without any extension having to override it.
+
+**The mechanism mirrors `Relation::eagerLoad()` exactly, deliberately.** That's the one existing
+precedent in this codebase for "an extension declares something against a model at
+registration time, and it cascades into render-time behaviour, conditionally, per request":
+`Relation::eagerLoad(bool|callable $when)` stamps onto each relation definition
+(`Extend\Model::relation()`), `Manager::models()` keeps the full `Extend\Model` collection
+un-flattened, and `Ux\Context::getSubjectQuery()` filters/evaluates `$when` per-request
+(`$portal`, `$request`, `$actor`) at query time. `Extend\Model::linksTo(string $route, array|
+callable $parameters = [], bool|callable $when = true)` reuses the identical `$when` contract and
+storage shape (`Model::$link`, a plain array, same as `$casts`) instead of inventing a second
+"conditional declaration" pattern — one shape to learn for both relation eager-loading and card
+linking.
+
+**Resolution lives on `Ux\Context`, not `Manager`,** as `getSubjectUrl(): ?string` — looks up
+`Manager::models()` for an `Extend\Model` targeting the subject's `getMorphClass()`, evaluates
+`$when`, resolves `$parameters` (defaults to `[$subject->getKey()]`, or a `callable(Model):
+array` for routes needing more), and calls `route()`. `Manager::models()` itself needed **no
+new storage or side-effecting wiring step** — `$link` just rides along on the same
+`Extend\Model` collection instance `Manager` was already caching; nothing had to be
+flattened/merged the way `relations`/`casts` are, since only `Context` ever reads it, at
+render time, one model at a time.
+
+**Collision rule:** if two extensions both declare `linksTo()` for the same model class,
+`getSubjectUrl()` takes the last-registered one — the same last-declared-wins rule
+`Manager::models()`'s docblock already documents for colliding cast keys on the same model, kept
+consistent rather than inventing a first-wins or error-on-conflict rule for this one case.
+Untested in practice with a real second extension; only proven by fixture in
+`ContextGetSubjectUrlTest`.
+
+**`Ux\Card\Content`** (`kopling-core::card.content`, the `<h2 class="card-title">`) now passes
+`$context->getSubjectUrl()` into its view and wraps the title in `<a>` only when non-null —
+this is the "native, not override" part: `discussions` adds exactly one line
+(`->linksTo('kopling-core::community/discussions.show')`) to its existing
+`Model(Moment::class)` declaration in `Extension.php`, touches no Blade template, and the card
+picks it up automatically.
+
+**Collapsed a pre-existing duplication as a side effect:** the discussion-page route name was
+already hardcoded independently in three places — `discussions/teaser.blade.php`,
+`discussions/engage.blade.php`, and an unrelated extension, `thread-title/sticky.blade.php`.
+All three now call `$context->getSubjectUrl()` (`sticky.blade.php` didn't have a `$context` in
+scope at all — it reads `request()->route('moment')` directly — so it now builds one inline:
+`new Context(subject: $moment)`) instead of naming the route themselves; the route name now
+lives in exactly one place, `discussions/src/Extension.php`'s `linksTo()` call.
+
+**Alternatives considered:** A Blade-override-based approach (extension replaces/edits the
+`card.body` slot's `Content` entry) — rejected per Daniël's explicit ask for native, not
+override, behaviour. A generic "extension-declared URL resolver" registered independently of
+`Extend\Model` (e.g. on `Extend\Ux`) — rejected, `Extend\Model` is already documented as *the*
+single place "which model" gets declared (casts + relations); a link is one more fact about a
+model, not a Ux-slot concern.
+
+**Testing note (unrelated gotcha surfaced along the way):** `Route::get(...)->name(...)`
+registered ad hoc inside a Pest test body does not become resolvable via `route()`/
+`Router::has()` without an explicit `app('router')->getRoutes()->refreshNameLookups()`
+afterwards — `Route::name()` only mutates the `Route` instance's own action array;
+`RouteCollection`'s name-lookup table is normally rebuilt once, by
+`RouteServiceProvider::loadRoutes()`, after an entire routes *file* finishes loading, which
+runtime ad hoc registration bypasses. `ContextGetSubjectUrlTest`'s `beforeEach()` calls
+`refreshNameLookups()` explicitly; worth remembering for any future test that registers routes
+inline rather than via a routes file.
+
+**Status:** Decided & implemented (`Extend\Model::$link`/`linksTo()`, `Ux\Context::
+getSubjectUrl()`, `Ux\Card\Content`/`card/content.blade.php`, `discussions/src/Extension.php`,
+`discussions/teaser.blade.php`, `discussions/engage.blade.php`,
+`thread-title/sticky.blade.php`, `ContextGetSubjectUrlTest` + `ModelLinker`/
+`ModelLinkerConditional`/`ModelLinkerOverride` fixtures). Not yet browser-verified by Daniël. A
+"make the whole card clickable, not just the title" follow-up (daisyUI's `card` has no native
+whole-card-clickable modifier; would need the stretched-link pattern — an absolutely positioned
+`<a>` under the card's interactive children via `z-index`) was discussed and deliberately not
+built as part of this — only the title link was asked for.

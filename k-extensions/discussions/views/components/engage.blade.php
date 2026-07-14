@@ -10,7 +10,7 @@
     $count = $moment ? Reply::statsFor($moment)['count'] : 0;
 @endphp
 @if ($moment)
-    <a href="{{ route('kopling-core::community/discussions.show', $moment->id) }}" class="btn btn-sm btn-ghost gap-1">
+    <a href="{{ $context->getSubjectUrl() }}" class="btn btn-sm btn-ghost gap-1">
         <span aria-hidden="true">💬</span>
         {{ trans_choice('kopling-discussions::messages.replies', $count, ['count' => $count]) }}
     </a>

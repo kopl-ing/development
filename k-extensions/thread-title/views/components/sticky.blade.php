@@ -1,6 +1,7 @@
 @php
     use Illuminate\Support\Str;
     use Kopling\Core\Content\Moment;
+    use Kopling\Core\Ux\Context;
 
     // Only on a discussion page — the discussions.show route binds {moment} to a Moment; the
     // feed's route has none, so this renders nothing there.
@@ -25,7 +26,7 @@
         <svg class="kop-thread__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <a href="{{ route('kopling-core::community/discussions.show', $moment->id) }}"
+        <a href="{{ (new Context(subject: $moment))->getSubjectUrl() }}"
            class="kop-thread__link" title="{{ $title }}">{{ $title }}</a>
     </div>
 @endif

@@ -22,6 +22,11 @@ class Model
      */
     public array $relations = [];
 
+    /**
+     * @var array{route: string, parameters: array|callable, when: bool|callable}|null
+     */
+    public ?array $link = null;
+
     public function __construct(public readonly string $model)
     {
     }
@@ -29,6 +34,22 @@ class Model
     public function cast(string $attribute, string $type): self
     {
         $this->casts[$attribute] = $type;
+
+        return $this;
+    }
+
+    /**
+     * Declares the named route this model's cards should link out to -- read by
+     * `Ux\Context::getSubjectUrl()` so a card's default title rendering (`Ux\Card\Content`) can
+     * wrap itself in an `<a>` without the declaring extension having to override any template.
+     * `$parameters` defaults to `[$subject->getKey()]`, or takes a `callable(Model): array` for
+     * routes needing more than the key. `$when` mirrors `Relation::eagerLoad()`'s
+     * `bool|callable(Portal, Request, Person): bool` contract -- same evaluation rule, so there's
+     * only one shape to learn for "cascades into templates, conditionally, per request."
+     */
+    public function linksTo(string $route, array|callable $parameters = [], bool|callable $when = true): self
+    {
+        $this->link = compact('route', 'parameters', 'when');
 
         return $this;
     }
