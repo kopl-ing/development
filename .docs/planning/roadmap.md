@@ -42,8 +42,12 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   onto the page) before it can ship its own CSS instead of borrowing core's.
 - WYSIWYG/rich-text editor integration — `composer`'s body field is a plain `<textarea>`, no
   formatting.
-- Minimal moderation — enough to not get overrun by spam/bots on day one (rate limiting, basic
-  report/remove). Scope beyond that TBD.
+- Minimal moderation — enough to not get overrun by spam/bots on day one.
+  - polymorphic flagging on both Moments and replies (one flaggable mechanism, not two)
+  - a moderation queue to review flagged content — location TBD (`admin` extension is the
+    likely home)
+  - rate limiting on posting/replying
+  - scope beyond that TBD
 - End-to-end test coverage across Checkpoint 1 functionality (sign up/in, post, reply, react,
   tag, pin) — only Pest unit/feature tests exist today, no browser/E2E layer confirmed yet.
 - Pin extension — reason dropdown (translatable, fixed set), reason-mapped daisyUI color (no free
@@ -82,9 +86,11 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   above) — this would be for surfacing specific items regardless of vote count, not sorting.
 
 ### People / Groups
-- No person detail/profile page exists — so there's no UI surface to assign a person to a Group
-  (the `Group`/`Person::groups()` data model already exists, just nothing hangs an admin action
-  off it yet).
+- No person detail/profile page exists. Needs to cover, at minimum:
+  - assigning a person to a Group (the `Group`/`Person::groups()` data model already exists,
+    just nothing hangs an admin action off it yet)
+  - updating one's own email/password
+  - avatar — upload, or fall back to Gravatar
   - blocks: Pin's Groups targeting from being usable end-to-end (see Checkpoint 1 above).
 
 ### Root install
