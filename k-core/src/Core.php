@@ -15,6 +15,7 @@ use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Card\Body;
+use Kopling\Core\Ux\Card\Control;
 use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
 use Kopling\Core\Ux\Community\Navigation;
@@ -100,6 +101,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Ext
 
         Top::defaults($ux);
         Footer::defaults($ux);
+        Control::defaults($ux);
         Body::defaults($ux);
         Navigation::defaults($ux);
         ThemeSwitcher::defaults($ux);
