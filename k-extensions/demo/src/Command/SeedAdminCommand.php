@@ -40,6 +40,13 @@ class SeedAdminCommand extends Command
         }
 
         foreach ($manager->permissions() as $permission) {
+            // A guest-only permission (Extend\Permission::$allowsGuests) is never meaningfully
+            // held by a real Group -- granting it here would be a nonsensical row even though
+            // the Gate closure already ignores it for a real Person (see ServiceProvider::boot()).
+            if ($permission->allowsGuests) {
+                continue;
+            }
+
             $group->givePermissionTo($permission->id);
         }
 

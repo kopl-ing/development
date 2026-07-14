@@ -3,6 +3,7 @@
 use Illuminate\Events\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Extension\RegistrationCache;
 use Tests\Support\FakeManifest;
 use Tests\TestCase;
 
@@ -59,5 +60,10 @@ expect()->extend('toBeOne', function () {
  */
 function fakeManager(array $extensions = []): Manager
 {
-    return new Manager(new FakeManifest($extensions), new Dispatcher());
+    // A path that never exists, so every aggregation always computes live from the fixtures --
+    // a fakeManager() test must never be able to see a real, previously-written registration
+    // cache from bootstrap/cache/kopling-registrations.php.
+    $cache = new RegistrationCache(sys_get_temp_dir().'/kopling-test-registrations-does-not-exist.php');
+
+    return new Manager(new FakeManifest($extensions), new Dispatcher(), $cache);
 }

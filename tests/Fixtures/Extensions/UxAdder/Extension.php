@@ -9,11 +9,12 @@ use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 
 /**
- * Declares two entries: "widget" (always visible, a target for UxReplacer to replace) and
- * "gadget" (gated behind a local permission, a target for UxRemover to remove). Both use plain
- * string component references (not a real Blade class) so these tests never need Blade/the
- * container booted -- `ComponentTag::resolve()` short-circuits for a string that isn't an
- * existing class.
+ * Declares three entries: "widget" (always visible, a target for UxReplacer to replace),
+ * "gadget" (gated behind a local permission, a target for UxRemover to remove), and "foreign"
+ * (gated behind another extension's already-qualified permission id, proving Manager doesn't
+ * re-prefix it -- see decisions.md, 2026-07-15). All three use plain string component
+ * references (not a real Blade class) so these tests never need Blade/the container booted --
+ * `ComponentTag::resolve()` short-circuits for a string that isn't an existing class.
  */
 class Extension extends AbstractExtension implements ChangesUx
 {
@@ -36,6 +37,10 @@ class Extension extends AbstractExtension implements ChangesUx
             ->add('fixture::gadget')
             ->in('fixture::slot')
             ->as('gadget')
-            ->when('view-gadget');
+            ->when('view-gadget')
+            ->add('fixture::foreign')
+            ->in('fixture::slot')
+            ->as('foreign')
+            ->when('kopling-core::guest');
     }
 }

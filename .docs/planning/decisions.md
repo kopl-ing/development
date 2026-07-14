@@ -1977,3 +1977,263 @@ getSubjectUrl()`, `Ux\Card\Content`/`card/content.blade.php`, `discussions/src/E
 whole-card-clickable modifier; would need the stretched-link pattern — an absolutely positioned
 `<a>` under the card's interactive children via `z-index`) was discussed and deliberately not
 built as part of this — only the title link was asked for.
+
+---
+
+## 2026-07-14 — Card `Control` becomes a real, slot-driven dropdown menu; new generic `Ux\Dropdown` primitive
+
+**Problem:** `Ux\Card\Control` (the card's "⋮" button) was purely presentational — no slot, no
+menu, "just the button a real menu will eventually hang off of" per its own docblock. The Pin
+extension (kicked off this session, see roadmap.md) needed somewhere real to put a "Pin" action.
+
+**Decision:** `Control` now owns its own slot, `Control::SLOT` ("kopling-core::card.control"),
+resolved via `SlotResolver` exactly like `Top`/`Footer` already do — an extension targets it
+with the same `Ux::add()`/`replace()`/`remove()`/`after()`/`before()`/`when()` calls it already
+knows from `kopling-core::side-navigation`. Wired into `Core::ux()` alongside `Top`/`Footer`'s
+own `defaults()` calls (empty, same reasoning `Footer::defaults()` already documents — no fake
+actions, a real one registers when it exists).
+
+A new generic primitive, `Kopling\Core\Ux\Dropdown` (`<x-k::dropdown>`, `k-core/src/Ux/
+Dropdown.php` + `views/ux/dropdown.blade.php`), supplies the actual trigger/menu markup —
+deliberately decoupled from `SlotResolver`/`UxEntry` (unlike `Control` itself): it takes a
+`trigger` named slot and a default slot for `<li>` content, so it's reusable by anything that
+wants a dropdown, slot-driven or not, rather than baking a second one-off Alpine/daisyUI
+implementation the way `k-extensions/reactions`' modal had to. `Control`'s own view wraps its
+resolved entries inside `<x-k::dropdown>`.
+
+Built on the HTML Popover API + CSS anchor positioning (daisyUI's own recommended dropdown
+syntax) rather than the older CSS-focus fallback — no JS, but no support in older Safari/
+Firefox either, where the menu simply won't open. Flagged in roadmap.md as a watch item, not
+resolved here.
+
+**Alternatives considered:** A standalone button next to `Control` for Pin specifically (no core
+change, matches how `reactions` adds its own footer entries) — explicitly rejected by Daniël:
+"we build to get to the right state of the software, doing a temporary workaround is never good
+enough" (see also the `feedback-build-right-not-workarounds` memory this prompted). Folding the
+menu's own markup directly into `Control` rather than a separate `Dropdown` primitive — rejected
+so the trigger/menu markup is reusable outside the card-control use case too.
+
+**Status:** Decided & implemented (`Ux\Dropdown`, `views/ux/dropdown.blade.php`, `Ux\Card\
+Control`, `views/card/control.blade.php`, `Core::ux()`, `CardControlTest` + `CardControlEntry`
+fixture). Not yet browser-verified by Daniël.
+
+---
+
+## 2026-07-14 — Admin settings framework: `HasAdminSettings`, `Ux\Form\*`, flat `settings` key/value store
+
+**Problem:** Drafting real functionality for extensions like `reactions` kept surfacing the same
+gap: extensions need a way to expose admin-editable configuration, and there was no mechanism
+for it at all — `kopling/admin`'s own Extension.php had carried a TODO since the load-order work
+(2026-07-12) sketching exactly this, deliberately left unbuilt until a real need showed up.
+
+**Decision:** A new `Extension\Contract\HasAdminSettings::adminSettings(): array<Ux\Form\Field>`
+contract — deliberately not named `HasSettings`/`settings()`, so a future per-person preferences
+contract can use that name without colliding (Daniël's explicit direction). `Field` (new value
+object, `Ux\Form\Field`) declares *what* a setting is (`id`, `label`, `description`, `default`,
+which `Ux\Form\*` component renders it) and nothing about persistence or placement — same split
+`StorageRequest` already established for storage drives: the extension asks, Admin (the
+extension that owns the concern) decides the backend. `$id` is prefixed by
+`Manager::adminSettings()` (a new aggregator, grouped by owning extension id like
+`storageDrivers()`) the same way `Permission`/`Portal`/`UxEntry` already are.
+
+Three presentational `Ux\Form\*` components ship for this first pass — `Toggle`, `Input`,
+`TextArea` (Select deliberately deferred until a real extension needs one). Rendered through the
+existing `UxEntry`-style `ComponentTag`/`<x-dynamic-component>` pipeline, not a second bespoke
+rendering path — `Field::$component` goes through `ComponentTag::resolve()` exactly like
+`UxEntry::$component` does.
+
+Persisted in a new flat `settings` table (`key` primary, `value` text) via `Kopling\Core\
+Settings\Settings::get()`/`set()` — a plain `DB::table()` helper, not an Eloquent model, the
+same choice `People\Group::hasPermission()`/`givePermissionTo()` already made for its own raw
+`group_permission` pivot (no relation/cast to earn an Eloquent model's keep). Named `Settings`
+(not `Setting`) specifically to avoid colliding with `Ux\Form\Field`-adjacent naming.
+
+One page-level form, one Save button (Daniël's explicit choice over per-field htmx autosave,
+weighing simplicity/no-race-conditions over reactions'-style responsiveness) —
+`Admin\Controllers\SettingsController::store()` only ever writes fields the request actually
+submitted.
+
+`kopling/admin` finally implements `InfluencesLoadOrder` → `[HasAdminSettings::class =>
+Directive::After]`, exactly what its own TODO called for, and gets its **first real
+`ExtendsPortals` attachment** (`routes/web.php`, gated behind a new, more granular
+`manage-settings` permission layered on top of the Portal's own `access-admin`) — until now
+`kopling-admin::admin` was the one Portal in this codebase with zero routes attached, a shape
+`RoutingTest.php`/`ManagerPortalTest.php` both explicitly asserted as "fine" (2026-07-12); both
+updated to reflect the new reality instead.
+
+**Surfaced gotcha (unrelated, worth remembering):** a Blade component property literally named
+`$data` is never auto-exposed to its own view the way any other public property is —
+`<x-dynamic-component>` reserves that name internally. Every existing card leaf
+(`Avatar`/`Author`/etc.) already worked around this by unpacking `$data` into named variables
+inside `render()`'s own `view(..., [...])` call rather than reading `$data[...]` straight from
+the Blade template; `Toggle`/`Input`/`TextArea` initially missed this and were fixed to match.
+
+**Also fixed in passing:** `reactions/views/components/rail.blade.php`'s own comment claiming
+"extension CSS can't be linked onto the page yet (no head-assets outlet)" was stale — that outlet
+was built and `reactions` already ships real CSS through it (`60c63f3`). Comment corrected;
+roadmap.md's matching (incorrect) blocked-on entries removed.
+
+**Alternatives considered:** Folding settings declaration into the existing `ChangesUx::ux()`
+method (targeting a `kopling-admin::settings` slot) instead of a dedicated contract — rejected,
+Daniël wanted a distinct, greppable capability (mirroring `permissions()`/`portals()`/`storage()`
+each being their own contract) rather than everything funneling through the generic Ux
+mechanism. Extensions returning already-instantiated `Ux\Form\*` component objects directly from
+`adminSettings()` instead of declarative `Field`s — considered, rejected: would need a second,
+non-`ComponentTag` rendering path, and `Field` still needs to exist anyway to attach `id`/
+`default` to something.
+
+**Status:** Decided & implemented (`Extension\Contract\HasAdminSettings`, `Ux\Form\Field`/
+`Toggle`/`Input`/`TextArea` + views, `Settings\Settings`, `create_settings_table` migration,
+`Manager::adminSettings()`, `kopling/admin`'s `Extension.php`/`routes/web.php`/
+`Controllers\SettingsController`/`views/settings/index.blade.php`, `ListExtensionRegistrations`
+updated to surface it too). Fields for real extensions (e.g. `reactions`) not yet declared — this
+session only built the framework. Not yet browser-verified by Daniël.
+
+---
+
+## 2026-07-14 — Admin's chrome (sidebar + rail) scaffolded via the existing generic `Portal\Slot`; `Community\Navigation` deliberately not made Portal-aware
+
+**Problem:** Admin's layout (`k-extensions/admin/views/layouts/admin.blade.php`) borrowed the
+placeholder slot name `kopling-core::side-navigation` for its sidebar, and had no "rail" region
+to mirror Community's. Daniël asked whether `Ux\Community\Navigation` — given how it already
+implements the "Home" nav item — should become Portal-aware, so one class could serve both
+Community and Admin.
+
+Investigating surfaced a real, already-live bug, not a hypothetical one: `UxEntry`/
+`SlotResolver`/`Manager::ux()` carry no concept of Portal scoping at all — a `UxEntry` is only
+ever tagged with a slot-name *string*. `k-extensions/example`'s illustrative "Hello" nav item and
+`kopling/admin`'s real "Settings" nav item both targeted the exact same slot string,
+`kopling-core::side-navigation` — isolation between Community's and Admin's chrome existed only
+because their layouts happened to render disjoint slot names, not because anything enforced it.
+
+**Decision:** Two separate calls, both against genericizing:
+
+1. **`Community\Navigation` stays exactly as it is — not made Portal-aware.** Every existing Ux
+   region component (`Card\Top`/`Footer`/`Control`, `Community\Navigation`/`Sidebar`/
+   `ThemeSwitcher`) is one class = one hardcoded `const SLOT` + a no-args static `defaults()`;
+   there is no precedent anywhere in this codebase for a region parameterized at runtime by which
+   Portal it belongs to. `Navigation`'s actual content is Community-specific top to bottom
+   anyway (its dual `menu`/`dock` surface rendering exists specifically for Community's mobile
+   bottom dock; `defaults()` hardcodes the Community "Home" route/icon) — none of it
+   generalizes to Admin.
+2. **No new `Admin\Navigation`/`Admin\Sidebar`/`Admin\Chrome` classes either.** `Community\Chrome`
+   exists because Community's chrome wraps content from multiple route entry points (feed,
+   discussions' show page, ...) outside the `Portal::layout` mechanism. Admin has exactly one
+   entry point today and it already *is* `Portal::layout` via classic `@extends`/`@yield` —
+   building a parallel `Chrome` class now would mean converting Admin's layout mechanism for no
+   current benefit.
+
+Instead: Admin's layout now uses the already-fully-generic `Kopling\Core\Ux\Portal\Slot`
+directly for both regions, under its own portal-owned slot names — `kopling-admin::admin.
+navigation` (renamed from the placeholder `kopling-core::side-navigation`) and a new
+`kopling-admin::admin.rail` (starts empty, same as Community's rail before `widgets` existed —
+somewhere for a future admin-facing widget extension to land). `Community\Chrome` itself already
+uses this same primitive, unclassed, for its own rail (`kopling-core::community.rail`) — no
+dedicated `Rail` class exists there either, so this isn't a new pattern, just applying an
+existing one. `example`'s illustrative registration was retargeted to
+`kopling-core::community.navigation`, the slot it actually belongs to (its route and
+`extendsPortals()` target are both Community's) — it was never correctly Admin's to begin with.
+
+**Deferred, not built:** real structural Portal-scoping (a `UxEntry` actually carrying/validating
+a Portal id) would touch the `Ux` fluent builder every extension's `ux()` method uses — a
+materially larger change than this leak, which had exactly one forcing example, needed. Logged
+in roadmap.md ("Ux / extensibility") for whenever a second forcing example shows up.
+
+**Alternatives considered:** Making `Navigation`'s slot name a computed string
+(`"{$portal->id}::navigation"`) instead of a literal constant — rejected, breaks the "an
+extension can import/reference a stable `SLOT` constant" property every other region relies on,
+and only "fixes" the exact one collision already fixed more cheaply by picking distinct names.
+
+**Status:** Decided & implemented (`k-extensions/admin/views/layouts/admin.blade.php`,
+`k-extensions/admin/src/Extension.php`, `k-extensions/example/src/Extension.php`, docblock
+accuracy pass on `SlotResolver`/`UxEntry`/`Card\Top`/`Card\Control` swapping the now-dead
+`kopling-core::side-navigation` example for the still-real `kopling-core::community.navigation`).
+Not yet browser-verified by Daniël.
+
+---
+
+## 2026-07-14 — `Authorization\Permission` split: the declarative value object moved to `Extend`, the name freed for a real Eloquent model over `group_permission`
+
+**Problem:** `Kopling\Core\People\Group::hasPermission()`/`givePermissionTo()`/
+`revokePermissionTo()` ran raw `DB::table('group_permission')` queries by hand, the only place
+in `People\*` still doing that (`Person::hasPermission()` also does, but wasn't in scope here —
+its query joins `group_permission` *and* `group_person`, a different shape). Meanwhile
+`Kopling\Core\Authorization\Permission` already existed, but as the *declarative* value object
+(`id`/`label`/`description`/`default`/`callback`) an extension's `HasPermissions::permissions()`
+returns — not a model, and not what its own namespace ("Authorization") suggested it might be.
+
+**Decision:** Two moves, not one:
+
+1. The existing declarative value object moved to `Kopling\Core\Extend\Permission` — the same
+   namespace `Extend\Model`/`Extend\Ux` already occupy for "what an extension declares," which is
+   exactly what this class is and always was. No behavior change, pure rename; every `use
+   Kopling\Core\Authorization\Permission;` (`Core.php`, `Manager.php`, `HasPermissions.php`,
+   `admin`/`discussions`/`example`'s `Extension.php`, `PermissionDeclarer` test fixture) and two
+   prose docblock mentions (`Portal.php`, `Person.php`) updated to match.
+2. `Kopling\Core\Authorization\Permission` now names something new: a real Eloquent model over
+   `group_permission` — one row = one Group's grant of one permission id. `Group` gets a real
+   `permissions(): HasMany` relation; `hasPermission()`/`givePermissionTo()`/
+   `revokePermissionTo()` now read/write through it instead of `DB::table()`.
+
+`group_permission` has a composite primary key (`group_id`, `permission`), no auto-incrementing
+`id` — handled by `public $incrementing = false` on the model. Never an issue in practice: a
+grant is only ever queried/created/deleted by its actual columns through the relation, never
+fetched or saved by a single id.
+
+**What this model is *not*:** a catalog of every permission that exists. A permission's own
+definition (label/description/default/callback) still lives entirely in code, computed fresh on
+every request by `Manager::permissions()` — the migration's own comment on this already explains
+why no separate `permissions` table exists, and that remains true. `Authorization\Permission`
+only replaces the raw-SQL grant-row queries; it never gained a `label`/`description` of its own.
+
+**Trade-off accepted:** `givePermissionTo()` changed from `DB::table(...)->insertOrIgnore(...)`
+(atomic, DB-level conflict-ignore) to `$this->permissions()->firstOrCreate([...])`
+(check-then-create, a narrow race window under concurrent identical grants). Accepted as a minor
+theoretical regression — permission grants are low-frequency, typically admin-initiated writes,
+not a hot concurrent path — in exchange for a real Eloquent relation instead of hand-rolled SQL.
+
+**Status:** Decided & implemented (`Extend\Permission`, `Authorization\Permission`,
+`People\Group::permissions()`/`hasPermission()`/`givePermissionTo()`/`revokePermissionTo()`, all
+`use` updates listed above). `Person::hasPermission()`'s own raw `DB::table()` join across both
+pivots was explicitly left alone — out of scope for this pass, noted here in case it's picked up
+later. Verified: full test suite (52 passing, including `GateWiringTest`'s existing
+grant/check coverage) and a live run of `kopling:demo:seed-admin` against the real dev DB.
+
+---
+
+## 2026-07-15 — Dropped closures from UxEntry/Permission; added `Guest`; flatfile cache for Manager's aggregations
+
+**Closures gone:** `UxEntry::$condition` and `Extend\Permission::$callback` no longer accept a
+`\Closure` — permission ids (strings) only, so entries stay plain, cacheable data. Broke 2 real
+usages (composer's "signed-in only", auth-email-password's guest-only login/register links) —
+composer's moved into its own view (`@auth`); auth-links now use a new `kopling-core::guest`
+permission.
+
+**`Guest extends Person`** (never persisted, `hasPermission()` hard-`false`) substitutes for
+`null` in the Gate closure. `Permission::$allowsGuests` grants a permission to Guest specifically,
+independent of `$default` (which is unchanged — still means "everyone," guest included).
+
+**New flatfile cache** (`RegistrationCache`, `bootstrap/cache/kopling-registrations.php`,
+separate from `Manifest`'s `kopling-extensions.php`) for `Manager::permissions()/portals()/
+portalExtensions()/storageDrivers()/ux()/themes()/adminSettings()/commands()` — all deterministic
+given the extension set, all now check the cache before computing live. Each value object
+(`Permission`, `Portal`, `PortalExtension`, `StorageRequest`, `UxEntry`, `Ux\Form\Field`) got
+`toArray()`/`fromArray()`. Explicit-only for now (`kopling:extensions:cache`), no automatic
+trigger — editing an extension's `ux()` isn't a Composer operation, so an automatic hook (unlike
+`Manifest`'s) would silently go stale during dev. `models()` stays uncached (side-effecting, not
+a pure aggregation). Verified: full suite passing both with and without the cache file present,
+plus a manual round-trip (build → Gate checks → routes → registrations command all correct
+reading from cache).
+
+**Regression fix, same day:** `Manager::applyUxAdd()` always re-prefixed `$entry->condition`,
+which broke `auth-email-password`'s new `->when('kopling-core::guest')` (became
+`kopling-auth-email-password::kopling-core::guest`, denied login/register links entirely). Fixed
+to skip prefixing when `$condition` already contains `::` — same "already fully-qualified"
+convention `$after`/`$before`/`PortalExtension::$portal` use. Covered by a new test
+(`ManagerUxTest`, `UxAdder` fixture's `foreign` entry).
+
+**Second regression, same day:** `kopling:demo:seed-admin`'s "grant every permission" loop also
+granted `kopling-core::guest` to the admin's real Group, so the admin was seen as a guest too
+(login/register links kept showing). Fixed at both ends: `allowsGuests` permissions now made
+exclusive in the Gate closure (a real Person's Group grant is ignored for them, not just unlikely
+to happen), and the seed script skips granting them at all.

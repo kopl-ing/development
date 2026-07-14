@@ -99,8 +99,15 @@ class ServiceProvider extends Provider
                     return true;
                 }
 
-                return $person->hasPermission($permission->id)
-                    || ($person instanceof Guest && $permission->allowsGuests);
+                // A guest-only permission is never meaningfully "held" by a real Group grant --
+                // it's a signed-out check, not a capability -- so a real Person never reaches
+                // hasPermission() for it, even if something accidentally granted it to one of
+                // their Groups (e.g. a blanket "grant every permission" seed script).
+                if ($permission->allowsGuests) {
+                    return $person instanceof Guest;
+                }
+
+                return $person->hasPermission($permission->id);
             });
         }
     }

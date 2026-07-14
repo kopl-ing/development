@@ -16,6 +16,15 @@ it('adds an entry with its id -- and a string condition -- prefixed by the ownin
         ->toBe('tests-fixtures-ux-adder::view-gadget');
 });
 
+it('never re-prefixes a condition that already references another extension\'s qualified permission id', function () use ($adder) {
+    $manager = fakeManager(['tests-fixtures/ux-adder' => $adder]);
+
+    $entries = $manager->ux()->keyBy('id');
+
+    expect($entries->get('tests-fixtures-ux-adder::foreign')->condition)
+        ->toBe('kopling-core::guest');
+});
+
 it('lets a later-processed extension replace an earlier one\'s component/data in place, keeping its position', function () use ($adder, $replacer) {
     $manager = fakeManager([
         'tests-fixtures/ux-adder' => $adder,

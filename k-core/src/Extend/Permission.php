@@ -12,10 +12,12 @@ namespace Kopling\Core\Extend;
  * so an author never has to think about collisions with another extension's names.
  *
  * `$default`, when true, grants this permission to literally everyone -- guest included, no
- * Group grant needed. `$allowsGuests` is a separate, narrower flag: it only ever matters when
- * `$default` is *not* set, granting the permission to a guest specifically, with no blanket
- * grant to anyone else (e.g. a "sign in" link that should show only when signed out). The two
- * don't compose into a third meaning -- `$default` already covers "everyone" on its own.
+ * Group grant needed. `$allowsGuests` is a separate, narrower flag, and exclusive rather than
+ * additive: when set, this permission checks *only* whether the current visitor is a guest --
+ * a real Person can never hold it via a Group grant, even if one somehow got created (e.g. a
+ * blanket "grant every permission" seed script) -- see `ServiceProvider::boot()`'s Gate closure.
+ * Meant for UI that should show only when signed out (a "sign in" link, say); `$default`
+ * already covers "granted to everyone" on its own, so the two never need to combine.
  *
  * Lives in `Extend`, not `Authorization`, alongside `Extend\Model`/`Extend\Ux` -- it's what an
  * extension's `HasPermissions::permissions()` declares, the same kind of thing those are, not a
