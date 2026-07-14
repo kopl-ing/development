@@ -44,7 +44,7 @@ class SeedFakeDataCommand extends Command
 
     protected function personOrNew(): Person
     {
-        if (Person::query()->exists() && fake()->boolean(40)) {
+        if (Person::query()->count() > 5 && fake()->boolean(40)) {
             return Person::query()->inRandomOrder()->first();
         }
 
