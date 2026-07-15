@@ -13,6 +13,7 @@ use Kopling\Admin\Controllers\SettingsController;
 Route::middleware('can:kopling-admin::manage-settings')->group(function () {
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');
     Route::post('settings', [SettingsController::class, 'store'])->name('settings.store');
+    Route::post('settings/{id}/toggle', [SettingsController::class, 'toggle'])->name('settings.toggle');
 });
 
 // The bare Portal path ("/admin") itself has no page of its own yet -- settings is the only

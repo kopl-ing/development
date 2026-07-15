@@ -12,6 +12,7 @@ use Kopling\Core\Core;
 use Kopling\Core\Database\Model as DatabaseModel;
 use Kopling\Core\Extend\Model as ExtendModel;
 use Kopling\Core\Extend\Permission;
+use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
@@ -25,6 +26,7 @@ use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Extension\LoadOrder\Resolver;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Settings\EnabledExtensions;
 use Kopling\Core\Storage\StorageRequest;
 use Kopling\Core\Ux\Form\Field;
 use Kopling\Core\Ux\Theme\Token;
@@ -34,11 +36,6 @@ use Kopling\Core\Ux\UxEntry;
 class Manager
 {
     protected ?Collection $models = null;
-
-    /**
-     * @var array<string, AbstractExtension>|null
-     */
-    protected ?array $extensions = null;
 
     public function __construct(
         protected Manifest $manifest,
@@ -57,35 +54,53 @@ class Manager
      * `LoadOrder\Resolver` -- Composer's own `installed.json` order carries no meaning beyond
      * being the alphabetical tie-break base `Resolver::resolve()` sorts from.
      *
-     * TODO: every discovered extension is treated as enabled, unconditionally -- there is no
-     * "disabled" state at all yet, for any extension. Fine while every installed extension is
-     * something you deliberately chose to `composer require` (true today), a real gap once
-     * enabling/disabling an installed extension without uninstalling it is expected to exist
-     * (an admin toggle). `CannotBeDisabled` (Contract/CannotBeDisabled.php) already guards
-     * that future toggle -- the toggle itself isn't built, and this method is where its
-     * filtering would go once it is.
+     * `$includeDisabled` picks which of two results this returns: `false` (the default, and
+     * what every other aggregator in this class -- `permissions()`, `ux()`, `portals()`,
+     * `models()`, `listeners()`, `adminSettings()`, `commands()` -- and `ServiceProvider::boot()`
+     * call with no argument) filters out anything `EnabledExtensions::isEnabled()` says is
+     * disabled, except `CannotBeDisabled` implementors, which are exempt. `true` is the raw,
+     * unfiltered view -- for the admin extensions-list page and `ListExtensionRegistrations`,
+     * which both need to show disabled extensions too, not just active ones. Filtering after
+     * `Resolver::resolve()` is safe: `Resolver::edges()` already treats a missing package as
+     * "not installed" and degrades gracefully, same rule dangling `Ux::after()`/
+     * `PortalExtension` references already follow.
+     *
+     * Memoized via `once()` (`spatie/once`) rather than a hand-rolled nullable property --
+     * `once()` folds the enclosing call's own argument values into its cache key (not just
+     * file+line), so `extensions(false)` and `extensions(true)` memoize independently from one
+     * `once()` call site, scoped to this `Manager` instance the same way `models()`'s own
+     * "cached on the instance, `Manager` is a singleton" reasoning already works.
      *
      * @return array<string, AbstractExtension>
      */
-    public function extensions(): array
+    public function extensions(bool $includeDisabled = false): array
     {
-        if ($this->extensions !== null) {
-            return $this->extensions;
-        }
+        return \once(function () use ($includeDisabled) {
+            $discovered = ['kopling/core' => new Core()];
 
-        $discovered = ['kopling/core' => new Core()];
+            foreach ($this->manifest->extensions() as $package => $extension) {
+                $class = $extension['namespace'].'Extension';
 
-        foreach ($this->manifest->extensions() as $package => $extension) {
-            $class = $extension['namespace'].'Extension';
+                if (! class_exists($class) || ! is_subclass_of($class, AbstractExtension::class)) {
+                    continue;
+                }
 
-            if (! class_exists($class) || ! is_subclass_of($class, AbstractExtension::class)) {
-                continue;
+                $discovered[$package] = new $class();
             }
 
-            $discovered[$package] = new $class();
-        }
+            $resolved = Resolver::resolve($discovered);
 
-        return $this->extensions = Resolver::resolve($discovered);
+            if ($includeDisabled) {
+                return $resolved;
+            }
+
+            return array_filter(
+                $resolved,
+                fn (AbstractExtension $extension, string $package) => $extension instanceof CannotBeDisabled
+                    || EnabledExtensions::isEnabled($this->id($package)),
+                ARRAY_FILTER_USE_BOTH,
+            );
+        });
     }
 
     /**
@@ -363,12 +378,15 @@ class Manager
     }
 
     /**
-     * Flat, key-addressable registry of every css/js file any `PortalExtension` declared, keyed
-     * by a stable hash of its own already-validated absolute path rather than anything derived
-     * from a request -- `Http\Controllers\ExtensionAssetController` looks a request's `key` up
-     * against this map and serves exactly the matched path, so a request can never walk this
-     * into an arbitrary filesystem read the way a raw `{package}/{path}`-shaped route parameter
-     * would invite.
+     * Flat, key-addressable registry of every css/js file any `PortalExtension` declared, plus
+     * every installed extension's own `icon/lg.png`/`icon/sm.png` (see `extend.html`'s icon
+     * convention) if present -- keyed by a stable hash of its own already-validated absolute
+     * path rather than anything derived from a request -- `Http\Controllers\
+     * ExtensionAssetController` looks a request's `key` up against this map and serves exactly
+     * the matched path, so a request can never walk this into an arbitrary filesystem read the
+     * way a raw `{package}/{path}`-shaped route parameter would invite. Icons are collected from
+     * `extensions(includeDisabled: true)` -- unlike css/js, a disabled extension's icon still
+     * needs to render (greyed out) on the admin extensions-list page.
      *
      * @return Collection<string, array{path: string, mime: string}>
      */
@@ -390,6 +408,24 @@ class Manager
             }
         }
 
+        foreach (array_keys($this->extensions(includeDisabled: true)) as $package) {
+            $root = $this->path($package);
+
+            if ($root === null) {
+                continue;
+            }
+
+            foreach (['lg', 'sm'] as $size) {
+                $path = $root.'/icon/'.$size.'.png';
+
+                if (! is_file($path)) {
+                    continue;
+                }
+
+                $assets[static::assetKey($path)] = ['path' => $path, 'mime' => 'image/png'];
+            }
+        }
+
         return collect($assets);
     }
 
@@ -405,6 +441,24 @@ class Manager
         }
 
         return route('kopling-core::assets', ['key' => static::assetKey($path)]);
+    }
+
+    /**
+     * The URL an extension's `icon/{$size}.png` should be rendered from, or null if it didn't
+     * ship one at that size -- only `lg` is required per `extend.html`'s icon convention, `sm`
+     * is optional. Mirrors `assetUrl()`, sharing the same key/serving mechanism.
+     */
+    public function iconUrl(string $package, string $size = 'lg'): ?string
+    {
+        $root = $this->path($package);
+
+        if ($root === null) {
+            return null;
+        }
+
+        $path = $root.'/icon/'.$size.'.png';
+
+        return is_file($path) ? static::assetUrl($path) : null;
     }
 
     protected static function assetKey(string $path): string

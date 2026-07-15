@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Extension\RegistrationCache;
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
+use Kopling\Core\Settings\EnabledExtensions;
 use Kopling\Core\Settings\Settings;
 
 /*
@@ -69,4 +71,45 @@ it('persists a submitted value, keyed by the field\'s already-prefixed id', func
         ->assertRedirect('/admin/settings');
 
     expect(Settings::get('tests-fixtures-admin-settings-declarer::enabled'))->toBe('0');
+});
+
+it('flips a normal extension\'s enabled state and clears the registration cache', function () {
+    swapAdminSettings();
+    app(RegistrationCache::class)->write(['permissions' => []]);
+
+    $response = $this->actingAs(personWithManageSettings())
+        ->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+
+    $response->assertOk();
+
+    expect(EnabledExtensions::isEnabled('tests-fixtures-admin-settings-declarer'))->toBeFalse()
+        ->and(app(RegistrationCache::class)->has())->toBeFalse();
+});
+
+it('toggles a disabled extension back to enabled on a second call', function () {
+    swapAdminSettings();
+
+    $this->actingAs(personWithManageSettings())->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+    expect(EnabledExtensions::isEnabled('tests-fixtures-admin-settings-declarer'))->toBeFalse();
+
+    $this->actingAs(personWithManageSettings())->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+    expect(EnabledExtensions::isEnabled('tests-fixtures-admin-settings-declarer'))->toBeTrue();
+});
+
+it('refuses to toggle a CannotBeDisabled extension, server-side, regardless of the UI', function () {
+    swapAdminSettings();
+
+    $this->actingAs(personWithManageSettings())
+        ->post('/admin/settings/kopling-admin/toggle')
+        ->assertForbidden();
+
+    expect(EnabledExtensions::isEnabled('kopling-admin'))->toBeTrue();
+});
+
+it('404s toggling an id that does not match any installed extension', function () {
+    swapAdminSettings();
+
+    $this->actingAs(personWithManageSettings())
+        ->post('/admin/settings/not-a-real-extension/toggle')
+        ->assertNotFound();
 });

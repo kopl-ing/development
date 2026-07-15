@@ -8,9 +8,16 @@
             "email": "daniel@klabbers.email"
         }
     ],
+    "funding": [
+        {
+            "type": "opencollective",
+            "url": "https://opencollective.com/kopling"
+        }
+    ],
     "require": {
         "php": ">= 8.4",
-        "laravel/framework": "13.*"
+        "laravel/framework": "13.*",
+        "spatie/once": "^3.0"
     },
     "autoload": {
         "psr-4": {

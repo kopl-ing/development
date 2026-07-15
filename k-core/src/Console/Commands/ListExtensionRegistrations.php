@@ -15,6 +15,7 @@ use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Settings\EnabledExtensions;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
@@ -41,7 +42,7 @@ class ListExtensionRegistrations extends Command
             return self::FAILURE;
         }
 
-        $extension = $manager->extensions()[$package];
+        $extension = $manager->extensions(includeDisabled: true)[$package];
         $id = $manager->id($package);
 
         $this->components->info(sprintf('%s (%s)', $extension::name(), $id));
@@ -50,6 +51,7 @@ class ListExtensionRegistrations extends Command
 
         $this->components->twoColumnDetail('Implements', $this->contracts($extension) ?: '<fg=gray>none</>');
         $this->components->twoColumnDetail('Cannot be disabled', $extension instanceof CannotBeDisabled ? 'yes' : 'no');
+        $this->components->twoColumnDetail('Enabled', $extension instanceof CannotBeDisabled || EnabledExtensions::isEnabled($id) ? 'yes' : 'no');
         $this->newLine();
 
         $this->conventions($manager, $package, $id);
@@ -66,7 +68,7 @@ class ListExtensionRegistrations extends Command
 
     protected function resolvePackage(Manager $manager, string $needle): ?string
     {
-        foreach (array_keys($manager->extensions()) as $package) {
+        foreach (array_keys($manager->extensions(includeDisabled: true)) as $package) {
             if ($needle === $package
                 || $needle === $manager->id($package)
                 || $needle === basename(str_replace('\\', '/', $package))
@@ -206,7 +208,7 @@ class ListExtensionRegistrations extends Command
     {
         $this->components->info('Portal attachments (ExtendsPortals)');
 
-        $extension = $manager->extensions()[$package];
+        $extension = $manager->extensions(includeDisabled: true)[$package];
 
         if (! $extension instanceof ExtendsPortals) {
             $this->line('  <fg=gray>none</>');
