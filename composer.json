@@ -14,6 +14,12 @@
             "email": "daniel@klabbers.email"
         }
     ],
+    "funding": [
+        {
+            "type": "opencollective",
+            "url": "https://opencollective.com/kopling"
+        }
+    ],
     "require": {
         "kopling/admin": "@dev",
         "kopling/auth-email-password": "@dev",
@@ -55,6 +61,13 @@
             "@php -r \"is_dir('database') || mkdir('database', 0755, true); file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
             "@php artisan package:discover --ansi",
             "@php artisan kopling:extensions:discover --ansi"
+        ],
+        "demo": [
+            "@php artisan kopling:demo:seed-admin --ansi",
+            "@php artisan kopling:demo:seed-fake-data --ansi",
+            "@php artisan kopling:reactions:seed-demo --ansi",
+            "@php artisan kopling:discussions:seed-demo --ansi",
+            "@php artisan kopling:tags:seed-demo --ansi"
         ]
     },
     "minimum-stability": "stable",
