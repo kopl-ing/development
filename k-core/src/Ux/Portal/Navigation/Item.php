@@ -12,10 +12,9 @@ use Illuminate\View\Component;
  * count, custom markup) ships its own component instead and registers that FQCN with
  * Ux::add() -- this one is a convenience, not a requirement.
  *
- * `$data['icon']`, when given, is raw inline `<svg>` markup (echoed unescaped) -- matching every
- * other icon already in this codebase (theme-switcher, card controls, reply-dock, thread-title),
- * none of which use an icon font/class. Trusted, author-declared config, not user input, so
- * unescaped output is safe the same way any other `$data` value here is.
+ * `$data['icon']`, when given, is a semantic icon id declared via `HasIcons::icons()` (e.g.
+ * "kopling-core::home"), rendered through `<x-k::icon>` -- see `Kopling\Core\Ux\Icon` for how
+ * that resolves to a concrete icon (the active pack's own, or its Font Awesome default).
  *
  * `$surface` ('menu' or 'dock') isn't part of `$data` -- `$data` is static, author-declared
  * config the registering extension controls, but which markup shape an entry renders as is a

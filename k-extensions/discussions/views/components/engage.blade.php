@@ -11,7 +11,7 @@
 @endphp
 @if ($moment)
     <a href="{{ $context->getSubjectUrl() }}" class="btn btn-sm btn-ghost gap-1">
-        <span aria-hidden="true">💬</span>
+        <x-k::icon name="kopling-discussions::comment" class="w-4 h-4" />
         {{ trans_choice('kopling-discussions::messages.replies', $count, ['count' => $count]) }}
     </a>
 @endif

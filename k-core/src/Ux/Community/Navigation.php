@@ -59,20 +59,9 @@ class Navigation extends Component
         $ux->add(Item::class, [
             'label' => __('kopling-core::community.home'),
             'route' => 'kopling-core::community/community',
-            'icon' => self::HOME_ICON,
+            'icon' => 'kopling-core::home',
         ])
             ->in(self::SLOT)
             ->as('home');
     }
-
-    /**
-     * Same inline-svg style as every other icon in this codebase (see `Item`'s own docblock) --
-     * a plain house glyph, 24x24 viewBox, stroke-only.
-     */
-    private const HOME_ICON = <<<'SVG'
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 10.5 12 3l9 7.5"/>
-            <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>
-        </svg>
-        SVG;
 }

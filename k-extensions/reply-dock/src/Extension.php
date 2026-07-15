@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Kopling\ReplyDock;
 
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Portal\PortalExtension;
 
 /**
@@ -19,7 +21,7 @@ use Kopling\Core\Portal\PortalExtension;
  * Community pages by extendsPortals()) so there's one reply surface, not two. Inline Alpine
  * morph + htmx — no bundled JS.
  */
-class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasIcons
 {
     public static function name(): string
     {
@@ -37,6 +39,18 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
             ->add('kopling-reply-dock::dock')
             ->in('kopling-core::community.composer')
             ->as('reply-dock');
+    }
+
+    /**
+     * @return array<Icon>
+     */
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'follow', label: 'Follow', default: 'fas-user-plus'),
+            new Icon(id: 'report', label: 'Report', default: 'fas-flag'),
+            new Icon(id: 'reply', label: 'Reply', default: 'fas-reply'),
+        ];
     }
 
     /**

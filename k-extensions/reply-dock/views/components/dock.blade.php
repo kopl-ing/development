@@ -127,15 +127,15 @@
 
                 <div class="kop-dock__tools">
                     <button type="button" class="kop-dock__tool" :class="following && 'is-on'" @click="following = !following">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+                        <x-k::icon name="kopling-reply-dock::follow" width="14" height="14" />
                         <span class="kop-dock__tool-lbl" x-text="following ? @js(__('kopling-reply-dock::messages.following')) : @js(__('kopling-reply-dock::messages.follow'))"></span>
                     </button>
                     <button type="button" class="kop-dock__tool">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                        <x-k::icon name="kopling-reply-dock::report" width="14" height="14" />
                         <span class="kop-dock__tool-lbl">{{ __('kopling-reply-dock::messages.report') }}</span>
                     </button>
                     <button type="button" class="kop-dock__reply" @click="openComposer()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17l-5-5 5-5"/><path d="M4 12h11a4 4 0 0 1 4 4v2"/></svg>
+                        <x-k::icon name="kopling-reply-dock::reply" width="14" height="14" />
                         {{ __('kopling-reply-dock::messages.reply') }}
                     </button>
                 </div>

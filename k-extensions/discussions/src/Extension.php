@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Discussions;
 
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Relation;
@@ -14,11 +15,12 @@ use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasPermissions, ExtendsModels, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasIcons, HasPermissions, ExtendsModels, ExtendsPortals
 {
     public static function name(): string
     {
@@ -48,6 +50,16 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->in('kopling-core::card.footer')
             ->as('engage')
             ->after('kopling-reactions::words');
+    }
+
+    /**
+     * @return array<Icon>
+     */
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'comment', label: 'Comment', default: 'fas-comment'),
+        ];
     }
 
     /**

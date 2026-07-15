@@ -17,6 +17,7 @@
     "require": {
         "php": ">= 8.4",
         "laravel/framework": "13.*",
+        "owenvoke/blade-fontawesome": "^3.0",
         "spatie/once": "^3.0"
     },
     "autoload": {

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Kopling\ThreadTitle;
 
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Portal\PortalExtension;
 
 /**
@@ -18,7 +20,7 @@ use Kopling\Core\Portal\PortalExtension;
  * Inline Alpine scroll handler; styling ships as css/app.css (the overlay can't be expressed in
  * the utility classes core's compiled build happens to include).
  */
-class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasIcons
 {
     public static function name(): string
     {
@@ -36,6 +38,16 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
             ->add('kopling-thread-title::sticky')
             ->in('kopling-core::community.topbar')
             ->as('thread-title');
+    }
+
+    /**
+     * @return array<Icon>
+     */
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'thread', label: 'Thread', default: 'fas-comment'),
+        ];
     }
 
     /**

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Kopling\Core;
 
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
@@ -29,7 +31,7 @@ use Kopling\Core\Ux\Community\ThemeSwitcher;
  * as a special case; writing local ids here and letting `Manager` prefix them the same way it
  * prefixes any extension's removes that asymmetry -- one declaration mechanism, not two.
  */
-class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, ExtendsPortals, HasPermissions, HasPortals
+class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, ExtendsPortals, HasIcons, HasPermissions, HasPortals
 {
     public static function name(): string
     {
@@ -68,6 +70,18 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Ext
                 description: 'Granted only to a signed-out visitor -- for UI that should show only when signed out (e.g. sign-in links).',
                 allowsGuests: true,
             ),
+        ];
+    }
+
+    /**
+     * @return array<Icon>
+     */
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'home', label: 'Home', default: 'fas-house'),
+            new Icon(id: 'theme-switch', label: 'Theme switch', default: 'fas-palette'),
+            new Icon(id: 'post-actions', label: 'Post actions', default: 'fas-ellipsis-vertical'),
         ];
     }
 

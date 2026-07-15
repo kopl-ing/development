@@ -7,10 +7,12 @@ namespace Kopling\Core\Console\Commands;
 use Illuminate\Console\Command;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
+use Kopling\Core\Extension\Contract\ChangesIcons;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasAdminSettings;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
@@ -61,6 +63,7 @@ class ListExtensionRegistrations extends Command
         $this->storage($manager, $id);
         $this->ux($manager, $id);
         $this->theme($manager, $id);
+        $this->icons($manager, $id);
         $this->adminSettings($manager, $id);
 
         return self::SUCCESS;
@@ -91,6 +94,8 @@ class ListExtensionRegistrations extends Command
             CannotBeDisabled::class => 'CannotBeDisabled',
             ChangesTheme::class => 'ChangesTheme',
             HasAdminSettings::class => 'HasAdminSettings',
+            HasIcons::class => 'HasIcons',
+            ChangesIcons::class => 'ChangesIcons',
         ];
 
         $implemented = array_intersect_key($known, class_implements($extension));
@@ -337,6 +342,29 @@ class ListExtensionRegistrations extends Command
 
         foreach ($tokens as $token => $value) {
             $this->components->twoColumnDetail($token, $value);
+        }
+
+        $this->newLine();
+    }
+
+    protected function icons(Manager $manager, string $id): void
+    {
+        $this->components->info('Icons (HasIcons)');
+
+        $icons = $manager->icons()->filter(
+            fn ($icon) => str_starts_with($icon->id, $id.'::')
+        );
+
+        if ($icons->isEmpty()) {
+            $this->line('  <fg=gray>none</>');
+            $this->newLine();
+
+            return;
+        }
+
+        foreach ($icons as $icon) {
+            $this->components->twoColumnDetail($icon->id, "{$icon->label}, default: {$icon->default}");
+            $this->line("    <fg=gray><x-k::icon name=\"{$icon->id}\" /></>");
         }
 
         $this->newLine();

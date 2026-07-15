@@ -2288,3 +2288,60 @@ just applied one level more granularly than usual. `Resolver::edges()` now check
 `example/Extension.php`, `tests/Fixtures/Extensions/LoadOrder/{AfterOnlyExtension,
 BeforeOnlyExtension}.php`, `LoadOrderResolverTest`, `extending-patterns.md` Section 11,
 `kopling-landing/public/extend.html`). Verified: full test suite.
+
+---
+
+## 2026-07-15 — Icon extensibility: Blade Icons + a semantic `HasIcons`/`ChangesIcons` layer, Font Awesome as the baseline
+
+Replaces 100% hand-authored inline `<svg>` markup (Item/Navigation/ThemeSwitcher/Card\Control/
+reply-dock/thread-title) with `blade-ui-kit/blade-icons` (`owenvoke/blade-fontawesome` as the one
+bundled pack — MIT code license, CC BY 4.0 icons, free tier only, no Pro/npm). Chosen over
+letting extensions reference pack-prefixed component tags (`<x-fas-home/>`) directly: Blade
+Icons has no "active pack" concept of its own — a component tag is permanently bound to one
+installed set — so referencing packs directly would make swapping the site's icon pack mean
+editing every extension by hand, repeating Flarum's own well-known icon-extensibility problem.
+
+Mirrors the existing `Permission`/`ChangesTheme` shape rather than inventing a new one:
+`HasIcons::icons()` declares a semantic id + a mandatory Font Awesome default (`Extend\Icon`,
+prefixed by `Manager` the same as `Permission::$id`); `ChangesIcons::iconMap()` (an icon-pack
+extension) maps already-declared ids to its own icon names, tolerantly — an unrecognized/
+uninstalled id is left alone, same convention `Ux::after()`/`before()` already use, not validated
+against a fixed enum the way `ChangesTheme` validates against `Theme\Token` (icon names are open
+and extension-owned, unlike the small closed set of themeable CSS custom properties). Render-time
+resolution (`Kopling\Core\Ux\Icon`, `<x-k::icon name="...">`) renders through the `svg()` helper,
+never `<x-dynamic-component>` — confirmed against `BladeUI\Icons\Factory`'s own source that its
+fallback chain only runs inside `svg()`/`@svg`, not through a pre-resolved component tag, which
+would throw Laravel's own "component not found" error on a miss instead of degrading.
+
+No admin picker UI yet (deliberately deferred — needs a `Select` `Ux\Form\*` field type, currently
+only `Input`/`TextArea`/`Toggle` exist). `Icon` already reads the final, prefixed Settings key
+(`kopling-core::icon-pack`) a future picker would write, so wiring that up needs no change here.
+Every icon renders via its Font Awesome default until then.
+
+**Status:** Decided & implemented (`Extend\Icon`, `Extension\Contract\{HasIcons,ChangesIcons}`,
+`Manager::{icons,iconPackChoices,iconPackMappings}`, `Ux\Icon`, `views/ux/icon.blade.php`,
+`Core::icons()`, `reply-dock`/`thread-title` extensions' own `icons()`, `CacheRegistrations`,
+`ListExtensionRegistrations`, `ManagerIconTest`, `Feature/Ux/IconTest`). Verified: full test
+suite (writing `ManagerIconTest` surfaced the pre-existing `Settings::get()` bug fixed below).
+
+---
+
+## 2026-07-15 — `Settings::get()` catches `\RuntimeException`, not just `\PDOException`
+
+`Manager::extensions()`'s default (`includeDisabled: false`) path calls
+`EnabledExtensions::isEnabled()` → `Settings::get()` → `DB::table()` on every call, including
+from `fakeManager()`-based bare Unit tests that deliberately boot no Laravel app at all. There,
+`DB::table()` fails before ever reaching a PDO call, with the facade base's own `\RuntimeException`
+("A facade root has not been set") — not caught by the existing `\PDOException`-only guard, so
+every such Unit test across `ManagerPermissionTest`/`ManagerPortalTest`/`ManagerStorageTest`/
+`ManagerThemeTest`/the new `ManagerIconTest` failed (13 of the suite's failures, all one bug,
+found while adding icon tests above).
+
+`\PDOException` is already a `\RuntimeException`, so widening the catch to `\RuntimeException`
+covers both cases with the one change, no new exception type invented. `EnabledExtensions::all()`
+degrades to its own already-documented `null` ("nothing has ever been toggled" — everything
+enabled), the correct behavior for a context with no settings table to read at all.
+
+**Status:** Decided & implemented (`Settings::get()`). Verified: full test suite — fixed 16 of
+17 failures the icon work's own tests had surfaced; one unrelated, pre-existing
+`SettingsControllerTest` seeding failure remains, out of scope here.

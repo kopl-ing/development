@@ -1,7 +1,7 @@
 @if ($surface === 'dock')
     <a href="{{ route($route) }}">
         @if ($icon)
-            {!! $icon !!}
+            <x-k::icon :name="$icon" />
         @endif
         <span class="dock-label">{{ $label }}</span>
     </a>
@@ -9,7 +9,7 @@
     <li>
         <a href="{{ route($route) }}">
             @if ($icon)
-                {!! $icon !!}
+                <x-k::icon :name="$icon" />
             @endif
             {{ $label }}
         </a>

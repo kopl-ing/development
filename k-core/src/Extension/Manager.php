@@ -10,15 +10,18 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Support\Collection;
 use Kopling\Core\Core;
 use Kopling\Core\Database\Model as DatabaseModel;
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Model as ExtendModel;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
+use Kopling\Core\Extension\Contract\ChangesIcons;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasAdminSettings;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\ListensToEvents;
@@ -648,6 +651,91 @@ class Manager
         }
 
         return $choices;
+    }
+
+    /**
+     * Every icon declared by every extension (Core included), with `Icon::$id` already
+     * prefixed with the owning extension's `id()` -- an author writes just the local part
+     * ("home"), never the prefix, same collision-safety rule as `permissions()`. Keyed by that
+     * same fully-qualified id (like `portals()`), so `Ux\Icon` can resolve a reference straight
+     * to its declared `Icon` (and its Font Awesome `$default`) with a single `get()`.
+     *
+     * @return Collection<string, Icon>
+     */
+    public function icons(): Collection
+    {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['icons'])->map(fn (array $data) => Icon::fromArray($data))->keyBy('id');
+        }
+
+        $icons = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof HasIcons) {
+                continue;
+            }
+
+            $prefix = $this->id($package).'::';
+            $declared = collect($extension->icons())->ensure(Icon::class);
+
+            foreach ($declared as $icon) {
+                $icon->id = $prefix.$icon->id;
+
+                $icons[$icon->id] = $icon;
+            }
+        }
+
+        return collect($icons)->keyBy('id');
+    }
+
+    /**
+     * Every installed icon pack as `[id => label]`, the same shape `themeChoices()` gives the
+     * theme switcher -- id the same key `iconPackMappings()` uses, label the extension's own
+     * `name()`.
+     *
+     * @return array<string, string>
+     */
+    public function iconPackChoices(): array
+    {
+        $choices = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if ($extension instanceof ChangesIcons) {
+                $choices[$this->id($package)] = $extension::name();
+            }
+        }
+
+        return $choices;
+    }
+
+    /**
+     * Every icon pack's own `Icon::$id => its own icon name` map, keyed by the owning
+     * extension's id -- the `ChangesIcons` counterpart to `icons()`'s declarations. Unlike
+     * `themes()`, never validated against a fixed catalog here: a mapped id that isn't (or
+     * isn't yet) a real declared `Icon` is left for `Ux\Icon` to silently fall back past at
+     * render time, the same tolerant handling `ux()`'s `after`/`before` already give a dangling
+     * reference -- an icon pack should be free to map every id it knows about regardless of
+     * which of them are actually installed on a given site.
+     *
+     * @return Collection<string, array<string, string>>
+     */
+    public function iconPackMappings(): Collection
+    {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['iconPackMappings']);
+        }
+
+        $mappings = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if (! $extension instanceof ChangesIcons) {
+                continue;
+            }
+
+            $mappings[$this->id($package)] = $extension->iconMap();
+        }
+
+        return collect($mappings);
     }
 
     /**

@@ -19,6 +19,15 @@ use Illuminate\Support\Facades\DB;
  * TODO: values round-trip as raw strings -- callers `json_encode()`/`json_decode()` by hand at
  * each call site (see `EnabledExtensions`). A typed casting layer (mirroring `Extend\Model::
  * cast()`) is deferred, not designed yet.
+ *
+ * `get()` catches `\RuntimeException`, not just `\PDOException` (a `\RuntimeException` itself,
+ * same broad "couldn't reach the table" tolerance) -- `EnabledExtensions::isEnabled()` reads
+ * through here on every `Manager::extensions()` call (the default, `includeDisabled: false`
+ * path), including from `fakeManager()`-based bare Unit tests that deliberately boot no Laravel
+ * app at all (see its own docblock): `DB::table()` there fails before ever reaching a PDO call,
+ * with the facade base's own "A facade root has not been set" `\RuntimeException`. A `Manager`
+ * aggregator should be exercisable standalone regardless of whether a real container exists,
+ * exactly like every other one already is.
  */
 class Settings
 {
@@ -26,7 +35,7 @@ class Settings
     {
         try {
             $value = DB::table('settings')->where('key', $key)->value('value');
-        } catch (\PDOException $e) {
+        } catch (\RuntimeException $e) {
             return $default;
         }
 
