@@ -44,7 +44,7 @@ Quick-reference table — every mechanism, in the order this document covers the
 | `RequestsStorageDriver` | contract | declare a file-storage need | `example` (illustrative only) |
 | `HasCommands` | contract | register an artisan command | `reactions`, `tags`, `discussions` |
 | `ListensToEvents` | contract | react to a core event | `auth-email-password` |
-| `HasLoadOrder` | contract | pin your own load order relative to named packages | `example` (illustrative only) |
+| `LoadsAfter`/`LoadsBefore` | contract | pin your own load order relative to named packages | `example` (illustrative only) |
 | `InfluencesLoadOrder` | contract | require load order for anything implementing a contract you own | none shipped yet |
 | `CannotBeDisabled` | marker contract | refuse a future "disable this extension" toggle | `Core`, `admin` |
 
@@ -67,9 +67,9 @@ migrations/views/lang.
 ## 3. Model extensions — `ExtendsModels`
 
 Lets your extension add an Eloquent relation (Laravel's term for a method like `hasMany()` /
-`belongsTo()` that returns related rows) or a cast (how a raw database column value is
-turned into a PHP type) onto a **core** model — like `Moment` — without ever touching core's
-own model class.
+`belongsTo()` that returns related rows), a cast (how a raw database column value is
+turned into a PHP type), or a creating/saving hook onto a **core** model — like `Moment` or
+`Reply` — without ever touching that model's own class.
 
 ```php
 use Kopling\Core\Extend\Model;
@@ -81,6 +81,9 @@ public function models(): array
     return [
         (new Model(Moment::class))
             ->relation((new Relation)->hasMany('reactions', Reaction::class)->eagerLoad()),
+        (new Model(Reply::class))
+            ->creating(fn (Reply $reply) => $reply->ip = request()->ip())
+            ->saving(fn (Reply $reply) => $reply->body = TemplateHooks::render($reply->body)),
     ];
 }
 ```
@@ -90,8 +93,22 @@ instead of firing one query per card when it's read — the difference between o
 one-per-row on a page with many cards. It accepts `true`, `false`, or a callable if the
 decision depends on the current portal/request/actor.
 
+`->creating()` / `->saving()` register straight onto the target model's own native Eloquent
+`creating`/`saving` events. `creating` fires once, on insert only — the right fit for setting a
+value only relevant at creation, like an IP. `saving` fires on both insert and update — the
+right fit for sanitizing/transforming content, since it should also apply if the row is later
+edited. Both need no base-class change on the target model — unlike `cast()` above, they work on
+any Eloquent model. The closure gets the model instance as its only argument (Eloquent's own
+fixed shape for these events, not the `bool|callable(Portal, Request, Person)` shape
+`linksTo()`/`eagerLoad()` use); return `false` from a `creating()` closure to cancel the insert
+outright. Each is a single slot, not an accumulating list — one declaration needs at most one
+`creating` and one `saving` hook — but two extensions targeting the same model each get their
+own declaration, and both fire, in load order, since Eloquent supports multiple listeners per
+event natively.
+
 Two extensions can both add relations to the same model; they combine. A relation-name clash
-is last-registered-wins; core's own casts always win over an extension's.
+is last-registered-wins; core's own casts always win over an extension's; `creating`/`saving`
+hooks never collide, since every extension's hook for the same model/event fires.
 
 See it in: `k-extensions/reactions/src/Extension.php:48`, `k-extensions/tags/src/Extension.php:63`.
 
@@ -332,20 +349,21 @@ public function listen(): array
 
 See it in: `k-extensions/auth-email-password/src/Extension.php`.
 
-## 11. Load order — `HasLoadOrder` and `InfluencesLoadOrder`
+## 11. Load order — `LoadsAfter`/`LoadsBefore` and `InfluencesLoadOrder`
 
 By default, extensions load in alphabetical-by-package order (deterministic, but otherwise
 meaningless). Two ways to change that when order actually matters — e.g. you need another
 extension's Portal to already be registered before you attach to it:
 
-**`HasLoadOrder`** — self-declared, by package name. The explicit escape hatch: always wins
-over anything `InfluencesLoadOrder` infers for the same pair.
+**`LoadsAfter`/`LoadsBefore`** — self-declared, by package name. The explicit escape hatch:
+always wins over anything `InfluencesLoadOrder` infers for the same pair. Two separate
+single-method interfaces, not one — implement only the direction you actually need (the common
+case is just one), instead of being forced to declare a no-op for the other:
 
 ```php
-use Kopling\Core\Extension\LoadOrder\HasLoadOrder;
+use Kopling\Core\Extension\LoadOrder\LoadsAfter;
 
-public function loadAfter(): array  { return ['kopling/admin']; }
-public function loadBefore(): array { return []; }
+public function loadAfter(): array { return ['kopling/admin']; }
 ```
 
 A reference to a package that isn't installed is ignored, never an error.
@@ -364,7 +382,7 @@ public function loadOrderRules(): array
 }
 ```
 
-See it in: `k-extensions/example/src/Extension.php:129` (`HasLoadOrder`, illustrative).
+See it in: `k-extensions/example/src/Extension.php:129` (`LoadsAfter`, illustrative).
 `InfluencesLoadOrder` has no shipped implementor yet — `kopling/admin` is the intended first,
 once a `HasSettings`-style contract exists worth requiring order against.
 
@@ -395,12 +413,12 @@ collide, because they end up as `kopling-example::manage-things` and
 `acme-other::manage-things`.
 
 References that point at *someone else's* fully-qualified id — `Ux::after()`/`before()`,
-`Ux::replace()`/`remove()`'s target, `PortalExtension`'s target Portal, `HasLoadOrder`'s
-package names — are written out in full by the author and never auto-prefixed, since they're
-foreign references, not something you own the naming of. Every one of these degrades
-gracefully: pointing at something that doesn't exist (extension not installed, typo, removed)
-is a silent no-op, never an error. This is deliberate — it's what lets extensions compose
-without needing to know whether each other is installed.
+`Ux::replace()`/`remove()`'s target, `PortalExtension`'s target Portal, `LoadsAfter`/
+`LoadsBefore`'s package names — are written out in full by the author and never auto-prefixed,
+since they're foreign references, not something you own the naming of. Every one of these
+degrades gracefully: pointing at something that doesn't exist (extension not installed, typo,
+removed) is a silent no-op, never an error. This is deliberate — it's what lets extensions
+compose without needing to know whether each other is installed.
 
 ## 14. How it's actually wired up (for the curious)
 

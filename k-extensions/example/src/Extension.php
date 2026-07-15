@@ -11,7 +11,7 @@ use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
-use Kopling\Core\Extension\LoadOrder\HasLoadOrder;
+use Kopling\Core\Extension\LoadOrder\LoadsAfter;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Storage\StorageAccess;
 use Kopling\Core\Storage\StoragePermission;
@@ -25,7 +25,7 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
  * sibling directories (views/, css/, js/, migrations/, routes/, lang/, icon/) and
  * CLAUDE.md ("Extension conventions") for what each one does.
  */
-class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, HasLoadOrder, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, LoadsAfter, ExtendsPortals
 {
     public static function name(): string
     {
@@ -129,13 +129,5 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     public function loadAfter(): array
     {
         return ['kopling/admin'];
-    }
-
-    /**
-     * @return array<string>
-     */
-    public function loadBefore(): array
-    {
-        return [];
     }
 }

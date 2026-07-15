@@ -2237,3 +2237,54 @@ granted `kopling-core::guest` to the admin's real Group, so the admin was seen a
 (login/register links kept showing). Fixed at both ends: `allowsGuests` permissions now made
 exclusive in the Gate closure (a real Person's Group grant is ignored for them, not just unlikely
 to happen), and the seed script skips granting them at all.
+
+---
+
+## 2026-07-15 — `Extend\Model::creating()`/`saving()`: model lifecycle hooks for extensions
+
+Added two nullable-`Closure` properties (`creating`, `saving`) to `Extend\Model`, applied by
+`Manager::models()` via the target model's own native Eloquent `Model::creating()`/`saving()` —
+lets an extension inject a column value at creation (e.g. stamping an `ip` onto `Reply`) or
+transform/sanitize an attribute on every save (e.g. expanding template hooks in a posted body),
+without the target extension's model knowing about it.
+
+Reused the existing `ExtendsModels`/`Extend\Model` contract rather than adding a new one — same
+"declare something about a target model, `Manager` wires it up" shape already used for
+relations/casts. Chosen over the casts mechanism's own approach (`Database\Model::$extendedCasts`,
+a static registry that only takes effect if the model extends `Kopling\Core\Database\Model` —
+which no shipped model actually does) because Eloquent's `creating`/`saving` statics work on any
+Eloquent model with zero base-class opt-in, the same reach `resolveRelationUsing()` already has.
+
+Single nullable slot per declaration (`?Closure`, matching `$link`'s shape), not an accumulating
+array — avoids forcing a declaration that only needs one of the two hooks to pass an unused
+empty value for the other, a boilerplate pattern already visible in `HasLoadOrder::loadAfter()`/
+`loadBefore()`. Multiple extensions targeting the same model each get their own declaration and
+their own hook, and both fire in load order — Eloquent supports multiple listeners per event
+natively, so there's no collision rule to write, unlike relation-name/cast-key clashes.
+
+**Status:** Decided & implemented (`k-core/src/Extend/Model.php`, `Manager::models()`,
+`tests/Fixtures/Extensions/ModelHooker/*`, `tests/Feature/Extension/ModelHookingTest.php`,
+`extending-patterns.md` Section 3). Verified: full test suite.
+
+---
+
+## 2026-07-15 — `HasLoadOrder` split into `LoadsAfter`/`LoadsBefore`
+
+Supersedes the `HasLoadOrder` half of the 2026-07-12 "Extension load order" decision above.
+`HasLoadOrder::loadAfter()`/`loadBefore()` was the only contract in the codebase requiring two
+methods, forcing an implementor who only cared about one direction to still declare a no-op for
+the other (`k-extensions/example/src/Extension.php` carried a dead `loadBefore(): array {
+return []; }` for exactly this reason). Audited every other contract in `Extension/Contract/`
+and `Extension/LoadOrder/` for the same problem — none had more than one method, so this was an
+isolated case, not a pattern needing a broader fix.
+
+Split into two single-method interfaces, `LoadsAfter`/`LoadsBefore`, each independently
+opt-in — same "implement zero, one, or many" principle every other contract already follows,
+just applied one level more granularly than usual. `Resolver::edges()` now checks each
+`instanceof` separately instead of gating both loops behind one combined check.
+`example/Extension.php`'s dead `loadBefore()` is gone; it now implements only `LoadsAfter`.
+
+**Status:** Decided & implemented (`LoadsAfter`, `LoadsBefore`, `Resolver::edges()`,
+`example/Extension.php`, `tests/Fixtures/Extensions/LoadOrder/{AfterOnlyExtension,
+BeforeOnlyExtension}.php`, `LoadOrderResolverTest`, `extending-patterns.md` Section 11,
+`kopling-landing/public/extend.html`). Verified: full test suite.
