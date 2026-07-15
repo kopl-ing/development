@@ -87,8 +87,19 @@ it('css() renders only the active theme\'s tokens, never every installed theme m
 
     $css = Theme::css();
 
-    expect($css)->toBe(':root[data-theme="kopling"]{--color-primary:#111111;}')
+    expect($css)->toBe(':root[data-theme="kopling"]{color-scheme:light;--color-primary:#111111;}')
         ->and($css)->not->toContain('#222222');
+});
+
+it('css() reflects the active theme\'s color scheme, never the inactive theme\'s', function () use ($themeA, $themeB) {
+    swapThemes([
+        'tests-fixtures/theme-a' => $themeA,
+        'tests-fixtures/theme-b' => $themeB,
+    ]);
+
+    request()->cookies->set(Theme::COOKIE, 'tests-fixtures-theme-b');
+
+    expect(Theme::css())->toBe(':root[data-theme="kopling"]{color-scheme:dark;--color-primary:#222222;}');
 });
 
 it('css() lets a ThemeToken row override the active theme\'s value for that token', function () use ($themeA) {
@@ -96,7 +107,7 @@ it('css() lets a ThemeToken row override the active theme\'s value for that toke
 
     ThemeToken::create(['token' => '--color-primary', 'value' => '#333333']);
 
-    expect(Theme::css())->toBe(':root[data-theme="kopling"]{--color-primary:#333333;}');
+    expect(Theme::css())->toBe(':root[data-theme="kopling"]{color-scheme:light;--color-primary:#333333;}');
 });
 
 it('css() lets a ThemeToken row add a token the active theme never declared', function () use ($themeA) {
@@ -105,7 +116,7 @@ it('css() lets a ThemeToken row add a token the active theme never declared', fu
     ThemeToken::create(['token' => '--color-accent', 'value' => '#abcdef']);
 
     expect(Theme::css())->toBe(
-        ':root[data-theme="kopling"]{--color-primary:#111111;--color-accent:#abcdef;}'
+        ':root[data-theme="kopling"]{color-scheme:light;--color-primary:#111111;--color-accent:#abcdef;}'
     );
 });
 
@@ -114,7 +125,7 @@ it('css() silently skips a ThemeToken row whose key is not a real Token', functi
 
     ThemeToken::create(['token' => '--not-a-real-token', 'value' => '#abcdef']);
 
-    expect(Theme::css())->toBe(':root[data-theme="kopling"]{--color-primary:#111111;}');
+    expect(Theme::css())->toBe(':root[data-theme="kopling"]{color-scheme:light;--color-primary:#111111;}');
 });
 
 it('css() silently skips a ThemeToken row whose value does not match its Token\'s expected shape', function () use ($themeA) {
@@ -122,5 +133,5 @@ it('css() silently skips a ThemeToken row whose value does not match its Token\'
 
     ThemeToken::create(['token' => '--color-accent', 'value' => 'not-a-hex-color']);
 
-    expect(Theme::css())->toBe(':root[data-theme="kopling"]{--color-primary:#111111;}');
+    expect(Theme::css())->toBe(':root[data-theme="kopling"]{color-scheme:light;--color-primary:#111111;}');
 });

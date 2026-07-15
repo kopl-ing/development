@@ -6,6 +6,7 @@ namespace Kopling\ThemeDelft;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesTheme;
+use Kopling\Core\Ux\Theme\ColorScheme;
 use Kopling\Core\Ux\Theme\Token;
 
 /**
@@ -51,5 +52,10 @@ class Extension extends AbstractExtension implements ChangesTheme
             Token::RadiusBox->value => '1rem',
             Token::RadiusField->value => '0.5rem',
         ];
+    }
+
+    public function colorScheme(): ColorScheme
+    {
+        return ColorScheme::Light;
     }
 }

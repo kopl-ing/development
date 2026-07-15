@@ -9,7 +9,12 @@
         <div class="flex-1 flex">
             <div class="flex-1">
                 <header class="navbar bg-base-100 border-b border-base-300">
-                    <span class="text-lg font-semibold px-4">{{ $portal->label }}</span>
+                    <div class="flex-1">
+                        <span class="text-lg font-semibold px-4">{{ $portal->label }}</span>
+                    </div>
+                    <div class="flex-none gap-2 px-4">
+                        <x-k::portal.slot name="kopling-admin::admin.topbar" />
+                    </div>
                 </header>
                 <main class="p-6">
                     @yield('content')

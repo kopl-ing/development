@@ -6,12 +6,14 @@ namespace Tests\Fixtures\Extensions\ThemeB;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesTheme;
+use Kopling\Core\Ux\Theme\ColorScheme;
 use Kopling\Core\Ux\Theme\Token;
 
 /**
  * Paired with ThemeA for testing Kopling\Core\Ux\Theme's active-theme selection/rendering.
  * Deliberately overrides the same token ThemeA does (ColorPrimary), with a different value, so
  * a test can prove only the active theme's value ever appears -- never both merged together.
+ * Also declares a different colorScheme() than ThemeA, for the same reason.
  */
 class Extension extends AbstractExtension implements ChangesTheme
 {
@@ -30,5 +32,10 @@ class Extension extends AbstractExtension implements ChangesTheme
         return [
             Token::ColorPrimary->value => '#222222',
         ];
+    }
+
+    public function colorScheme(): ColorScheme
+    {
+        return ColorScheme::Dark;
     }
 }

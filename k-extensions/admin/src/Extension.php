@@ -17,6 +17,7 @@ use Kopling\Core\Extension\LoadOrder\Directive;
 use Kopling\Core\Extension\LoadOrder\InfluencesLoadOrder;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Link;
 use Kopling\Core\Ux\Portal\Navigation\Item;
 
 /**
@@ -97,7 +98,22 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
             ])
             ->in('kopling-admin::admin.navigation')
             ->as('settings')
-            ->when('manage-settings');
+            ->when('manage-settings')
+            ->add(Link::class, [
+                'label' => __('kopling-admin::messages.admin_panel'),
+                'route' => 'kopling-admin::admin/index',
+                'variant' => 'ghost',
+            ])
+            ->in('kopling-core::community.topbar')
+            ->as('admin-link')
+            ->when('access-admin')
+            ->add(Link::class, [
+                'label' => __('kopling-admin::messages.community'),
+                'route' => 'kopling-core::community/community',
+                'variant' => 'ghost',
+            ])
+            ->in('kopling-admin::admin.topbar')
+            ->as('community-link');
     }
 
     /**

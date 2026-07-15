@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Core\Ux;
 
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Ux\Theme\ColorScheme;
 use Kopling\Core\Ux\Theme\ThemeToken;
 use Kopling\Core\Ux\Theme\Token;
 
@@ -76,8 +77,9 @@ class Theme
     public static function css(): string
     {
         $tokens = static::resolve();
+        $scheme = static::activeColorScheme();
 
-        if ($tokens === []) {
+        if ($tokens === [] && $scheme === null) {
             return '';
         }
 
@@ -85,7 +87,28 @@ class Theme
             ->map(fn (string $value, string $token) => "{$token}:{$value};")
             ->implode('');
 
+        if ($scheme !== null) {
+            $declarations = "color-scheme:{$scheme->value};".$declarations;
+        }
+
         return ':root[data-theme="kopling"]{'.$declarations.'}';
+    }
+
+    /**
+     * The active theme's native color scheme -- null only when no theme extension is
+     * installed, same as `active()`. Drives the `color-scheme` declaration `css()` emits so
+     * native form controls/scrollbars match a dark theme's palette instead of always
+     * rendering with the compiled default's light chrome.
+     */
+    protected static function activeColorScheme(): ?ColorScheme
+    {
+        $active = static::active();
+
+        if ($active === null) {
+            return null;
+        }
+
+        return app(Manager::class)->themeColorSchemes()->get($active);
     }
 
     /**

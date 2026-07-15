@@ -6,15 +6,15 @@ namespace Kopling\ThemeMidnight;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesTheme;
+use Kopling\Core\Ux\Theme\ColorScheme;
 use Kopling\Core\Ux\Theme\Token;
 
 /**
  * A dark theme for Kopling, shipped as an ordinary extension -- the first real proof that a
  * theme is just a `ChangesTheme` implementor like any other capability, not a special-cased
- * "installed theme" concept. Only overrides the color tokens, deliberately: Midnight is a
- * color-scheme change, not a shape change, so it leaves both radius tokens alone and lets
- * them keep coming from the compiled "kopling" default -- proving the override is genuinely
- * sparse, not an all-or-nothing full theme replacement.
+ * "installed theme" concept. Only overrides the color tokens, deliberately: Midnight leaves
+ * both radius tokens alone and lets them keep coming from the compiled "kopling" default --
+ * proving the override is genuinely sparse, not an all-or-nothing full theme replacement.
  */
 class Extension extends AbstractExtension implements ChangesTheme
 {
@@ -47,5 +47,10 @@ class Extension extends AbstractExtension implements ChangesTheme
             Token::ColorNeutral->value => '#0f172a',
             Token::ColorNeutralContent->value => '#cbd5e1',
         ];
+    }
+
+    public function colorScheme(): ColorScheme
+    {
+        return ColorScheme::Dark;
     }
 }

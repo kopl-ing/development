@@ -29,6 +29,7 @@ use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Settings\EnabledExtensions;
 use Kopling\Core\Storage\StorageRequest;
 use Kopling\Core\Ux\Form\Field;
+use Kopling\Core\Ux\Theme\ColorScheme;
 use Kopling\Core\Ux\Theme\Token;
 use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
@@ -557,10 +558,8 @@ class Manager
      * immediately: a `ChangesTheme` implementor's own bug, not a foreign reference that might
      * legitimately not exist yet (contrast with `ux()`'s `after`/`before`).
      *
-     * No selection between multiple installed themes exists yet -- every declared theme's
-     * tokens simply get merged together, in `extensions()` order, last write wins on overlap.
-     * Fine while at most one theme extension is ever installed; genuinely picking one active
-     * theme among several is a real, not-yet-solved problem once a second one exists.
+     * Each theme's tokens are kept separate here, not merged -- picking one active theme among
+     * several installed ones is `Theme::active()`/`Theme::resolve()`'s job, not this method's.
      *
      * @return Collection<string, array<string, string>>
      */
@@ -599,6 +598,34 @@ class Manager
         }
 
         return collect($themes);
+    }
+
+    /**
+     * Every installed theme's `colorScheme()`, keyed by the same id `themes()` uses -- kept as
+     * its own collector for the same reason `themeChoices()` is: no reason to pay for token
+     * validation just to read the one enum value `Theme::css()` needs to decide native form-
+     * control/scrollbar chrome. No validation branch needed here the way `themes()` has one for
+     * token values -- `ColorScheme` being a backed enum makes an invalid value unrepresentable.
+     *
+     * @return Collection<string, ColorScheme>
+     */
+    public function themeColorSchemes(): Collection
+    {
+        if (($cached = $this->cache->get()) !== null) {
+            return collect($cached['themeColorSchemes'])->map(
+                fn (string $scheme) => ColorScheme::from($scheme)
+            );
+        }
+
+        $schemes = [];
+
+        foreach ($this->extensions() as $package => $extension) {
+            if ($extension instanceof ChangesTheme) {
+                $schemes[$this->id($package)] = $extension->colorScheme();
+            }
+        }
+
+        return collect($schemes);
     }
 
     /**

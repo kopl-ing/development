@@ -105,6 +105,13 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
     alongside the slot name) is a larger change touching every extension's `ux()` method and
     isn't designed yet.
 
+### Theming
+- No high-contrast support. `ChangesTheme::colorScheme()` (added 2026-07-15) only covers the CSS
+  `color-scheme` property (`light`/`dark`, native form-control/scrollbar chrome) for `theme-delft`/
+  `theme-midnight`. `prefers-contrast: more` / boosted-contrast token variants are a separate,
+  unaddressed axis — not something `ColorScheme` should grow into, since the CSS spec has no
+  "high-contrast" color-scheme value.
+
 ### Root install
 - `k-core`'s layout calls `@vite()` unconditionally — throws for anyone installing `kopling/core`
   standalone outside this monorepo (no `public/build/manifest.json` there). Needs a fallback to

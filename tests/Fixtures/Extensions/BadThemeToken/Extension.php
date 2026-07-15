@@ -6,6 +6,7 @@ namespace Tests\Fixtures\Extensions\BadThemeToken;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesTheme;
+use Kopling\Core\Ux\Theme\ColorScheme;
 
 class Extension extends AbstractExtension implements ChangesTheme
 {
@@ -24,5 +25,10 @@ class Extension extends AbstractExtension implements ChangesTheme
         return [
             '--not-a-real-token' => '#ff0000',
         ];
+    }
+
+    public function colorScheme(): ColorScheme
+    {
+        return ColorScheme::Light;
     }
 }

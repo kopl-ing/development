@@ -37,6 +37,7 @@ class CacheRegistrations extends Command
                 ->all(),
             'ux' => $manager->ux()->map(fn ($entry) => $entry->toArray())->all(),
             'themes' => $manager->themes()->all(),
+            'themeColorSchemes' => $manager->themeColorSchemes()->map(fn ($scheme) => $scheme->value)->all(),
             'adminSettings' => $manager->adminSettings()
                 ->map(fn (array $fields) => array_map(fn ($field) => $field->toArray(), $fields))
                 ->all(),

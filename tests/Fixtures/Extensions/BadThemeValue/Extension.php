@@ -6,6 +6,7 @@ namespace Tests\Fixtures\Extensions\BadThemeValue;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesTheme;
+use Kopling\Core\Ux\Theme\ColorScheme;
 use Kopling\Core\Ux\Theme\Token;
 
 class Extension extends AbstractExtension implements ChangesTheme
@@ -25,5 +26,10 @@ class Extension extends AbstractExtension implements ChangesTheme
         return [
             Token::ColorAccent->value => 'not-a-hex-color',
         ];
+    }
+
+    public function colorScheme(): ColorScheme
+    {
+        return ColorScheme::Light;
     }
 }

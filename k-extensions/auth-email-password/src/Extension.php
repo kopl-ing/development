@@ -12,6 +12,7 @@ use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ListensToEvents;
+use Kopling\Core\Ux\Link;
 
 class Extension extends AbstractExtension implements ChangesUx, ListensToEvents
 {
@@ -34,7 +35,7 @@ class Extension extends AbstractExtension implements ChangesUx, ListensToEvents
             ->add(RegistrationForm::class)
             ->in('kopling-core::auth.registration-form')
             ->as('registration-form')
-            ->add(AuthLink::class, [
+            ->add(Link::class, [
                 'label' => __('kopling-core::auth.log_in'),
                 'route' => 'kopling-core::community/login',
                 'variant' => 'ghost',
@@ -42,7 +43,7 @@ class Extension extends AbstractExtension implements ChangesUx, ListensToEvents
             ->in('kopling-core::community.topbar')
             ->as('login-link')
             ->when('kopling-core::guest')
-            ->add(AuthLink::class, [
+            ->add(Link::class, [
                 'label' => __('kopling-core::auth.register'),
                 'route' => 'kopling-core::community/register',
                 'variant' => 'primary',
