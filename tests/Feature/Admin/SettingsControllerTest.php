@@ -88,11 +88,12 @@ it('flips a normal extension\'s enabled state and clears the registration cache'
 
 it('toggles a disabled extension back to enabled on a second call', function () {
     swapAdminSettings();
+    $person = personWithManageSettings();
 
-    $this->actingAs(personWithManageSettings())->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+    $this->actingAs($person)->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
     expect(EnabledExtensions::isEnabled('tests-fixtures-admin-settings-declarer'))->toBeFalse();
 
-    $this->actingAs(personWithManageSettings())->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+    $this->actingAs($person)->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
     expect(EnabledExtensions::isEnabled('tests-fixtures-admin-settings-declarer'))->toBeTrue();
 });
 

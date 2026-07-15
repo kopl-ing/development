@@ -99,6 +99,20 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
             ->in('kopling-admin::admin.navigation')
             ->as('settings')
             ->when('manage-settings')
+            ->add(Item::class, [
+                'label' => __('kopling-admin::messages.people'),
+                'route' => 'kopling-admin::admin/people',
+            ])
+            ->in('kopling-admin::admin.navigation')
+            ->as('people')
+            ->when('kopling-core::manage-people')
+            ->add(Item::class, [
+                'label' => __('kopling-admin::messages.groups'),
+                'route' => 'kopling-admin::admin/groups',
+            ])
+            ->in('kopling-admin::admin.navigation')
+            ->as('groups')
+            ->when('kopling-core::manage-people')
             ->add(Link::class, [
                 'label' => __('kopling-admin::messages.admin_panel'),
                 'route' => 'kopling-admin::admin/index',

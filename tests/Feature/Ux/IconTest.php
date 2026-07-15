@@ -27,7 +27,7 @@ it('renders a declared icon\'s Font Awesome default when no icon pack is active'
 
     $html = (string) $this->blade('<x-k::icon name="tests-fixtures-icon-declarer::widget" />');
 
-    expect(trim($html))->toBe(svg('fas-cube')->toHtml());
+    expect(trim($html))->toBe(svg('fas-cube', '', ['width' => '1em', 'height' => '1em'])->toHtml());
 });
 
 it('renders the active icon pack\'s own icon when it maps the requested id', function () {
@@ -46,7 +46,23 @@ it('renders the active icon pack\'s own icon when it maps the requested id', fun
 
     $html = (string) $this->blade('<x-k::icon name="tests-fixtures-icon-declarer::widget" />');
 
-    expect(trim($html))->toBe(svg('fas-square')->toHtml());
+    expect(trim($html))->toBe(svg('fas-square', '', ['width' => '1em', 'height' => '1em'])->toHtml());
+});
+
+it('defaults to a 1em x 1em size when no width/height is passed, but an explicit one still wins', function () {
+    swapIcons([
+        'tests-fixtures/icon-declarer' => [
+            'namespace' => 'Tests\\Fixtures\\Extensions\\IconDeclarer\\',
+            'path' => __DIR__.'/../../Fixtures/Extensions/IconDeclarer',
+        ],
+    ]);
+
+    $default = (string) $this->blade('<x-k::icon name="tests-fixtures-icon-declarer::widget" />');
+    $explicit = (string) $this->blade('<x-k::icon name="tests-fixtures-icon-declarer::widget" width="24" height="24" />');
+
+    expect(trim($default))->toContain('width="1em" height="1em"')
+        ->and(trim($explicit))->toContain('width="24" height="24"')
+        ->and(trim($explicit))->not->toContain('1em');
 });
 
 it('throws for a name nothing ever declared via HasIcons', function () {

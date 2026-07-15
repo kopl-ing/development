@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Kopling\Admin\Controllers\GroupsController;
+use Kopling\Admin\Controllers\PeopleController;
 use Kopling\Admin\Controllers\SettingsController;
 
 // Required inside the Admin portal's own Route::group() (see Extension::extendsPortals()), so
@@ -14,6 +16,19 @@ Route::middleware('can:kopling-admin::manage-settings')->group(function () {
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');
     Route::post('settings', [SettingsController::class, 'store'])->name('settings.store');
     Route::post('settings/{id}/toggle', [SettingsController::class, 'toggle'])->name('settings.toggle');
+});
+
+// "manage-people" belongs to Core (declared in Core::permissions()), not Admin -- referenced
+// cross-extension here, so it stays fully qualified ("kopling-core::manage-people"), unlike
+// Admin's own local permissions above which the Manager already prefixes for us.
+Route::middleware('can:kopling-core::manage-people')->group(function () {
+    Route::get('people', [PeopleController::class, 'index'])->name('people');
+    Route::post('people/{person}/groups', [PeopleController::class, 'updateGroups'])->name('people.groups');
+
+    Route::get('groups', [GroupsController::class, 'index'])->name('groups');
+    Route::post('groups', [GroupsController::class, 'store'])->name('groups.store');
+    Route::post('groups/{group}', [GroupsController::class, 'update'])->name('groups.update');
+    Route::post('groups/{group}/delete', [GroupsController::class, 'destroy'])->name('groups.destroy');
 });
 
 // The bare Portal path ("/admin") itself has no page of its own yet -- settings is the only

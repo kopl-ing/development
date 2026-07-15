@@ -52,7 +52,8 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Ext
             new Permission(
                 id: 'access-community',
                 label: 'Access community',
-                description: 'Create, edit, and remove people and groups.',
+                description: 'Access the community portal.',
+                allowsGuests: true,
             ),
             new Permission(
                 id: 'manage-permissions',
