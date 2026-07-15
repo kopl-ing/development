@@ -12,8 +12,8 @@ namespace Kopling\Core\Extension\LoadOrder;
  * author's -- will implement it. Every rule is relative to the declaring extension's own
  * package (`Resolver` already knows that from iterating `Manager::extensions()`, so there's
  * nothing to name here); `Resolver` applies one edge per other extension it finds implementing
- * the given contract. Loses to a matched extension's own `HasLoadOrder` for the same pair --
- * see that interface.
+ * the given contract. Loses to a matched extension's own `LoadsAfter`/`LoadsBefore` for the same
+ * pair -- see those interfaces.
  */
 interface InfluencesLoadOrder
 {

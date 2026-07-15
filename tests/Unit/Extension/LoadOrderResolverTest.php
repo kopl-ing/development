@@ -5,7 +5,9 @@ declare(strict_types=1);
 use Kopling\Core\Core;
 use Kopling\Core\Extension\LoadOrder\Directive;
 use Kopling\Core\Extension\LoadOrder\Resolver;
+use Tests\Fixtures\Extensions\LoadOrder\AfterOnlyExtension;
 use Tests\Fixtures\Extensions\LoadOrder\BareExtension;
+use Tests\Fixtures\Extensions\LoadOrder\BeforeOnlyExtension;
 use Tests\Fixtures\Extensions\LoadOrder\ConfigurableExtension;
 use Tests\Fixtures\Extensions\LoadOrder\SomeContract;
 
@@ -25,7 +27,7 @@ it('always pins kopling/core first, and sorts unrelated extensions alphabeticall
     ]);
 });
 
-it('places a package after everything its HasLoadOrder::loadAfter() names', function () {
+it('places a package after everything its LoadsAfter::loadAfter() names', function () {
     $resolved = Resolver::resolve([
         'tests-fixtures/b' => new BareExtension(),
         'tests-fixtures/a' => new ConfigurableExtension(after: ['tests-fixtures/b']),
@@ -34,7 +36,7 @@ it('places a package after everything its HasLoadOrder::loadAfter() names', func
     expect(array_keys($resolved))->toBe(['tests-fixtures/b', 'tests-fixtures/a']);
 });
 
-it('places a package before everything its HasLoadOrder::loadBefore() names', function () {
+it('places a package before everything its LoadsBefore::loadBefore() names', function () {
     $resolved = Resolver::resolve([
         'tests-fixtures/b' => new BareExtension(),
         'tests-fixtures/a' => new ConfigurableExtension(before: ['tests-fixtures/b']),
@@ -43,7 +45,25 @@ it('places a package before everything its HasLoadOrder::loadBefore() names', fu
     expect(array_keys($resolved))->toBe(['tests-fixtures/a', 'tests-fixtures/b']);
 });
 
-it('silently ignores a HasLoadOrder reference to a package that was never discovered', function () {
+it('resolves an extension that implements only LoadsAfter, with no LoadsBefore at all', function () {
+    $resolved = Resolver::resolve([
+        'tests-fixtures/b' => new BareExtension(),
+        'tests-fixtures/a' => new AfterOnlyExtension(after: ['tests-fixtures/b']),
+    ]);
+
+    expect(array_keys($resolved))->toBe(['tests-fixtures/b', 'tests-fixtures/a']);
+});
+
+it('resolves an extension that implements only LoadsBefore, with no LoadsAfter at all', function () {
+    $resolved = Resolver::resolve([
+        'tests-fixtures/b' => new BareExtension(),
+        'tests-fixtures/a' => new BeforeOnlyExtension(before: ['tests-fixtures/b']),
+    ]);
+
+    expect(array_keys($resolved))->toBe(['tests-fixtures/a', 'tests-fixtures/b']);
+});
+
+it('silently ignores a LoadsAfter reference to a package that was never discovered', function () {
     $resolved = Resolver::resolve([
         'tests-fixtures/lonely' => new ConfigurableExtension(after: ['tests-fixtures/never-installed']),
     ]);
@@ -61,7 +81,7 @@ it('lets an InfluencesLoadOrder rule place every implementor of a contract after
         ->toBeLessThan(array_search('tests-fixtures/follower', array_keys($resolved), true));
 });
 
-it('lets an extension\'s own explicit HasLoadOrder opt out of another\'s inferred InfluencesLoadOrder rule', function () {
+it('lets an extension\'s own explicit LoadsBefore opt out of another\'s inferred InfluencesLoadOrder rule', function () {
     $resolved = Resolver::resolve([
         'tests-fixtures/follower' => new ConfigurableExtension(),
         'tests-fixtures/rebel' => new ConfigurableExtension(before: ['tests-fixtures/owner']),

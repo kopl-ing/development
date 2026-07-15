@@ -414,25 +414,28 @@ class Manager
 
     /**
      * Registers every model extension declared by every extension -- relations directly against
-     * the target model via `Model::resolveRelationUsing()`, casts into `Database\Model`'s own
-     * flat, class-keyed cast registry (`Database\Model::registerCasts()`, read by its
-     * `getCasts()` override) -- a side effect, not an aggregation like `permissions()`/
-     * `portals()`, so there's nothing meaningful to return beyond what `ListExtensionRegistrations`
-     * -style introspection might want (mirrors `listeners()` otherwise). An `Extend\Model`
-     * instance is scoped to exactly one model class by its own constructor, so there's exactly
-     * one place "which model" is declared; where more than one extension targets the same
-     * model, their `relations`/`casts` are combined, not replaced -- a relation-name collision
-     * is last-registered-wins (`resolveRelationUsing()`'s own rule), a cast-key collision is
-     * last-declared-wins among extensions, though core's own `$casts` always wins regardless of
-     * declaration order (see `Database\Model::getCasts()`).
+     * the target model via `Model::resolveRelationUsing()`, `creating()`/`saving()` hooks via
+     * the target model's own native Eloquent `Model::creating()`/`saving()` (no base-class
+     * requirement, unlike casts below), casts into `Database\Model`'s own flat, class-keyed cast
+     * registry (`Database\Model::registerCasts()`, read by its `getCasts()` override) -- a side
+     * effect, not an aggregation like `permissions()`/`portals()`, so there's nothing meaningful
+     * to return beyond what `ListExtensionRegistrations`-style introspection might want (mirrors
+     * `listeners()` otherwise). An `Extend\Model` instance is scoped to exactly one model class
+     * by its own constructor, so there's exactly one place "which model" is declared; where more
+     * than one extension targets the same model, their `relations`/`casts` are combined, not
+     * replaced -- a relation-name collision is last-registered-wins (`resolveRelationUsing()`'s
+     * own rule), a cast-key collision is last-declared-wins among extensions, though core's own
+     * `$casts` always wins regardless of declaration order (see `Database\Model::getCasts()`).
+     * `creating`/`saving` hooks never collide -- Eloquent supports multiple listeners per event
+     * natively, so every extension's hook for the same model/event fires, in load order.
      *
      * `Collection::ensure(Extend\Model::class)` guards `ExtendsModels::models()` itself --
      * every item it returns must actually be a `Kopling\Core\Extend\Model` extender, not some
      * other value an implementor mistakenly returned.
      *
      * Cached on the instance (`Manager` is bound as a singleton) so the `resolveRelationUsing()`/
-     * cast-registry side effects only ever run once, the same reasoning `extensions()` already
-     * caches on.
+     * `creating()`/`saving()`/cast-registry side effects only ever run once, the same reasoning
+     * `extensions()` already caches on.
      */
     public function models(): Collection
     {
@@ -469,6 +472,14 @@ class Manager
                         return $instance->{$definition['method']}(...$definition['constraint']);
                     }
                 );
+            }
+
+            if ($model->creating !== null) {
+                $class::creating($model->creating);
+            }
+
+            if ($model->saving !== null) {
+                $class::saving($model->saving);
             }
 
             $casts[$model->model] = array_merge($casts[$model->model] ?? [], $model->casts);

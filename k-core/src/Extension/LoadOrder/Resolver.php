@@ -8,11 +8,11 @@ use Kopling\Core\Extension\AbstractExtension;
 
 /**
  * Orders `Manager::extensions()`'s raw, discovery-order map into one that respects every
- * `HasLoadOrder`/`InfluencesLoadOrder` constraint. Composer's `installed.json` order (the
- * order the map arrives in) carries no meaning -- it's discarded in favour of alphabetical by
- * package, the deterministic base this sorts from when two extensions have no relation to each
- * other at all. `kopling/core` is pinned first unconditionally, the same guarantee
- * `Manager::extensions()` already made before this existed; it never enters the graph.
+ * `LoadsAfter`/`LoadsBefore`/`InfluencesLoadOrder` constraint. Composer's `installed.json`
+ * order (the order the map arrives in) carries no meaning -- it's discarded in favour of
+ * alphabetical by package, the deterministic base this sorts from when two extensions have no
+ * relation to each other at all. `kopling/core` is pinned first unconditionally, the same
+ * guarantee `Manager::extensions()` already made before this existed; it never enters the graph.
  */
 class Resolver
 {
@@ -39,11 +39,11 @@ class Resolver
     }
 
     /**
-     * Builds a package => "packages it must load after" adjacency list. `HasLoadOrder`
-     * constraints are collected first, recording which pairs each package already has an
-     * explicit opinion about; `InfluencesLoadOrder` rules are then applied only where the
+     * Builds a package => "packages it must load after" adjacency list. `LoadsAfter`/
+     * `LoadsBefore` constraints are collected first, recording which pairs each package already
+     * has an explicit opinion about; `InfluencesLoadOrder` rules are then applied only where the
      * matched extension has no explicit opinion about the declaring package already --
-     * explicit always wins over inferred (see `HasLoadOrder`).
+     * explicit always wins over inferred (see `LoadsAfter`).
      *
      * @param  array<string, AbstractExtension>  $extensions
      * @return array<string, array<string>>
@@ -54,26 +54,26 @@ class Resolver
         $explicit = [];
 
         foreach ($extensions as $package => $extension) {
-            if (! $extension instanceof HasLoadOrder) {
-                continue;
+            if ($extension instanceof LoadsAfter) {
+                foreach ($extension->loadAfter() as $other) {
+                    if (! isset($extensions[$other])) {
+                        continue;
+                    }
+
+                    $after[$package][] = $other;
+                    $explicit[$package][$other] = true;
+                }
             }
 
-            foreach ($extension->loadAfter() as $other) {
-                if (! isset($extensions[$other])) {
-                    continue;
+            if ($extension instanceof LoadsBefore) {
+                foreach ($extension->loadBefore() as $other) {
+                    if (! isset($extensions[$other])) {
+                        continue;
+                    }
+
+                    $after[$other][] = $package;
+                    $explicit[$package][$other] = true;
                 }
-
-                $after[$package][] = $other;
-                $explicit[$package][$other] = true;
-            }
-
-            foreach ($extension->loadBefore() as $other) {
-                if (! isset($extensions[$other])) {
-                    continue;
-                }
-
-                $after[$other][] = $package;
-                $explicit[$package][$other] = true;
             }
         }
 

@@ -6,18 +6,21 @@ namespace Tests\Fixtures\Extensions\LoadOrder;
 
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\LoadOrder\Directive;
-use Kopling\Core\Extension\LoadOrder\HasLoadOrder;
 use Kopling\Core\Extension\LoadOrder\InfluencesLoadOrder;
+use Kopling\Core\Extension\LoadOrder\LoadsAfter;
+use Kopling\Core\Extension\LoadOrder\LoadsBefore;
 
 /**
- * One flexible fixture covering every `LoadOrder\Resolver` scenario -- explicit `HasLoadOrder`
- * constraints, contract-dispatched `InfluencesLoadOrder` rules, and (since it always implements
- * `SomeContract` too) being a valid target for another instance's rules -- constructed directly
- * in each test rather than discovered via `Manifest`, so a configurable constructor is fine here
- * (unlike the other fixtures, which `Manager::extensions()` always instantiates with `new
- * $class()`, no arguments).
+ * One flexible fixture covering every `LoadOrder\Resolver` scenario -- explicit `LoadsAfter`/
+ * `LoadsBefore` constraints, contract-dispatched `InfluencesLoadOrder` rules, and (since it
+ * always implements `SomeContract` too) being a valid target for another instance's rules --
+ * constructed directly in each test rather than discovered via `Manifest`, so a configurable
+ * constructor is fine here (unlike the other fixtures, which `Manager::extensions()` always
+ * instantiates with `new $class()`, no arguments). Implements both `LoadsAfter` and
+ * `LoadsBefore` (unlike most real extensions, which only need one) specifically so a single
+ * fixture class can exercise every direction `Resolver` supports.
  */
-class ConfigurableExtension extends AbstractExtension implements HasLoadOrder, InfluencesLoadOrder, SomeContract
+class ConfigurableExtension extends AbstractExtension implements LoadsAfter, LoadsBefore, InfluencesLoadOrder, SomeContract
 {
     /**
      * @param  array<string>  $after  Composer package names this must load after.
@@ -38,7 +41,7 @@ class ConfigurableExtension extends AbstractExtension implements HasLoadOrder, I
 
     public static function description(): string
     {
-        return 'Configurable HasLoadOrder/InfluencesLoadOrder fixture, for testing Resolver directly.';
+        return 'Configurable LoadsAfter/LoadsBefore/InfluencesLoadOrder fixture, for testing Resolver directly.';
     }
 
     /**

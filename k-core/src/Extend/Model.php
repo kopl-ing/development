@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extend;
 
+use Closure;
+
 /**
  * One model's worth of extension, combining relations and casts under a single target -- the
  * fluent entry point `ExtendsModels::models()` returns instances of. `Relation` no longer
@@ -27,6 +29,10 @@ class Model
      */
     public ?array $link = null;
 
+    public ?Closure $creating = null;
+
+    public ?Closure $saving = null;
+
     public function __construct(public readonly string $model)
     {
     }
@@ -34,6 +40,42 @@ class Model
     public function cast(string $attribute, string $type): self
     {
         $this->casts[$attribute] = $type;
+
+        return $this;
+    }
+
+    /**
+     * Registers a callback against the target model's own native Eloquent `creating` event --
+     * fires once, insert-only, before the row is written. The right hook for setting a value
+     * only relevant at creation time (e.g. stamping the creating request's IP onto a `Reply`) --
+     * needs no base-class change on the target model, unlike `cast()` above, since `creating`/
+     * `saving` are defined on Eloquent's own `HasEvents` trait, not something `Database\Model`
+     * has to opt into. The closure receives the model instance being created as its only
+     * argument -- fixed by Eloquent's own dispatcher, not `linksTo()`'s
+     * `bool|callable(Portal, Request, Person)` shape -- reach for `request()`/`Auth::user()`
+     * inside it the same way a controller would. Returning `false` cancels the create, same as
+     * native Eloquent. A single nullable slot, not an accumulating list, matching `$link` above
+     * -- one `Extend\Model` declaration needs at most one `creating` hook; two extensions
+     * targeting the same model each get their own declaration (and their own slot), which
+     * `Manager::models()` applies as two separate Eloquent listeners.
+     */
+    public function creating(Closure $callback): self
+    {
+        $this->creating = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Same as `creating()` above but against Eloquent's native `saving` event -- fires on both
+     * insert and update, before the row is written either way. The right hook for
+     * sanitizing/transforming an attribute regardless of whether this is a new row or an edit
+     * (e.g. expanding template hooks in a posted body), since it should still apply if the row
+     * is later edited.
+     */
+    public function saving(Closure $callback): self
+    {
+        $this->saving = $callback;
 
         return $this;
     }
