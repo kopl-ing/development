@@ -31,7 +31,7 @@ class DiscussionController
 
     /**
      * Post a reply, then return just the new reply so htmx can append it to the thread
-     * (hx-swap="beforeend"). Guests abort 401 -> core's RedirectHtmxUnauthenticated.
+     * (hx-swap="beforeend"). Guests abort 401 -> core's RedirectUnauthenticated.
      */
     public function reply(Request $request, Moment $moment): View
     {

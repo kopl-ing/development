@@ -30,6 +30,20 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   attachment. `HasAdminSettings::adminSettings(): array<Field>` lets any extension declare
   fields, rendered via new `Ux/Form/*` components (`Toggle`/`Input`/`TextArea`), persisted in a
   flat `settings` key-value table. See decisions.md, 2026-07-14.
+- People/Groups admin UI — `admin` extension can now list people and assign them to Groups, and
+  create/rename/delete Groups (`/admin/people`, `/admin/groups`), gated behind the
+  already-declared `manage-people` permission. See decisions.md, 2026-07-15.
+- `Pin` extension — pin a Moment with a reason (translatable, fixed set: Announcement, Event,
+  Important, Help), a reason-mapped daisyUI color, an optional start/end datetime window, and
+  optional Groups targeting (empty = visible to everyone). A pinned-and-visible moment renders in
+  a separate "pinned" section above the regular feed (the community layout's existing
+  `content-top` slot) with a reason-colored card border, and is excluded from the regular
+  chronological feed so it never shows twice. Gated behind a new `kopling-pin::pin-moments`
+  permission. Built on two new small, generic Core mechanisms rather than Pin-specific ones:
+  `Content\Event\QueryingMoments` (lets an extension filter the feed query) and
+  `Ux\Card\Event\RenderingCard` (lets an extension append a class to a card's outer wrapper) —
+  both reuse the existing `ListensToEvents`/`Manager::listeners()` mechanism, no new contract.
+  See decisions.md, 2026-07-16.
 
 ### Still needed
 
@@ -53,44 +67,27 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   tag, pin) — only Pest unit/feature tests exist today, no browser/E2E layer confirmed yet.
 - Actual settings fields for real extensions (e.g. `reactions`) — the admin settings framework
   itself is built (see "Built" above), nothing has declared a real field with it yet.
-- Pin extension — reason dropdown (translatable, fixed set), reason-mapped daisyUI color (no free
-  swatch picker), optional start/end datetime, optional Groups targeting.
-  - Groups targeting: selecting Groups scopes *for whom the moment is pinned* — everyone outside
-    the selected Groups sees the moment as a normal, unpinned item in the regular feed.
-  - decided: one active pin per moment (re-pinning replaces it, no history/concurrent pins).
-  - decided: Pin's action lives in `Control`'s own dropdown menu (see below — now built), not a
-    standalone button.
-  - done: `Control::SLOT` (`kopling-core::card.control`) now resolves real menu entries via a new
-    reusable `Kopling\Core\Ux\Dropdown` primitive (`k-core/src/Ux/Dropdown.php` +
-    `views/ux/dropdown.blade.php`, popover-API-based); Pin registers into it the same way any
-    extension targets a slot.
-  - blocked on: no `<x-k::modal>` primitive exists in core (every extension needing a modal hand-
-    rolls its own Alpine one, e.g. `reactions/views/components/modal.blade.php`).
-  - blocked on: no reusable multi-select/Group-picker component exists anywhere — would need
-    building from scratch.
-  - blocked on: no UI to assign a person to a Group (see "People / Groups" below) — Groups
-    targeting has nothing to target in practice until that exists.
-  - watch: the new dropdown uses the HTML Popover API + CSS anchor positioning (daisyUI's
-    recommended syntax) with no JS fallback — unsupported in older Safari/Firefox, where the
-    menu won't open at all. Flagging now in case broader browser support becomes a requirement
-    before Checkpoint 1 ships.
+- Person detail/profile page — see "People / Groups" below.
+- Browser-verify the Popover-API-based `Dropdown`/native-`<dialog>`-based `Modal` primitives in
+  older Safari/Firefox — flagged as a watch item when each was built, not yet checked.
 
 ---
 
 ## Out of scope / to do / to be decided
 
 ### Feed / community rendering
-- No mechanism to reorder or "float" specific items to the top of the feed, or a secondary
-  rail/section alongside the main feed. Distinct from the thumbs-up "Top" sort mode (Checkpoint 1,
-  above) — this would be for surfacing specific items regardless of vote count, not sorting.
+- No *general* mechanism to reorder or "float" specific items to the top of the feed, or a
+  secondary rail/section alongside the main feed — still true for anything other than Pin. `Pin`
+  (Checkpoint 1) solved its own specific instance of this need (a separate "pinned" section via
+  the existing `content-top` slot, plus a `QueryingMoments` event any extension can use to filter
+  the regular feed query), rather than building a general "float this item" primitive. Revisit if
+  a second, different feature needs the same shape of thing.
 
 ### People / Groups
-- No person detail/profile page exists. Needs to cover, at minimum:
-  - assigning a person to a Group (the `Group`/`Person::groups()` data model already exists,
-    just nothing hangs an admin action off it yet)
+- People/Groups admin UI now exists (`/admin/people`, `/admin/groups` — see Checkpoint 1, Built).
+  Still no person detail/profile page. Needs to cover, at minimum:
   - updating one's own email/password
   - avatar — upload, or fall back to Gravatar
-  - blocks: Pin's Groups targeting from being usable end-to-end (see Checkpoint 1 above).
 
 ### Ux / extensibility
 - `UxEntry`/`SlotResolver`/`Manager::ux()` have no concept of Portal scoping — a `UxEntry`

@@ -28,6 +28,7 @@
         "kopling/demo": "@dev",
         "kopling/discussions": "@dev",
         "kopling/example": "@dev",
+        "kopling/pin": "@dev",
         "kopling/reactions": "@dev",
         "kopling/reply-dock": "@dev",
         "kopling/tags": "@dev",

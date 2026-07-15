@@ -2345,3 +2345,179 @@ enabled), the correct behavior for a context with no settings table to read at a
 **Status:** Decided & implemented (`Settings::get()`). Verified: full test suite — fixed 16 of
 17 failures the icon work's own tests had surfaced; one unrelated, pre-existing
 `SettingsControllerTest` seeding failure remains, out of scope here.
+
+**Update (2026-07-15):** that remaining `SettingsControllerTest` failure was
+`personWithManageSettings()` being called twice in one test ("toggles a disabled extension back
+to enabled on a second call"), creating two `Person` rows with the same email. Fixed by calling
+it once and reusing the person across both requests.
+
+## 2026-07-15 — `<x-k::modal>`: native `<dialog>`, not Popover API, for Pin's prerequisites
+
+**Problem:** Pin (see roadmap.md) needs a modal for its reason/dates/groups form, and a new
+People/Groups admin UI needs one for group assignment. No `<x-k::modal>` primitive existed —
+every extension needing a modal hand-rolled its own Alpine one (`k-extensions/reactions`'s).
+
+**Decision:** `Kopling\Core\Ux\Modal` (`k-core/src/Ux/Modal.php` + `views/ux/modal.blade.php`),
+same shape as `Dropdown` (trigger slot + default slot, purely presentational, no opinion on
+content) but built on the native `<dialog>` element instead of Dropdown's Popover-API approach:
+a form-bearing modal needs real focus-trapping, which `showModal()` gives natively (inert
+background, focus trap, Escape closes) and the Popover API deliberately does not provide.
+`<dialog>` has no attribute-only opener though, so one generic delegated click listener was
+added to `k-core/src/Ux/js/app.js` (`[data-modal-show]` → `showModal()`); closing needs zero JS
+(a sibling `<form method="dialog" class="modal-backdrop">` and native Escape both close it).
+`$id` slugs the label (`modal-manage-groups-a1b2`) plus a short random suffix, for readability
+and multi-instance uniqueness.
+
+**Alternatives considered:** daisyUI's older checkbox-trick modal — rejected, no native
+semantics, strictly worse a11y, legacy-only.
+
+**Status:** Decided & implemented (`Ux\Modal`, `views/ux/modal.blade.php`, `ModalTest`). Not yet
+browser-verified by Daniël.
+
+## 2026-07-15 — `Ux\Form\MultiSelect`: a checkbox-list picker, generic rather than Group-specific
+
+**Problem:** Pin's Groups targeting and the new People/Groups admin UI (group assignment) both
+need to pick from a list of Groups. No reusable multi-select/picker component existed in
+`k-core/src/Ux/Form/`.
+
+**Decision:** `Kopling\Core\Ux\Form\MultiSelect` — generic, not Group-specific, same
+content-agnostic shape as `Toggle`/`Input`/`TextArea` (one `array $data` prop; doesn't know it's
+picking Groups). Renders a checkbox per option inside a `fieldset` (matches `Toggle`'s markup
+shape), submitting as `name="{name}[]"`. Values come through `collect(...)->map(...)->all()`,
+not a raw `(array)` cast — `(array) $someCollection` reads the object's internal properties, not
+its items, and silently corrupts the list (caught by `PeopleControllerTest`'s real-HTTP test,
+not the component's own unit test, which passed plain arrays).
+
+**Alternatives considered:** native `<select multiple>` — rejected, poor UX, no daisyUI styling.
+A searchable combobox — rejected, no current caller needs search over a large option set.
+
+**Status:** Decided & implemented (`Ux\Form\MultiSelect`, `views/ux/form/multi-select.blade.php`,
+`MultiSelectTest`).
+
+## 2026-07-15 — People/Groups admin UI: reuses the already-declared `manage-people` permission, no new migration
+
+**Problem:** Pin's Groups targeting has nothing to target in practice until an operator can
+assign a Person to a Group — the data model (`Person::groups()`, `group_person` pivot) already
+supports it, but no UI existed anywhere (`k-extensions/admin` only had the Settings framework).
+
+**Decision:** Two controllers in `k-extensions/admin` (`PeopleController`, `GroupsController`),
+following `SettingsController`'s shape — plain forms, full-page POST+redirect, no htmx (a
+low-frequency admin action, not `SettingsController::toggle()`'s reactive per-field case).
+`Core::permissions()` already declared `manage-people`, unused anywhere until now — reused it
+rather than inventing a new permission string. No new migration: `group_person` (composite PK,
+cascading FKs, no extra columns) already supports add/remove with no history, matching Pin's own
+"one active pin, no history" bias. Group assignment's UI is the new `<x-k::modal>` wrapping the
+new `<x-k::form.multi-select>`.
+
+**Also fixed in passing:** `access-community`'s description was a copy-paste of
+`manage-people`'s ("Create, edit, and remove people and groups") — corrected to describe what
+`access-community` actually gates.
+
+**Status:** Decided & implemented (`PeopleController`, `GroupsController`,
+`k-extensions/admin/routes/web.php`, `Extension::ux()` nav entries, `PeopleControllerTest`,
+`GroupsControllerTest`). Person detail/profile page (own email/password, avatar) stays
+out of scope. Not yet browser-verified by Daniël.
+
+## 2026-07-16 — `QueryingMoments`/`RenderingCard`: Pin's feed-reorder and card-styling needs reuse the existing `ListensToEvents` mechanism, not a new contract
+
+**Problem:** Pin needs pinned-and-visible moments to float into their own section above the
+regular feed (excluded from it, so nothing shows twice) and to render with a reason-colored
+border — but the feed query (`IndexController`, `LatestMomentsController`) had no extension
+point at all, and `Card`'s own docblock stated its outer wrapper was "not itself
+replaceable/extensible."
+
+**Decision:** Daniël's own call during planning: reuse `ListensToEvents`/`Manager::listeners()`
+(already real, tested infrastructure — the same pattern `auth-email-password` already uses for
+`AttemptLogin`/`AttemptRegistration`) instead of inventing a parallel `Extend\Model` hook
+mechanism. Two new, narrowly-scoped Core events, each with mutable public state a listener acts
+on:
+- `Content\Event\QueryingMoments` (carries the query `Builder`) — dispatched in
+  `IndexController::__invoke()` and both `LatestMomentsController` methods, right before the
+  query runs. A listener mutates `$event->query` directly (Eloquent's own query methods already
+  mutate `$this` and return it).
+- `Ux\Card\Event\RenderingCard` (carries the `Context` and an accumulating `$classes` array) —
+  dispatched from `Card`'s own constructor. A listener calls `$event->addClass(...)`; `Card`
+  joins the result into its wrapper's class list.
+
+`Card`'s docblock was updated — its wrapper isn't slot-driven, but it's no longer sealed either.
+
+**Status:** Decided & implemented. Full suite green (108 tests).
+
+## 2026-07-16 — `Ux\Form\Select`: the single-value counterpart to `MultiSelect`
+
+**Problem:** Pin's reason dropdown needs a single-value select; only `MultiSelect` (checkboxes)
+existed. `Icon.php`'s own docblock had already anticipated this gap.
+
+**Decision:** `Kopling\Core\Ux\Form\Select` — same `array $data` shape as `Toggle`/`MultiSelect`
+(`name`/`label`/`description`/`options`/`value` falling back to `default`), a native `<select>`
+inside the same `fieldset`/`legend` wrapper. No combobox/search — same reasoning `MultiSelect`
+already documented (no current caller needs search over a large option set).
+
+**Status:** Decided & implemented (`Ux\Form\Select`, `SelectTest`).
+
+## 2026-07-16 — Pin extension: `k-extensions/pin`
+
+**Problem:** the original Pin feature request — pin a Moment with a reason, a reason-mapped
+color, an optional start/end window, and optional Groups targeting — never got built; the
+session that started it built its prerequisites instead (`Dropdown`, `Modal`, `MultiSelect`, the
+People/Groups admin UI — see their own entries above).
+
+**Decision:** `kopling/pin`, structured after `kopling/reactions` (attaches to `Moment` via
+`ExtendsModels`, no core changes to the model itself) and `kopling/admin` (controller/permission
+shape). Key choices:
+- `pins.moment_id` unique — one active pin per moment, re-pinning updates the same row via
+  `updateOrCreate`, no history table.
+- `group_pin` pivot (named to match Eloquent's own alphabetical-model pivot-naming convention —
+  same reason `group_person` isn't `person_group`) — empty groups means visible to everyone,
+  non-empty means visible only to a Person in at least one targeted Group.
+- One new flat permission, `kopling-pin::pin-moments`, gating both the Control-menu entry and
+  (re-checked server-side) the controller — no per-instance/ownership policy exists anywhere in
+  this codebase to build on instead.
+- `Pin::visibleFor()` is a plain PHP filter over all pins (eager-loaded), not one SQL join —
+  pins are curated/rare by nature, so this stays simple; revisit only if that assumption breaks.
+- The Control-menu entry is one component, not two: whether it shows "Pin" or "Edit pin" +
+  "Unpin" is per-Moment state, not per-actor, so it can't be expressed via `Ux::add()->when()`'s
+  permission gate — the component's own view decides, rendering both actions inside `Control`'s
+  one forced `<li>` when a pin already exists.
+- `DecoratePinnedCard`/`ControlEntry` read `$moment->pin` (the magic relation accessor), not
+  `getRelation('pin')` — the main feed's paginator eager-loads it for every card in one batch,
+  but a moment freshly prepended by `LatestMomentsController`'s live poll never goes through
+  that path, so `getRelation()` would throw there; the accessor lazy-loads instead, at the cost
+  of one extra query only for that rare, one-at-a-time case.
+- Caught before shipping: `DecoratePinnedCard` builds its border/bg classes dynamically
+  (`"border-{$pin->color()}"`) inside a plain `.php` listener, but Tailwind's `@source` only
+  scans `.blade.php` files — a dynamic class string built in PHP would never reach the compiled
+  CSS. Fixed with a literal safelist comment in `pinned-section.blade.php` (Pin's reason set is
+  small and fixed by design, so this is simpler than restructuring the listener to build markup
+  in Blade instead).
+
+**Also fixed in passing (found via `PinControllerTest`'s guest test):** a plain (non-htmx) POST
+to any `auth`-gated route while logged out crashed with `RouteNotFoundException` —
+`Authenticate::redirectTo()` calls `route('login')` directly, and this app only ever defines a
+namespaced login route. `Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated` (renamed
+`RedirectUnauthenticated`) only ever handled the htmx case; the crash happens at throw-time,
+before any exception renderable gets a chance to run, so that class alone can't fix the
+non-htmx case.
+
+First attempt put the fix in `bootstrap/app.php`'s `$middleware->redirectGuestsTo(...)` —
+reverted: this repo already decided (2026-07-09, "htmx auth-wall responses...", above) that
+root-owned bootstrap/config files never carry application logic, precisely so Core keeps behaving
+like an ordinary Laravel package rather than a fork of the skeleton. Should have checked that
+entry before touching `bootstrap/app.php` at all.
+
+Corrected fix: `Illuminate\Auth\Middleware\Authenticate::redirectUsing()` is the same static hook
+`Middleware::redirectGuestsTo()` (a `bootstrap/app.php`-only API) calls internally — calling it
+directly from `Kopling\Core\Provider\ServiceProvider::boot()` reaches the identical fix without
+touching the skeleton. One real gotcha surfaced getting this right: Laravel's own
+`ApplicationBuilder::withMiddleware()` registers its *default* `redirectGuestsTo(fn () =>
+route('login'))` via `$this->app->afterResolving(HttpKernel::class, ...)` — i.e. it doesn't run at
+`bootstrap/app.php`-evaluation time, but whenever `Kernel::class` is *first resolved*. `boot()`
+already does `$this->app->make(Kernel::class)` a few lines down (to append `InjectPortal`) — that
+call is what triggers Laravel's default, so `redirectUsing()` must be called *after* it, not
+before, or the default clobbers it right back. Reactions never hit any of this because its own
+forms are all htmx-driven; Pin's aren't.
+
+**Status:** Decided & implemented (`k-extensions/pin`, `PinControllerTest`,
+`FeedVisibilityTest`, `RedirectUnauthenticatedTest`). Full suite green (108 tests). `help ->
+success` in `Pin::REASONS` was the agent's own pick, not yet confirmed by Daniël. Not yet
+browser-verified.

@@ -1,0 +1,19 @@
+{
+    "name": "kopling/pin",
+    "description": "Pin a Moment to the top of the community feed, with a reason, optional scheduling window, and optional Groups targeting.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Pin\\": "src/"
+        }
+    }
+}

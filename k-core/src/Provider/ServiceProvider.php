@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Provider;
 
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider as Provider;
 use Illuminate\Support\Str;
 use Kopling\Core\Console\Commands\CacheRegistrations;
@@ -16,7 +18,7 @@ use Kopling\Core\Console\Commands\ListExtensionRegistrations;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
 use Kopling\Core\Extension\RegistrationCache;
-use Kopling\Core\Http\Exceptions\RedirectHtmxUnauthenticated;
+use Kopling\Core\Http\Exceptions\RedirectUnauthenticated;
 use Kopling\Core\Http\Middleware\InjectPortal;
 use Kopling\Core\People\Guest;
 use Kopling\Core\People\Person;
@@ -55,10 +57,26 @@ class ServiceProvider extends Provider
 
     public function boot(Manager $manager): void
     {
-        $this->app->make(ExceptionHandler::class)->renderable(new RedirectHtmxUnauthenticated());
+        $this->app->make(ExceptionHandler::class)->renderable(new RedirectUnauthenticated());
 
         /** @var Kernel|\Illuminate\Foundation\Http\Kernel $http */
         $http = $this->app->make(Kernel::class);
+
+        // Root install owns no code, not even bootstrap/app.php config -- Core behaves like any
+        // other Laravel package, wiring itself up entirely from its own ServiceProvider. This
+        // must run after the `$this->app->make(Kernel::class)` call above: resolving the Kernel
+        // for the first time is what triggers Laravel's own `ApplicationBuilder::withMiddleware()`
+        // to register its default `redirectGuestsTo(fn () => route('login'))` (via
+        // `afterResolving`) -- set any earlier and that default overwrites it right back.
+        // `Authenticate::redirectTo()` calls `route('login')` directly, at throw time, before
+        // any exception handler (including RedirectUnauthenticated above) ever runs; this app has
+        // no route literally named "login" (auth-email-password's own is namespaced, like every
+        // route here). `redirectUsing()` is the same static hook
+        // `Middleware::redirectGuestsTo()` (a bootstrap/app.php-only API) calls internally --
+        // calling it directly here reaches the same fix without touching the skeleton.
+        Authenticate::redirectUsing(
+            fn () => Route::has('kopling-core::community/login') ? route('kopling-core::community/login') : '/login'
+        );
         $http->appendMiddlewareToGroup('web', InjectPortal::class);
 
         Blade::componentNamespace('Kopling\\Core\\Ux', 'k');

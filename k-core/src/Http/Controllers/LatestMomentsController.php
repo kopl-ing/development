@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Kopling\Core\Content\Event\QueryingMoments;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
 
@@ -53,7 +54,10 @@ class LatestMomentsController
     {
         $since = Carbon::parse($request->query('since'));
 
-        $count = Moment::where('created_at', '>', $since)->count();
+        $query = Moment::where('created_at', '>', $since);
+        event(new QueryingMoments($query));
+
+        $count = $query->count();
 
         if ($count === 0) {
             return response()->noContent();
@@ -76,7 +80,10 @@ class LatestMomentsController
     {
         $since = Carbon::parse($request->query('since'));
 
-        $moments = Moment::where('created_at', '>', $since)->latest()->get();
+        $query = Moment::where('created_at', '>', $since);
+        event(new QueryingMoments($query));
+
+        $moments = $query->latest()->get();
 
         return view('kopling-core::community.loaded', [
             'moments' => $moments,

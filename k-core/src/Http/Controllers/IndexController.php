@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Core\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Kopling\Core\Content\Event\QueryingMoments;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Ux\Context;
@@ -23,8 +24,11 @@ class IndexController
 
         $portal = $request->attributes->get('portal');
 
+        $query = Moment::query()->latest();
+        event(new QueryingMoments($query));
+
         $context = new Context(
-            subject: Moment::query()->latest(),
+            subject: $query,
             portal: $portal,
             request: $request,
         );

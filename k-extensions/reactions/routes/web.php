@@ -9,7 +9,7 @@ use Kopling\Reactions\Reaction;
 // Required inside the Community portal's own Route::group() (see Extension::extendsPortals()),
 // so "web", the prefix and the name prefix all come from the portal. Only "auth" is declared
 // here -- it's what makes a guest (or a since-expired session) throw an AuthenticationException,
-// which core's RedirectHtmxUnauthenticated turns into an HX-Redirect to login for an htmx
+// which core's RedirectUnauthenticated turns into an HX-Redirect to login for an htmx
 // request -- a plain abort(401) would never reach that handler.
 Route::middleware('auth')->group(function () {
     // Toggle the viewer's reaction for one emoji on one moment, then re-render the rail so
