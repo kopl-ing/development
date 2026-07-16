@@ -1,4 +1,14 @@
-@php use Kopling\Core\Ux\Context; @endphp
+@php
+    use Illuminate\Support\Str;
+    use Kopling\Core\Ux\Context;
+
+    // The first post (the moment) is quotable into the reply dock the same way replies are
+    // (see partials/reply.blade.php). Its quote id is the moment's own id -- distinct from any
+    // reply id, so the dock tracks it as its own entry.
+    $momentId = (string) $moment->id;
+    $momentAuthor = $moment->person?->name ?? __('kopling-discussions::messages.someone');
+    $momentQuoteText = Str::limit(trim(preg_replace('/\s+/', ' ', (string) $moment->body)), 140);
+@endphp
 {{--
     The discussion page for one moment: the moment itself (through core's own card, so it
     keeps its tags/reactions/etc.), then the reply thread and a composer. Sits inside Community's
@@ -13,6 +23,20 @@
         </div>
 
         <x-k::card.card :context="new Context(subject: $moment)" />
+
+        @auth
+            {{-- Quote the first post into the reply dock -- same event contract as a reply's
+                 "+ Quote" (partials/reply.blade.php): dispatches kop-quote-toggle and reflects
+                 its own state from the dock's kop-quotes-changed echo. --}}
+            <div class="-mt-2">
+                <button type="button" x-data="{ quoted: false }"
+                        @kop-quotes-changed.window="quoted = $event.detail.ids.includes(@js($momentId))"
+                        @click="$dispatch('kop-quote-toggle', { id: @js($momentId), author: @js($momentAuthor), text: @js($momentQuoteText) })"
+                        :class="quoted ? 'text-primary font-semibold' : 'opacity-60 hover:opacity-100'"
+                        class="text-xs font-semibold px-1.5 py-0.5 rounded hover:bg-base-200"
+                        x-text="quoted ? @js(__('kopling-discussions::messages.unquote')) : @js(__('kopling-discussions::messages.quote'))">{{ __('kopling-discussions::messages.quote') }}</button>
+            </div>
+        @endauth
 
         <div class="flex flex-col gap-3">
             <h2 class="text-lg font-semibold">
