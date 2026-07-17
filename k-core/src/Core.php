@@ -9,6 +9,7 @@ use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
+use Kopling\Core\Extension\Contract\ChangesEditor;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasIcons;
@@ -22,6 +23,8 @@ use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
 use Kopling\Core\Ux\Community\Navigation;
 use Kopling\Core\Ux\Community\ThemeSwitcher;
+use Kopling\Core\Ux\Editor;
+use Kopling\Core\Ux\Editor\EditorNode;
 
 /**
  * Core's own declarations, made through the same contracts any extension would implement --
@@ -31,7 +34,7 @@ use Kopling\Core\Ux\Community\ThemeSwitcher;
  * as a special case; writing local ids here and letting `Manager` prefix them the same way it
  * prefixes any extension's removes that asymmetry -- one declaration mechanism, not two.
  */
-class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, ExtendsPortals, HasIcons, HasPermissions, HasPortals
+class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor, ChangesUx, ExtendsPortals, HasIcons, HasPermissions, HasPortals
 {
     public static function name(): string
     {
@@ -102,6 +105,33 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Ext
     }
 
     /**
+     * v1's default enabled set -- a lean, essential formatting baseline, not an exhaustive tour
+     * of everything TipTap can do: `Strike`/`Underline`/`TaskList`/`HorizontalRule` are
+     * deliberately left off by default so `ChangesEditor` has real room for an extension to
+     * matter, rather than Core exhausting the whole catalog itself and leaving nothing to
+     * extend. Declared through the same `ChangesEditor` contract any extension would use, not
+     * hardcoded elsewhere, same "core's own defaults go through the same contract" rule
+     * `icons()`/`permissions()` already establish.
+     *
+     * @return array<EditorNode>
+     */
+    public function editor(): array
+    {
+        return [
+            EditorNode::Heading,
+            EditorNode::Bold,
+            EditorNode::Italic,
+            EditorNode::Code,
+            EditorNode::CodeBlock,
+            EditorNode::Blockquote,
+            EditorNode::BulletList,
+            EditorNode::OrderedList,
+            EditorNode::HardBreak,
+            EditorNode::Link,
+        ];
+    }
+
+    /**
      * @return array<PortalExtension>
      */
     public function extendsPortals(): array
@@ -126,6 +156,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesUx, Ext
         Body::defaults($ux);
         Navigation::defaults($ux);
         ThemeSwitcher::defaults($ux);
+        Editor::defaults($ux);
 
         return $ux;
     }

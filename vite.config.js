@@ -12,7 +12,9 @@ export default defineConfig({
         laravel({
             input: [
                 'k-core/src/Ux/css/app.css',
-                'k-core/src/Ux/js/app.js'
+                'k-core/src/Ux/js/app.js',
+                'k-core/src/Ux/css/editor.css',
+                'k-core/src/Ux/js/editor.js',
             ],
             refresh: [
                 'k-core/src/**/*.blade.php',

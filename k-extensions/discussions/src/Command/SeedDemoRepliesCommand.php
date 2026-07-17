@@ -6,7 +6,9 @@ namespace Kopling\Discussions\Command;
 
 use Illuminate\Console\Command;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Extension\Manager;
 use Kopling\Core\People\Person;
+use Kopling\Core\Ux\Editor\DocumentRenderer;
 use Kopling\Discussions\Reply;
 
 class SeedDemoRepliesCommand extends Command
@@ -15,7 +17,7 @@ class SeedDemoRepliesCommand extends Command
 
     protected $description = 'Seed a handful of demo replies across moments';
 
-    public function handle(): int
+    public function handle(Manager $manager): int
     {
         $people = Person::query()->get();
 
@@ -25,16 +27,29 @@ class SeedDemoRepliesCommand extends Command
             return self::FAILURE;
         }
 
+        $enabled = $manager->editorNodes();
         $total = 0;
 
-        Moment::query()->get()->each(function (Moment $moment) use ($people, &$total) {
+        Moment::query()->get()->each(function (Moment $moment) use ($people, $enabled, &$total) {
             $count = random_int(0, 4);
 
             for ($i = 0; $i < $count; $i++) {
+                // body is a ProseMirror JSON document, not plain text -- a single paragraph is
+                // all a fake sentence needs, same shape ComposerController::store()/
+                // DiscussionController::reply() build from a real editor submission.
+                $body = json_encode([
+                    'type' => 'doc',
+                    'content' => [[
+                        'type' => 'paragraph',
+                        'content' => [['type' => 'text', 'text' => fake()->sentence(random_int(6, 20))]],
+                    ]],
+                ]);
+
                 Reply::create([
                     'moment_id' => $moment->id,
                     'person_id' => $people->random()->id,
-                    'body' => fake()->sentence(random_int(6, 20)),
+                    'body' => $body,
+                    'body_html' => DocumentRenderer::render($body, $enabled),
                 ]);
                 $total++;
             }

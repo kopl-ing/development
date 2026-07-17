@@ -19,12 +19,23 @@ export default defineConfig({
             input: {
                 app: fileURLToPath(new URL('./k-core/src/Ux/js/app.js', import.meta.url)),
                 style: fileURLToPath(new URL('./k-core/src/Ux/css/app.css', import.meta.url)),
+                editor: fileURLToPath(new URL('./k-core/src/Ux/js/editor.js', import.meta.url)),
+                'editor-style': fileURLToPath(new URL('./k-core/src/Ux/css/editor.css', import.meta.url)),
             },
             output: {
+                // editor.js dynamically import()s editor-tiptap.js (the real TipTap/ProseMirror
+                // payload) so pages without an editor mount never load it -- chunkFileNames
+                // keeps that split chunk's own name fixed/unhashed too, same reasoning
+                // entryFileNames already applies to the two real entries.
                 entryFileNames: '[name].js',
+                chunkFileNames: '[name].js',
                 assetFileNames: (asset) => {
                     const name = asset.names?.[0] ?? asset.name;
-                    return name === 'style.css' ? 'app.css' : '[name][extname]';
+
+                    if (name === 'style.css') return 'app.css';
+                    if (name === 'editor-style.css') return 'editor.css';
+
+                    return '[name][extname]';
                 },
             },
         },

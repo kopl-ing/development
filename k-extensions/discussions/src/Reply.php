@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
+use Kopling\Core\Ux\Editor\PlainTextExtractor;
 
 /**
  * One reply to a moment. Defined entirely on the extension side (relations included) so the
@@ -23,6 +24,7 @@ class Reply extends Model
         'moment_id',
         'person_id',
         'body',
+        'body_html',
     ];
 
     public function moment(): BelongsTo
@@ -73,7 +75,7 @@ class Reply extends Model
         return [
             'count' => $replies->count(),
             'people' => $replies->pluck('person_id')->unique()->count(),
-            'words' => $replies->sum(fn (self $reply) => str_word_count((string) $reply->body)),
+            'words' => $replies->sum(fn (self $reply) => str_word_count(PlainTextExtractor::extract((string) $reply->body))),
         ];
     }
 }

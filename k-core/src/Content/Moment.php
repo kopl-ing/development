@@ -17,6 +17,7 @@ class Moment extends Model
         'person_id',
         'title',
         'body',
+        'body_html',
     ];
 
     public function person(): BelongsTo

@@ -31,28 +31,19 @@
                 // far taller than the collapsed bar) so everything can scroll clear above it.
                 this.syncPad();
                 this.$watch('open', () => this.$nextTick(() => this.syncPad()));
-                this.$watch('quotes', () => this.$nextTick(() => this.syncPad()));
                 window.addEventListener('resize', () => this.syncPad(), { passive: true });
                 // htmx 4 renamed the lifecycle events to colon form and moved the payload to
                 // detail.ctx (there is no detail.parameters / detail.successful anymore). Both
                 // events bubble up from the form to this root.
                 //
-                // Prepend the multi-quote blocks to the reply body before the request is sent.
-                // At config:request the body is still a FormData on ctx.request.body.
-                this.$el.addEventListener('htmx:config:request', (e) => {
-                    const prefix = this.quotesPrefix();
-                    if (!prefix) return;
-                    const body = e.detail?.ctx?.request?.body;
-                    if (body && typeof body.get === 'function') {
-                        body.set('body', prefix + (body.get('body') || ''));
-                    }
-                });
-                // Collapse the composer once a reply posts successfully (status < 400).
+                // Collapse the composer once a reply posts successfully (status < 400). The
+                // editor mounts on a contenteditable region, not a native <textarea> -- clearing
+                // it needs its own imperative clear(), not $refs.body.value = ''.
                 this.$el.addEventListener('htmx:after:request', (e) => {
                     const status = e.detail?.ctx?.response?.status;
                     if (status === undefined || status >= 400) return;
                     this.open = false;
-                    if (this.$refs.body) this.$refs.body.value = '';
+                    this.editorEl()?.kopEditor?.clear();
                     this.quotes = [];
                     this.emitQuotes();
                 });
@@ -84,7 +75,11 @@
                 window.addEventListener('pointermove', move);
                 window.addEventListener('pointerup', up);
             },
-            openComposer() { this.open = true; this.$nextTick(() => { this.$refs.body?.focus(); this.syncPad(); }); },
+            openComposer() { this.open = true; this.$nextTick(() => { this.editorEl()?.querySelector('.ProseMirror')?.focus(); this.syncPad(); }); },
+            // The mount point rendered by the editor component inside x-ref="editor" --
+            // editor-tiptap.js exposes its imperative API as `.kopEditor` directly on this
+            // element (see its own mount() docblock), not through an Alpine ref of its own.
+            editorEl() { return this.$refs.editor?.querySelector('[data-tiptap-editor]') ?? null; },
             // Reserve bottom scroll space so the fixed dock never hides the last posts. Only the
             // visible half (bar or panel) has a box, so offsetHeight tracks the current state.
             syncPad() {
@@ -92,24 +87,28 @@
                 document.body.style.paddingBottom = (h + 28) + 'px';
             },
 
+            // Tracks which reply ids are "currently quoted" purely for the +Quote/−Quote label
+            // on each reply's own button (kop-quotes-changed) -- it no longer double as a
+            // pending-quotes buffer serialized at submit time. A quote is now inserted as a real,
+            // directly-editable blockquote node the moment it's toggled on; toggling the same
+            // reply's button off only forgets the label state, it doesn't reach back into the
+            // document to remove that blockquote -- the editor is the actual document now, not a
+            // hidden string prefix, so removing a quote the user changed their mind about is just
+            // deleting it in the editor like any other content.
             quotes: [],
             toggleQuote(d) {
                 const i = this.quotes.findIndex(q => q.id === d.id);
-                if (i >= 0) this.quotes.splice(i, 1);
-                else this.quotes.push(d);
+                if (i >= 0) {
+                    this.quotes.splice(i, 1);
+                } else {
+                    this.quotes.push(d);
+                    this.editorEl()?.kopEditor?.insertQuote({ author: d.author, text: d.text });
+                }
                 this.emitQuotes();
                 this.openComposer();
             },
-            removeQuote(id) {
-                const i = this.quotes.findIndex(q => q.id === id);
-                if (i >= 0) this.quotes.splice(i, 1);
-                this.emitQuotes();
-            },
             emitQuotes() {
                 window.dispatchEvent(new CustomEvent('kop-quotes-changed', { detail: { ids: this.quotes.map(q => q.id) } }));
-            },
-            quotesPrefix() {
-                return this.quotes.length ? this.quotes.map(q => '> ' + q.author + ': ' + q.text).join('\n\n') + '\n\n' : '';
             },
          }"
          @kop-quote-toggle.window="toggleQuote($event.detail)">
@@ -153,29 +152,20 @@
                 <div class="kop-dock__composer">
                     <span class="kop-dock__avatar">{{ strtoupper(mb_substr($me->name ?? '?', 0, 1)) }}</span>
                     <div class="kop-dock__field">
-                        {{-- multi-quote blocks (dock-local state; event-driven, no Alpine store) --}}
-                        <template x-if="quotes.length">
-                            <div class="kop-dock__quotes">
-                                <template x-for="q in quotes" :key="q.id">
-                                    <div class="kop-dock__quote">
-                                        <span class="kop-dock__quote-text"><b x-text="q.author"></b>: <span x-text="q.text"></span></span>
-                                        <button type="button" class="kop-dock__quote-remove" @click="removeQuote(q.id)"
-                                                title="{{ __('kopling-reply-dock::messages.remove_quote') }}">✕</button>
-                                    </div>
-                                </template>
-                            </div>
-                        </template>
-
-                        <textarea x-ref="body" name="body" required rows="3"
-                                  placeholder="{{ __('kopling-reply-dock::messages.placeholder') }}"
-                                  class="kop-dock__textarea"></textarea>
+                        {{-- Quoting a reply inserts a real blockquote directly into the editor
+                             below (see toggleQuote()) rather than staging it in a removable chip
+                             list -- the editor is the document now, so unquoting is just deleting
+                             it there like any other content. --}}
+                        <div x-ref="editor">
+                            <x-k::editor name="body" placeholder="{{ __('kopling-reply-dock::messages.placeholder') }}" />
+                        </div>
 
                         {{-- canned replies --}}
                         <div class="kop-dock__canned">
                             <span class="kop-dock__canned-lbl">{{ __('kopling-reply-dock::messages.canned') }}</span>
                             @foreach ((array) __('kopling-reply-dock::messages.canned_items') as $canned)
                                 <button type="button" class="kop-dock__chip"
-                                        @click="$refs.body.value = ($refs.body.value ? $refs.body.value + '\n\n' : '') + @js($canned); $refs.body.focus()">{{ $canned }}</button>
+                                        @click="editorEl()?.kopEditor?.insertText(@js($canned))">{{ $canned }}</button>
                             @endforeach
                         </div>
 

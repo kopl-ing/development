@@ -17,9 +17,9 @@ use Kopling\Core\Portal\PortalExtension;
  * morphs into a composer when you reply. Registers into the chrome footer's composer slot
  * (empty on the feed — the feed's composer is content-top), renders only on a discussion page
  * for a signed-in person, and posts through the discussions extension's own reply route. It
- * supersedes discussions' built-in inline reply form (hidden via css/app.css, linked onto
- * Community pages by extendsPortals()) so there's one reply surface, not two. Inline Alpine
- * morph + htmx — no bundled JS.
+ * supersedes discussions' built-in inline reply form by removing its slot entry outright
+ * (`kopling-discussions::default-composer`) so there's one reply surface, not two, and only one
+ * TipTap editor ever mounts on the page. Inline Alpine morph + htmx — no bundled JS.
  */
 class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasIcons
 {
@@ -38,7 +38,8 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
         return Ux::make()
             ->add('kopling-reply-dock::dock')
             ->in('kopling-core::community.composer')
-            ->as('reply-dock');
+            ->as('reply-dock')
+            ->remove('kopling-discussions::default-composer');
     }
 
     /**
@@ -54,11 +55,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
     }
 
     /**
-     * css/app.css hides discussions' built-in inline reply form + styles the scrubber dock,
-     * linked onto Community pages via the head-assets outlet. No js of its own — the dock's
-     * scrubber and the multi-quote flow are inline x-data + window events (an ext can't register
-     * an Alpine store before core's Alpine.start()). No routes either — it posts through
-     * discussions' reply route.
+     * css/app.css styles the scrubber dock, linked onto Community pages via the head-assets
+     * outlet. No js of its own — the dock's scrubber and the multi-quote flow are inline x-data
+     * + window events (an ext can't register an Alpine store before core's Alpine.start()). No
+     * routes either — it posts through discussions' reply route.
      *
      * @return array<PortalExtension>
      */

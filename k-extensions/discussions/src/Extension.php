@@ -38,6 +38,12 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
      * - `engage` in the footer -- Reply / Open discussion. `after` names the reactions
      *   extension's last footer entry so, when both are installed, reactions come first;
      *   it's a harmless no-op (dangling anchor) when reactions isn't present.
+     *
+     * `default-composer` is the discussion page's own reply form, in its own slot
+     * (`kopling-discussions::show.composer`, resolved with the moment bound as `$context`) rather
+     * than markup hardcoded into show.blade.php -- so an extension that wants to own the one
+     * reply surface itself (reply-dock) can `Ux::remove('kopling-discussions::default-composer')`
+     * outright instead of only CSS-hiding a form whose editor mounts regardless.
      */
     public function ux(): Ux
     {
@@ -49,7 +55,10 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->add('kopling-discussions::engage')
             ->in('kopling-core::card.footer')
             ->as('engage')
-            ->after('kopling-reactions::words');
+            ->after('kopling-reactions::words')
+            ->add('kopling-discussions::composer')
+            ->in('kopling-discussions::show.composer')
+            ->as('default-composer');
     }
 
     /**

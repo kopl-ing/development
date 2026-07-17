@@ -6,10 +6,12 @@ namespace Kopling\Discussions\Controllers;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Extension\Manager;
+use Kopling\Core\Ux\Editor\DocumentRenderer;
 use Kopling\Discussions\Reply;
+use Kopling\Discussions\Requests\StoreReplyRequest;
 
 class DiscussionController
 {
@@ -31,20 +33,22 @@ class DiscussionController
 
     /**
      * Post a reply, then return just the new reply so htmx can append it to the thread
-     * (hx-swap="beforeend"). Guests abort 401 -> core's RedirectUnauthenticated.
+     * (hx-swap="beforeend"). Guests abort 401 -> core's RedirectUnauthenticated. `body_html` is
+     * rendered server-side from the validated `body` document here, at write time -- never
+     * trusted directly from the client (see `DocumentRenderer`'s own docblock).
      */
-    public function reply(Request $request, Moment $moment): View
+    public function reply(StoreReplyRequest $request, Moment $moment, Manager $manager): View
     {
         $person = Auth::user();
 
-        $body = trim((string) $request->input('body', ''));
-        abort_if($body === '', 422);
+        $body = (string) $request->validated('body');
 
         /** @var Reply $reply */
         $reply = Reply::create([
             'moment_id' => $moment->id,
             'person_id' => $person->id,
             'body' => $body,
+            'body_html' => DocumentRenderer::render($body, $manager->editorNodes()),
         ]);
 
         $reply->setRelation('person', $person);

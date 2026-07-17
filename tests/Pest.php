@@ -67,3 +67,27 @@ function fakeManager(array $extensions = []): Manager
 
     return new Manager(new FakeManifest($extensions), new Dispatcher(), $cache);
 }
+
+/**
+ * A ProseMirror/TipTap JSON document string, for `DocumentRenderer`/`PlainTextExtractor`/
+ * `ValidDocument` tests -- shared here rather than duplicated per test file since both
+ * DocumentRendererTest and PlainTextExtractorTest need the exact same document shapes.
+ *
+ * @param  array<int, array>  $content
+ */
+function editorDoc(array $content): string
+{
+    return json_encode(['type' => 'doc', 'content' => $content]);
+}
+
+/**
+ * @param  array<int, array>  $marks
+ */
+function editorText(string $text, array $marks = []): array
+{
+    return array_filter([
+        'type' => 'text',
+        'text' => $text,
+        'marks' => $marks,
+    ], fn ($value) => $value !== []);
+}

@@ -2521,3 +2521,52 @@ forms are all htmx-driven; Pin's aren't.
 `FeedVisibilityTest`, `RedirectUnauthenticatedTest`). Full suite green (108 tests). `help ->
 success` in `Pin::REASONS` was the agent's own pick, not yet confirmed by Daniël. Not yet
 browser-verified.
+
+## 2026-07-17 — TipTap 3.x rich-text editor (v1: a Notion-styled editor, not the paid template)
+
+**Decision:** `Moment`/`Reply.body` is repurposed (no schema change) to hold canonical
+ProseMirror JSON; a new `body_html` column holds sanitized HTML rendered server-side at write
+time by `Kopling\Core\Ux\Editor\DocumentRenderer` — a hand-written tree-walker over a closed,
+PHP-declared node/mark catalog (`Ux\Editor\EditorNode`), not an HTML sanitizer over
+client-supplied markup. Extensibility is a new `ChangesEditor` contract (mirrors `ChangesTheme`'s
+"vote into one closed, Core-owned catalog" shape, not `HasIcons`'s "declare your own namespaced
+thing") — `Manager::editorNodes()` unions every installed extension's vote with Core's own
+defaults. The swappable-editor-implementation slot (`Ux\Editor::SLOT`) reuses the existing
+`ChangesUx`/`Ux::replace()` mechanism verbatim, same as `Card\Body`/`Top` — no new contract
+needed just to make swapping possible.
+
+**Scope correction:** `tiptap.dev/templates/notion-like-template` (what was originally asked
+for) is **not** open-source — verified directly against the page: Tiptap Start plan ($59/mo+),
+React-only, depends on Tiptap's paid "Tiptap UI Components" package plus Cloud
+collaboration/AI. Built a Notion-*styled* editor instead (slash-command menu via the free
+`@tiptap/suggestion` primitive, block-style layout) from free/MIT primitives only
+(`@tiptap/core`+`starter-kit`+`extension-{link,underline,task-list,task-item,placeholder}`+
+`suggestion`+`pm` — every package's license individually checked via `npm view <pkg> license`
+before adding it to `package.json`).
+
+**v1/v2 split:** v1 ships one Core-owned editor; extensions may only vote which of a closed
+node/mark set is enabled (no new client-side behavior). A genuinely alternative editor
+implementation or a bespoke custom node needs real per-extension JS bundling, which doesn't
+exist yet (the "documented but unbuilt" per-extension `resources/`+`dist/`+release-workflow
+CLAUDE.md already flags) — deferred as v2, not attempted here.
+
+**Other notes:**
+- `editor.js` (tiny, always-loaded shim) dynamically `import()`s `editor-tiptap.js` (the real
+  ProseMirror payload, ~125KB gzipped) only once a page has a mount point — first dynamic
+  `import()` in this codebase. Own Vite entry pair in both `vite.config.js` and
+  `vite.core-dist.config.js`, not folded into `app.js`.
+- Editor JS is plain vanilla + an imperative API on the mount element (`.kopEditor`), not
+  `Alpine.data()` — same ordering gotcha `reply-dock` already worked around.
+- `reply-dock`'s quote/canned-reply mechanism and discussions' `"> Author: text"` regex
+  quote-parser were both real migration work, not cosmetic — quotes are now real, directly
+  editable `blockquote` nodes inserted via the imperative API, not string-prefixed `FormData`.
+  A backfill migration re-derives them for historical rows (`Discussions\Support\
+  LegacyReplyDocument`, pulled out of the anonymous migration class specifically so it's
+  testable).
+- First `FormRequest`s in this codebase (`StoreMomentRequest`/`StoreReplyRequest`, sharing a
+  `ValidDocument` rule): size/depth ceilings + reject any node/mark type outside
+  `Manager::editorNodes()`.
+
+**Status:** Decided & implemented (`k-core/src/Ux/Editor*`, `k-extensions/{composer,
+discussions,reply-dock,thread-title}`). Full suite green (138 tests). `npm run build` /
+`build:core-dist` both verified. Not yet browser-verified.

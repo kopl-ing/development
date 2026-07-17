@@ -14,6 +14,7 @@ use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Model as ExtendModel;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
+use Kopling\Core\Extension\Contract\ChangesEditor;
 use Kopling\Core\Extension\Contract\ChangesIcons;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
@@ -31,6 +32,7 @@ use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Settings\EnabledExtensions;
 use Kopling\Core\Storage\StorageRequest;
+use Kopling\Core\Ux\Editor\EditorNode;
 use Kopling\Core\Ux\Form\Field;
 use Kopling\Core\Ux\Theme\ColorScheme;
 use Kopling\Core\Ux\Theme\Token;
@@ -651,6 +653,40 @@ class Manager
         }
 
         return $choices;
+    }
+
+    /**
+     * Every `EditorNode` any installed extension (Core included) has voted to enable, unioned
+     * (idempotent -- enabling something twice is the same as once) and keyed by its own
+     * `->value` to dedupe. Unlike `permissions()`/`icons()`, nothing here is prefixed: these
+     * aren't independently-namespaced declarations, they're votes into one shared, closed
+     * catalog, same non-prefixing reasoning `themes()` already applies to `Token` keys.
+     * `Collection::ensure(EditorNode::class)` guards `ChangesEditor::editor()` itself, same
+     * role `ensure()` plays for every other collector here.
+     *
+     * @return array<EditorNode>
+     */
+    public function editorNodes(): array
+    {
+        if (($cached = $this->cache->get()) !== null) {
+            return array_map(fn (string $value) => EditorNode::from($value), $cached['editorNodes']);
+        }
+
+        $nodes = [];
+
+        foreach ($this->extensions() as $extension) {
+            if (! $extension instanceof ChangesEditor) {
+                continue;
+            }
+
+            $declared = collect($extension->editor())->ensure(EditorNode::class);
+
+            foreach ($declared as $node) {
+                $nodes[$node->value] = $node;
+            }
+        }
+
+        return array_values($nodes);
     }
 
     /**

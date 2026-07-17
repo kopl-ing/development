@@ -6,14 +6,16 @@ namespace Kopling\Demo\Command;
 
 use Illuminate\Console\Command;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Extension\Manager;
 use Kopling\Core\People\Person;
+use Kopling\Core\Ux\Editor\DocumentRenderer;
 
 class SeedFakeDataCommand extends Command
 {
     protected $signature = 'kopling:demo:seed-fake-data';
     protected $description = 'Seed fake data for the demo extension';
 
-    public function handle(): int
+    public function handle(Manager $manager): int
     {
         $person = null;
 
@@ -21,14 +23,27 @@ class SeedFakeDataCommand extends Command
             return $person ??= $this->personOrNew();
         };
 
+        $enabled = $manager->editorNodes();
         $actions = [$resolvePerson];
 
         for ($i = 0, $count = random_int(3, 9); $i < $count; $i++) {
-            $actions[] = function () use ($resolvePerson): void {
+            $actions[] = function () use ($resolvePerson, $enabled): void {
+                // body is a ProseMirror JSON document, not plain text -- a single paragraph is
+                // all a fake paragraph needs, same shape ComposerController::store() builds
+                // from a real editor submission.
+                $body = json_encode([
+                    'type' => 'doc',
+                    'content' => [[
+                        'type' => 'paragraph',
+                        'content' => [['type' => 'text', 'text' => fake()->paragraph()]],
+                    ]],
+                ]);
+
                 Moment::create([
                     'person_id' => $resolvePerson()->id,
                     'title' => fake()->sentence(),
-                    'body' => fake()->paragraph(),
+                    'body' => $body,
+                    'body_html' => DocumentRenderer::render($body, $enabled),
                 ]);
             };
         }

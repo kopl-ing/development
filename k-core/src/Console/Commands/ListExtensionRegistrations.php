@@ -7,6 +7,7 @@ namespace Kopling\Core\Console\Commands;
 use Illuminate\Console\Command;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
+use Kopling\Core\Extension\Contract\ChangesEditor;
 use Kopling\Core\Extension\Contract\ChangesIcons;
 use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
@@ -65,6 +66,7 @@ class ListExtensionRegistrations extends Command
         $this->theme($manager, $id);
         $this->icons($manager, $id);
         $this->adminSettings($manager, $id);
+        $this->editor($manager, $package);
 
         return self::SUCCESS;
     }
@@ -96,6 +98,7 @@ class ListExtensionRegistrations extends Command
             HasAdminSettings::class => 'HasAdminSettings',
             HasIcons::class => 'HasIcons',
             ChangesIcons::class => 'ChangesIcons',
+            ChangesEditor::class => 'ChangesEditor',
         ];
 
         $implemented = array_intersect_key($known, class_implements($extension));
@@ -365,6 +368,26 @@ class ListExtensionRegistrations extends Command
         foreach ($icons as $icon) {
             $this->components->twoColumnDetail($icon->id, "{$icon->label}, default: {$icon->default}");
             $this->line("    <fg=gray><x-k::icon name=\"{$icon->id}\" /></>");
+        }
+
+        $this->newLine();
+    }
+
+    protected function editor(Manager $manager, string $package): void
+    {
+        $this->components->info('Editor node/mark votes (ChangesEditor)');
+
+        $extension = $manager->extensions(includeDisabled: true)[$package];
+
+        if (! $extension instanceof ChangesEditor) {
+            $this->line('  <fg=gray>none</>');
+            $this->newLine();
+
+            return;
+        }
+
+        foreach ($extension->editor() as $node) {
+            $this->line("  <fg=gray>{$node->value}</>");
         }
 
         $this->newLine();

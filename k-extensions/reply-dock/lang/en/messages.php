@@ -10,7 +10,6 @@ return [
     'cancel' => 'Cancel',
     'quote' => '+ Quote',
     'unquote' => '− Quote',
-    'remove_quote' => 'Remove quote',
     'scrub' => 'Drag to scrub the discussion',
     'follow' => 'Follow',
     'following' => 'Following',

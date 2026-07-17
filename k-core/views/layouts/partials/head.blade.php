@@ -3,6 +3,14 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>@yield('title', 'Kopling')</title>
 @vite(['k-core/src/Ux/css/app.css', 'k-core/src/Ux/js/app.js'])
+{{--
+    editor.js is its own Vite entry, not folded into app.js -- a page with no editor mount point
+    still loads this tiny shim, but the real TipTap/ProseMirror payload (editor-tiptap.js) is
+    only pulled in via dynamic import() once a mount point actually exists (see Ux/js/editor.js).
+    Every page in the Community portal today can render the composer, so this loads
+    unconditionally rather than being gated per-Portal the way extension assets are.
+--}}
+@vite(['k-core/src/Ux/css/editor.css', 'k-core/src/Ux/js/editor.js'])
 <style>{!! \Kopling\Core\Ux\Theme::css() !!}</style>
 {{--
     Every extension's css/js attached to the Portal this request resolved to (see

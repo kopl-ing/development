@@ -24,7 +24,7 @@ class Content extends Component
     {
         return view('kopling-core::card.content', [
             'title' => $this->context?->getSubject()?->title,
-            'body' => $this->context?->getSubject()?->body,
+            'bodyHtml' => $this->context?->getSubject()?->body_html,
             'url' => $this->context?->getSubjectUrl(),
         ]);
     }

@@ -6,10 +6,11 @@ namespace Kopling\Composer\Controllers;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Kopling\Composer\Requests\StoreMomentRequest;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Ux\Editor\DocumentRenderer;
 
 class ComposerController
 {
@@ -18,21 +19,22 @@ class ComposerController
      * can prepend it to the feed (hx-swap="afterbegin") — the same card component the feed and
      * the poller use, so an extension's card additions appear on it too. Title is optional
      * (charter: title-optional). Without htmx (no-JS) it redirects back to the feed instead.
+     * `body_html` is rendered server-side from the validated `body` document here, at write
+     * time -- never trusted directly from the client (see `DocumentRenderer`'s own docblock).
      */
-    public function store(Request $request, Manager $manager): View|RedirectResponse
+    public function store(StoreMomentRequest $request, Manager $manager): View|RedirectResponse
     {
         $person = Auth::user();
 
-        $title = trim((string) $request->input('title', ''));
-        $body = trim((string) $request->input('body', ''));
-
-        abort_if($body === '', 422);
+        $title = trim((string) ($request->validated('title') ?? ''));
+        $body = (string) $request->validated('body');
 
         /** @var Moment $moment */
         $moment = Moment::create([
             'person_id' => $person->id,
             'title' => $title !== '' ? $title : null,
             'body' => $body,
+            'body_html' => DocumentRenderer::render($body, $manager->editorNodes()),
         ]);
 
         $moment->setRelation('person', $person);

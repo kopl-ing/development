@@ -7,6 +7,7 @@ namespace Kopling\Core\Console\Commands;
 use Illuminate\Console\Command;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\RegistrationCache;
+use Kopling\Core\Ux\Editor\EditorNode;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
@@ -39,6 +40,7 @@ class CacheRegistrations extends Command
             'themes' => $manager->themes()->all(),
             'themeColorSchemes' => $manager->themeColorSchemes()->map(fn ($scheme) => $scheme->value)->all(),
             'icons' => $manager->icons()->map(fn ($icon) => $icon->toArray())->all(),
+            'editorNodes' => array_map(fn (EditorNode $node) => $node->value, $manager->editorNodes()),
             'iconPackMappings' => $manager->iconPackMappings()->all(),
             'adminSettings' => $manager->adminSettings()
                 ->map(fn (array $fields) => array_map(fn ($field) => $field->toArray(), $fields))

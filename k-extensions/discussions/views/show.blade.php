@@ -1,13 +1,18 @@
 @php
     use Illuminate\Support\Str;
+    use Kopling\Core\Extension\Manager;
     use Kopling\Core\Ux\Context;
+    use Kopling\Core\Ux\Editor\PlainTextExtractor;
+    use Kopling\Core\Ux\SlotResolver;
 
     // The first post (the moment) is quotable into the reply dock the same way replies are
     // (see partials/reply.blade.php). Its quote id is the moment's own id -- distinct from any
-    // reply id, so the dock tracks it as its own entry.
+    // reply id, so the dock tracks it as its own entry. $moment->body is the raw TipTap document
+    // (see DocumentRenderer/PlainTextExtractor's own docblocks), not plain text -- extract it the
+    // same way partials/reply.blade.php does for a reply's own quote preview.
     $momentId = (string) $moment->id;
     $momentAuthor = $moment->person?->name ?? __('kopling-discussions::messages.someone');
-    $momentQuoteText = Str::limit(trim(preg_replace('/\s+/', ' ', (string) $moment->body)), 140);
+    $momentQuoteText = Str::limit(trim(preg_replace('/\s+/', ' ', PlainTextExtractor::extract((string) $moment->body))), 140);
 @endphp
 {{--
     The discussion page for one moment: the moment itself (through core's own card, so it
@@ -49,24 +54,17 @@
                 @endforeach
             </div>
 
-            @auth
-                <form hx-post="{{ route('kopling-core::community/discussions.reply', $moment->id) }}"
-                      hx-target="#replies-{{ $moment->id }}"
-                      hx-swap="beforeend"
-                      hx-on::after:request="if ((event.detail?.ctx?.response?.status ?? 500) < 400) this.reset()"
-                      class="flex flex-col gap-2">
-                    <textarea name="body" required rows="3"
-                              class="textarea textarea-bordered w-full"
-                              placeholder="{{ __('kopling-discussions::messages.composer_placeholder') }}"></textarea>
-                    <div class="flex justify-end">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            {{ __('kopling-discussions::messages.composer_submit') }}
-                        </button>
-                    </div>
-                </form>
-            @else
+            {{-- A slot, not hardcoded markup -- lets a superseding extension (reply-dock) call
+                 `Ux::remove('kopling-discussions::default-composer')` and own the one reply
+                 surface itself, instead of only CSS-hiding a form whose editor still mounts.
+                 The guest fallback stays here, unconditional on the slot -- see composer.blade.php's
+                 own note on why "log in to reply" isn't part of what gets removed. --}}
+            @foreach (SlotResolver::resolve('kopling-discussions::show.composer', app(Manager::class)->ux(), new Context(subject: $moment)) as $entry)
+                <x-dynamic-component :component="$entry->component" :data="$entry->data" :context="$entry->context" />
+            @endforeach
+            @guest
                 <p class="text-sm opacity-70">{{ __('kopling-discussions::messages.login_to_reply') }}</p>
-            @endauth
+            @endguest
         </div>
     </div>
 </x-k::community.chrome>
