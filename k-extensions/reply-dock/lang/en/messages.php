@@ -11,9 +11,6 @@ return [
     'quote' => '+ Quote',
     'unquote' => '− Quote',
     'scrub' => 'Drag to scrub the discussion',
-    'follow' => 'Follow',
-    'following' => 'Following',
-    'report' => 'Report',
     'canned' => 'Canned',
     'canned_items' => [
         'Thanks for sharing! 🙏',

@@ -61,6 +61,35 @@ it('mounts exactly one editor for a signed-in person, even with a superseding co
     expect(substr_count($html, '<div data-tiptap-editor'))->toBe(1);
 });
 
+it('shows the reply count on the feed but not as a redundant engage link on the discussion page itself', function () {
+    $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
+    $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
+    $replier = Person::create(['name' => 'Bob', 'email' => 'bob@example.test', 'password' => 'secret']);
+
+    Reply::create([
+        'moment_id' => $moment->id,
+        'person_id' => $replier->id,
+        'body' => editorDoc([['type' => 'paragraph', 'content' => [editorText('Nice!')]]]),
+        'body_html' => '<p>Nice!</p>',
+    ]);
+
+    $feedHtml = $this->actingAs($author)
+        ->get(route('kopling-core::community/community'))
+        ->assertOk()
+        ->getContent();
+
+    expect($feedHtml)->toContain('1 reply');
+
+    $showHtml = $this->actingAs($author)
+        ->get(route('kopling-core::community/discussions.show', $moment->id))
+        ->assertOk()
+        ->getContent();
+
+    // "1 reply" still appears once, from the thread's own heading -- just not doubled by the
+    // card's engage link, which is exactly what's suppressed on the moment's own discussion page.
+    expect(substr_count($showHtml, '1 reply'))->toBe(1);
+});
+
 it('shows a login prompt instead of the composer for a guest', function () {
     $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
     $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);

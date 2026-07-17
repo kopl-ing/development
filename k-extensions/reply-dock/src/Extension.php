@@ -20,6 +20,13 @@ use Kopling\Core\Portal\PortalExtension;
  * supersedes discussions' built-in inline reply form by removing its slot entry outright
  * (`kopling-discussions::default-composer`) so there's one reply surface, not two, and only one
  * TipTap editor ever mounts on the page. Inline Alpine morph + htmx — no bundled JS.
+ *
+ * The collapsed bar's own tool row (next to the scrubber) is itself a slot --
+ * `kopling-reply-dock::dock.tools`, resolved in dock.blade.php -- registering nothing here by
+ * default. There's no Follow/Report of its own to declare (no follow/report feature exists yet),
+ * and inventing dummy buttons for a slot other extensions can already fill was the wrong call;
+ * a real extension adds a real action there, the same "no fake actions" reasoning
+ * `Kopling\Core\Ux\Card\Control::defaults()` already applies to the card's own action menu.
  */
 class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasIcons
 {
@@ -48,8 +55,6 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
     public function icons(): array
     {
         return [
-            new Icon(id: 'follow', label: 'Follow', default: 'fas-user-plus'),
-            new Icon(id: 'report', label: 'Report', default: 'fas-flag'),
             new Icon(id: 'reply', label: 'Reply', default: 'fas-reply'),
         ];
     }

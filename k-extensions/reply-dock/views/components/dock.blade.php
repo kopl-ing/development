@@ -1,5 +1,8 @@
 @php
     use Kopling\Core\Content\Moment;
+    use Kopling\Core\Extension\Manager;
+    use Kopling\Core\Ux\Context;
+    use Kopling\Core\Ux\SlotResolver;
 
     // Discussion page + signed-in only. On the feed the route has no {moment}; a guest keeps
     // discussions' own "log in to reply" line (its form only renders for auth anyway).
@@ -8,16 +11,25 @@
 @endphp
 
 @if ($moment instanceof Moment && $me)
-    {{-- The "post scrubber" dock: a sticky pill with a reading-position counter + a draggable
-         scrubber, Follow / Report / Reply, that morphs into a composer (quote blocks + canned
-         replies). All logic is INLINE x-data (extension js can't register an Alpine component
-         before core's Alpine.start()); styling is css/app.css (extension utility classes aren't
-         in core's compiled build). Store refs use `?.` so they survive the quotes store
-         registering a beat late. --}}
+    @php
+        // The collapsed bar's own tool row, next to the scrubber: a plain slot (no default
+        // entries, same "no fake actions, a real one registers when it exists" reasoning as
+        // `Kopling\Core\Ux\Card\Control::defaults()`) so an extension can add a real action --
+        // Follow, Report, whatever -- without reply-dock inventing dummy buttons that do nothing.
+        // An entry renders a `<button class="kop-dock__tool">` (`.is-on` toggles the active look
+        // already styled in css/app.css) containing an `<x-k::icon>` + a `.kop-dock__tool-lbl`
+        // span, matching the Reply button's own markup just below.
+        $toolEntries = SlotResolver::resolve('kopling-reply-dock::dock.tools', app(Manager::class)->ux(), new Context(subject: $moment));
+    @endphp
+    {{-- The "post scrubber" dock: a sticky pill with a reading-position counter, a draggable
+         scrubber, an extensible tool row (see $toolEntries above) + Reply, that morphs into a
+         composer (quote blocks + canned replies). All logic is INLINE x-data (extension js can't
+         register an Alpine component before core's Alpine.start()); styling is css/app.css
+         (extension utility classes aren't in core's compiled build). Store refs use `?.` so they
+         survive the quotes store registering a beat late. --}}
     <div class="kop-dock"
          x-data="{
             open: false,
-            following: false,
             count: 1,
             current: 1,
             progress: 0,
@@ -76,7 +88,7 @@
                 window.addEventListener('pointerup', up);
             },
             openComposer() { this.open = true; this.$nextTick(() => { this.editorEl()?.querySelector('.ProseMirror')?.focus(); this.syncPad(); }); },
-            // The mount point rendered by the editor component inside x-ref="editor" --
+            // The mount point rendered by the editor component inside x-ref=editor --
             // editor-tiptap.js exposes its imperative API as `.kopEditor` directly on this
             // element (see its own mount() docblock), not through an Alpine ref of its own.
             editorEl() { return this.$refs.editor?.querySelector('[data-tiptap-editor]') ?? null; },
@@ -87,22 +99,24 @@
                 document.body.style.paddingBottom = (h + 28) + 'px';
             },
 
-            // Tracks which reply ids are "currently quoted" purely for the +Quote/−Quote label
-            // on each reply's own button (kop-quotes-changed) -- it no longer double as a
-            // pending-quotes buffer serialized at submit time. A quote is now inserted as a real,
-            // directly-editable blockquote node the moment it's toggled on; toggling the same
-            // reply's button off only forgets the label state, it doesn't reach back into the
-            // document to remove that blockquote -- the editor is the actual document now, not a
-            // hidden string prefix, so removing a quote the user changed their mind about is just
-            // deleting it in the editor like any other content.
+            // Tracks which reply ids are currently quoted, purely for the +Quote/−Quote label
+            // on each reply's own button (kop-quotes-changed) -- it no longer doubles as a
+            // pending-quotes buffer serialized at submit time. A quote is inserted as a real,
+            // directly-editable blockquote node the moment it's toggled on (tagged with the
+            // reply's own id -- see insertQuote()'s own docblock), and toggling the same reply's
+            // button back off finds that exact node by id and deletes it (removeQuote()) -- the
+            // editor is the actual document now, not a hidden string prefix, so this is real
+            // document surgery, not just a label flip. A person is still free to delete the
+            // blockquote by hand instead; the label just won't notice until they toggle it.
             quotes: [],
             toggleQuote(d) {
                 const i = this.quotes.findIndex(q => q.id === d.id);
                 if (i >= 0) {
                     this.quotes.splice(i, 1);
+                    this.editorEl()?.kopEditor?.removeQuote(d.id);
                 } else {
                     this.quotes.push(d);
-                    this.editorEl()?.kopEditor?.insertQuote({ author: d.author, text: d.text });
+                    this.editorEl()?.kopEditor?.insertQuote(d);
                 }
                 this.emitQuotes();
                 this.openComposer();
@@ -125,14 +139,9 @@
                 </div>
 
                 <div class="kop-dock__tools">
-                    <button type="button" class="kop-dock__tool" :class="following && 'is-on'" @click="following = !following">
-                        <x-k::icon name="kopling-reply-dock::follow" width="14" height="14" />
-                        <span class="kop-dock__tool-lbl" x-text="following ? @js(__('kopling-reply-dock::messages.following')) : @js(__('kopling-reply-dock::messages.follow'))"></span>
-                    </button>
-                    <button type="button" class="kop-dock__tool">
-                        <x-k::icon name="kopling-reply-dock::report" width="14" height="14" />
-                        <span class="kop-dock__tool-lbl">{{ __('kopling-reply-dock::messages.report') }}</span>
-                    </button>
+                    @foreach ($toolEntries as $entry)
+                        <x-dynamic-component :component="$entry->component" :data="$entry->data" :context="$entry->context" />
+                    @endforeach
                     <button type="button" class="kop-dock__reply" @click="openComposer()">
                         <x-k::icon name="kopling-reply-dock::reply" width="14" height="14" />
                         {{ __('kopling-reply-dock::messages.reply') }}
