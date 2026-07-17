@@ -33,11 +33,15 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
     }
 
     /**
-     * Two card additions, both reading the moment from `$context->subject`:
+     * Three card additions, all reading the moment from `$context->subject`:
      * - `teaser` in the body after core's `content` -- the "N people used X words" line.
      * - `engage` in the footer -- Reply / Open discussion. `after` names the reactions
      *   extension's last footer entry so, when both are installed, reactions come first;
      *   it's a harmless no-op (dangling anchor) when reactions isn't present.
+     * - `quote-op` in the footer too, right after `engage` -- quotes the moment itself into the
+     *   reply dock. Its own entry rather than folded into `engage`, so either can be
+     *   removed/reordered on its own; only renders on the moment's own discussion page (see its
+     *   own docblock).
      *
      * `default-composer` is the discussion page's own reply form, in its own slot
      * (`kopling-discussions::show.composer`, resolved with the moment bound as `$context`) rather
@@ -56,6 +60,10 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->in('kopling-core::card.footer')
             ->as('engage')
             ->after('kopling-reactions::words')
+            ->add('kopling-discussions::quote-op')
+            ->in('kopling-core::card.footer')
+            ->as('quote-op')
+            ->after('kopling-discussions::engage')
             ->add('kopling-discussions::composer')
             ->in('kopling-discussions::show.composer')
             ->as('default-composer');

@@ -61,6 +61,31 @@ it('mounts exactly one editor for a signed-in person, even with a superseding co
     expect(substr_count($html, '<div data-tiptap-editor'))->toBe(1);
 });
 
+it('shows a quote button for the OP in the card footer only on its own discussion page', function () {
+    $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
+    $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
+
+    // The dispatch call itself, not the bare event name -- reply-dock's own dock also carries a
+    // `@kop-quote-toggle.window` *listener* attribute, which contains the same event name
+    // substring and would otherwise be miscounted as a second button.
+    $dispatchCall = "\$dispatch('kop-quote-toggle', { id: ";
+
+    $feedHtml = $this->actingAs($author)
+        ->get(route('kopling-core::community/community'))
+        ->assertOk()
+        ->getContent();
+
+    expect($feedHtml)->not->toContain($dispatchCall);
+
+    $showHtml = $this->actingAs($author)
+        ->get(route('kopling-core::community/discussions.show', $moment->id))
+        ->assertOk()
+        ->getContent();
+
+    // Exactly one -- the OP's own quote button; there are no replies yet to add their own.
+    expect(substr_count($showHtml, $dispatchCall))->toBe(1);
+});
+
 it('shows the reply count on the feed but not as a redundant engage link on the discussion page itself', function () {
     $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
     $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
