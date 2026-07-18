@@ -2570,3 +2570,88 @@ CLAUDE.md already flags) — deferred as v2, not attempted here.
 **Status:** Decided & implemented (`k-core/src/Ux/Editor*`, `k-extensions/{composer,
 discussions,reply-dock,thread-title}`). Full suite green (138 tests). `npm run build` /
 `build:core-dist` both verified. Not yet browser-verified.
+
+## 2026-07-18 — Upvotes: per-tag vote-emoji config, reusing `reactions`, `PALETTE` untouched
+
+**Decision:** Roadmap's "Upvotes" said add 👎 to `Reaction::PALETTE` — rejected: `PALETTE`
+renders unconditionally on every card's rail, so anything added there becomes a global,
+always-on reaction, not a scoped feature. Instead each `Tag` gets nullable `upvote_emoji`/
+`downvote_emoji` columns; whoever creates/edits a tag decides per tag whether it carries voting
+and which emoji. Votes are ordinary rows in the existing `reactions` table (no new table, no
+enforced mutual exclusivity between up/down — confirmed acceptable). A new `POST /_reactions/
+{moment}/vote` route validates the submitted emoji against `Reaction::voteConfigFor($moment)`
+(the moment's own tags' configured emoji), not `PALETTE`. A new `vote` component renders
+before the generic `rail`, always showing the count (including 0); the `rail` excludes any
+vote-claimed emoji via `array_diff` so the same emoji never gets two buttons.
+
+Building this also required Tags' first admin CRUD (`k-extensions/tags` had none — public
+`/tag/{slug}` page only) and a small `Kopling\Core\Ux\Modal` change: an optional explicit `$id`
+constructor param, so a validation-error redirect-back can reopen the exact dialog that failed
+(a hidden `_form` field + inline `showModal()` script — no new mechanism otherwise).
+
+**Alternatives considered:** a global reactions-extension setting naming which tags get voting
+(a `TagSelection` admin field) — postponed; per-tag config needs no cross-extension coordination
+and is simpler to reason about.
+
+**Status:** Decided & implemented (`k-extensions/tags` admin CRUD + `manage-tags` permission,
+`k-extensions/reactions` vote route/component, `k-core/src/Ux/Modal.php`). Full suite green (167
+tests). Not yet browser-verified.
+
+## 2026-07-18 — "Top" feed sort mode (thumbs-up count only, not net score)
+
+**Decision:** `?sort=top` reorders the feed by upvote count via a new `SortMomentsByVotes`
+listener on `QueryingMoments` (same mechanism Pin's `ExcludeVisiblePinnedMoments` already uses —
+no core change). Aggregates across every tag's configured `upvote_emoji` as one global list
+rather than branching per-tag — realistically only one or two tags will ever carry voting.
+Ordered by thumbs-up count only, not net of downvotes, matching the roadmap's own wording. A
+`sort-toggle` component (Latest/Top links, plain navigation, not htmx) fills Community's
+existing `content-top` slot, self-hiding when no tag configures upvoting.
+
+**Status:** Decided & implemented (`k-extensions/reactions/src/Listeners/
+SortMomentsByVotes.php`). Full suite green (167 tests). Not yet browser-verified.
+
+## 2026-07-18 — `Ux/Form/EmojiPicker`: a Core-owned emoji picker, not a per-caller grid
+
+**Decision:** The tags admin form's `upvote_emoji`/`downvote_emoji` fields (plain text inputs at
+first) became a real emoji picker, built as a reusable Core primitive
+(`Kopling\Core\Ux\Form\EmojiPicker`, `<x-k::form.emoji-picker>`) rather than a one-off in
+`k-extensions/tags` -- explicitly requested as "core, any Portal can use," not scoped to this one
+form. Backed by `emoji-mart`/`@emoji-mart/data` (MIT, github.com/missive/emoji-mart; both
+license-checked via `npm view`/GitHub API before adding). `reactions`' own `PALETTE`-grid picker
+(`modal.blade.php`) is untouched -- that's a closed-set picker for a fixed reaction palette, a
+different problem from a free-choice single-emoji field.
+
+Same dynamic-`import()` split TipTap's editor already established (`Ux/js/emoji-picker.js`, a
+tiny always-loaded shim, vs. `emoji-picker-mart.js`, the real payload -- 506KB min / 110KB gzip,
+same order of magnitude as `editor-tiptap.js`'s 392KB/125KB). Lazier than the editor: nothing
+mounts eagerly at all, the heavy module only loads on a trigger's first *click* (event
+delegation on `document`, no per-mount lifecycle to track across htmx swaps) -- appropriate
+since, unlike ProseMirror, this widget has no persistent live state and today's only caller
+(`/admin/tags`) is a low-traffic admin screen where most triggers on the page are never opened.
+Loaded unconditionally in `head.blade.php` (not gated per-Portal) precisely because it's a Core
+primitive, not owned by whichever extension happens to use it first -- same reasoning as
+`editor.js`'s own unconditional load.
+
+`emoji-mart`'s `Picker` renders into its own shadow DOM, so `emoji-picker.css` only needs to
+position the popover (`position: absolute` inside a `position: relative` wrapper) -- none of its
+internal styling can leak either direction. Vanilla JS throughout (`toggle()`/`onEmojiSelect`
+writing straight into a hidden `<input>`), not Alpine, same ordering reasoning `editor.js`
+already documents.
+
+**Status:** Decided & implemented (`k-core/src/Ux/Form/EmojiPicker.php`, `Ux/js/emoji-picker*.js`,
+`Ux/css/emoji-picker.css`, wired into both `vite.config.js`/`vite.core-dist.config.js` and
+`k-extensions/tags`' admin form). `npm run build` / `build:core-dist` both verified. Full suite
+green (171 tests).
+
+**Addendum (same day):** browser-verification did surface the flagged risk -- inside
+`<x-k::modal>`, the popover was appended into `container` (a normal-flow descendant of
+`.modal-box`, `overflow-y: auto`), so opening it just grew `.modal-box`'s own scrollable area
+instead of floating above it. Fixed by appending the popover to `container.closest('dialog') ??
+document.body` instead -- a native `<dialog>` is `position: fixed; inset: 0` (daisyUI's
+`.modal`), so it's never a scroll/clip ancestor, and staying inside the dialog's own DOM subtree
+keeps the popover in its top-layer stacking (paints above the backdrop without needing to beat
+the page's own z-index). Position is computed in JS (`getBoundingClientRect()` on the trigger,
+measured post-append since emoji-mart's custom element only reports real size once rendered),
+not CSS, and closes (rather than re-tracks) on scroll/resize -- same "close, don't chase"
+posture Escape/click-outside already had. Full suite still green (171 tests); this specific fix
+itself remains visually unverified beyond Daniël's original repro.

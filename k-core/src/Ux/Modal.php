@@ -21,6 +21,11 @@ use Illuminate\View\Component;
  * devtools, with a short random suffix so multiple modals sharing the same label on one page
  * (e.g. one "Manage groups" modal per person row) never collide. Takes a `trigger` named slot
  * for the button's contents and the default slot for the panel's body.
+ *
+ * `$id` may be passed explicitly instead, when a caller needs a stable, predictable id to
+ * target from its own JS (e.g. re-opening a specific create/edit dialog after a validation
+ * redirect-back leaves it closed with errors sitting in the `$errors` bag -- see the tags
+ * admin CRUD screen for the first caller doing this).
  */
 class Modal extends Component
 {
@@ -28,8 +33,9 @@ class Modal extends Component
 
     public function __construct(
         public string $label,
+        ?string $id = null,
     ) {
-        $this->id = 'modal-'.Str::slug($label).'-'.Str::random(4);
+        $this->id = $id ?? 'modal-'.Str::slug($label).'-'.Str::random(4);
     }
 
     public function render(): View

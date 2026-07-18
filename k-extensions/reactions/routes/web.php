@@ -40,6 +40,37 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('reactions.toggle');
 
+    // Toggle the viewer's vote for one emoji on one moment -- separate from the generic
+    // toggle above so it validates against that moment's own tags' configured vote emoji
+    // (Reaction::voteConfigFor), not the generic Reaction::PALETTE. Same find-or-
+    // create/delete toggle, same `reactions` table/row shape -- voting is not a distinct
+    // storage concept, just a gated subset of the same emoji-reaction mechanism.
+    Route::post('/_reactions/{moment}/vote', function (Moment $moment) {
+        $actor = Auth::user();
+
+        $emoji = (string) request()->input('emoji', '');
+        $configured = array_column(Reaction::voteConfigFor($moment), 'emoji');
+        abort_unless(in_array($emoji, $configured, true), 422);
+
+        $existing = Reaction::query()
+            ->where('moment_id', $moment->id)
+            ->where('person_id', $actor->id)
+            ->where('emoji', $emoji)
+            ->first();
+
+        $existing
+            ? $existing->delete()
+            : Reaction::create([
+                'moment_id' => $moment->id,
+                'person_id' => $actor->id,
+                'emoji' => $emoji,
+            ]);
+
+        return view('kopling-reactions::components.vote', [
+            'context' => new Context(subject: $moment, actor: $actor),
+        ]);
+    })->name('reactions.vote');
+
     // Add (or update) the viewer's reaction from the picker modal: an emoji plus an OPTIONAL
     // short word. Then re-render the "Latest reactions" strip; the response also carries the
     // rail back out-of-band so its counts stay in sync. updateOrCreate keeps it the same

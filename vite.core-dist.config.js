@@ -21,12 +21,15 @@ export default defineConfig({
                 style: fileURLToPath(new URL('./k-core/src/Ux/css/app.css', import.meta.url)),
                 editor: fileURLToPath(new URL('./k-core/src/Ux/js/editor.js', import.meta.url)),
                 'editor-style': fileURLToPath(new URL('./k-core/src/Ux/css/editor.css', import.meta.url)),
+                'emoji-picker': fileURLToPath(new URL('./k-core/src/Ux/js/emoji-picker.js', import.meta.url)),
+                'emoji-picker-style': fileURLToPath(new URL('./k-core/src/Ux/css/emoji-picker.css', import.meta.url)),
             },
             output: {
-                // editor.js dynamically import()s editor-tiptap.js (the real TipTap/ProseMirror
-                // payload) so pages without an editor mount never load it -- chunkFileNames
-                // keeps that split chunk's own name fixed/unhashed too, same reasoning
-                // entryFileNames already applies to the two real entries.
+                // editor.js/emoji-picker.js each dynamically import() their own real payload
+                // (editor-tiptap.js / emoji-picker-mart.js) so pages without a mount point, or
+                // whose picker nobody ever opened, never load it -- chunkFileNames keeps each
+                // split chunk's own name fixed/unhashed too, same reasoning entryFileNames
+                // already applies to the real entries.
                 entryFileNames: '[name].js',
                 chunkFileNames: '[name].js',
                 assetFileNames: (asset) => {
@@ -34,6 +37,7 @@ export default defineConfig({
 
                     if (name === 'style.css') return 'app.css';
                     if (name === 'editor-style.css') return 'editor.css';
+                    if (name === 'emoji-picker-style.css') return 'emoji-picker.css';
 
                     return '[name][extname]';
                 },

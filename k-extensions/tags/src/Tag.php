@@ -23,6 +23,8 @@ class Tag extends Model
         'name',
         'slug',
         'color',
+        'upvote_emoji',
+        'downvote_emoji',
     ];
 
     public function moments(): BelongsToMany

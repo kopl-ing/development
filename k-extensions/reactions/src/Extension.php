@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Reactions;
 
+use Kopling\Core\Content\Event\QueryingMoments;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Relation;
@@ -13,10 +14,12 @@ use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\ListensToEvents;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Reactions\Command\SeedDemoReactionsCommand;
+use Kopling\Reactions\Listeners\SortMomentsByVotes;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, ListensToEvents
 {
     public static function name(): string
     {
@@ -34,6 +37,16 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     public function commands(): array
     {
         return [SeedDemoReactionsCommand::class];
+    }
+
+    /**
+     * @return array<class-string, class-string>
+     */
+    public function listen(): array
+    {
+        return [
+            QueryingMoments::class => SortMomentsByVotes::class,
+        ];
     }
 
     /**
@@ -64,10 +77,19 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * The `modal` (the picker) goes into the chrome's page-level `community.composer` slot, not
      * the per-card footer -- it's one modal for the whole page, opened against whichever card's
      * "+" the viewer clicked (see modal.blade + js/app.js).
+     *
+     * `vote` sits before `rail` -- the tag-gated vote buttons (self-hiding when a moment's tags
+     * configure none) sit "sticky above" the generic emoji rail, per the roadmap's own wording.
+     * `sort-toggle` fills Community's `content-top` slot (the same one Pin's own pinned section
+     * uses) with a "Latest / Top" link pair, self-hiding when no tag configures upvoting yet.
      */
     public function ux(): Ux
     {
         return Ux::make()
+            ->add('kopling-reactions::vote')
+            ->in('kopling-core::card.footer')
+            ->as('vote')
+            ->before('kopling-reactions::rail')
             ->add('kopling-reactions::rail')
             ->in('kopling-core::card.footer')
             ->as('rail')
@@ -77,7 +99,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             ->after('kopling-reactions::rail')
             ->add('kopling-reactions::modal')
             ->in('kopling-core::community.composer')
-            ->as('modal');
+            ->as('modal')
+            ->add('kopling-reactions::sort-toggle')
+            ->in('kopling-core::community.content-top')
+            ->as('sort-toggle');
     }
 
     /**

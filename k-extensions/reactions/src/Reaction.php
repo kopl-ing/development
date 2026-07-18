@@ -79,6 +79,53 @@ class Reaction extends Model
     }
 
     /**
+     * The distinct (direction, emoji) pairs a moment's tags configure for voting -- e.g.
+     * `[['direction' => 'up', 'emoji' => '👍']]`. Empty when the tags extension isn't
+     * installed or none of the moment's tags configure voting. Soft-dependent on
+     * `Kopling\Tags\Tag` (guarded by `class_exists`), same convention `widgets`' "popular
+     * tags" widget already uses -- reactions never requires tags. Shared by the vote route
+     * (validates a submission against it) and the `vote` component (renders a button per
+     * configured direction); the rail also reads it to exclude these emoji from its own
+     * generic `PALETTE` loop.
+     *
+     * Every 'up' pair sorts before every 'down' pair, regardless of how many tags a moment
+     * carries or which order they were attached in -- the `vote` component always shows
+     * upvote(s) first, downvote(s) second (or first, if the moment carries no upvote emoji at
+     * all), a stable position the design deliberately wants to be predictable card to card.
+     *
+     * @return array<int, array{direction: 'up'|'down', emoji: string}>
+     */
+    public static function voteConfigFor(Moment $moment): array
+    {
+        if (! class_exists(\Kopling\Tags\Tag::class)) {
+            return [];
+        }
+
+        $pairs = [];
+
+        foreach (\Kopling\Tags\Tag::forMoment($moment) as $tag) {
+            foreach (['up' => $tag->upvote_emoji, 'down' => $tag->downvote_emoji] as $direction => $emoji) {
+                if ($emoji === null) {
+                    continue;
+                }
+
+                $pair = ['direction' => $direction, 'emoji' => $emoji];
+
+                if (! in_array($pair, $pairs, true)) {
+                    $pairs[] = $pair;
+                }
+            }
+        }
+
+        $isUp = fn (array $pair): bool => $pair['direction'] === 'up';
+
+        return [
+            ...array_values(array_filter($pairs, $isUp)),
+            ...array_values(array_filter($pairs, fn (array $pair) => ! $isUp($pair))),
+        ];
+    }
+
+    /**
      * The most recent worded reactions on a moment (newest first) -- the "Latest reactions"
      * strip. Plain (wordless) rail toggles are excluded. Authors ride along via `$with`.
      *

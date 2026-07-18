@@ -11,6 +11,15 @@
     unconditionally rather than being gated per-Portal the way extension assets are.
 --}}
 @vite(['k-core/src/Ux/css/editor.css', 'k-core/src/Ux/js/editor.js'])
+{{--
+    Same shape as editor.js above: a tiny always-loaded shim, with the real emoji-mart payload
+    only ever dynamically import()ed the first time a `<x-k::form.emoji-picker>` trigger is
+    actually clicked (see Ux/js/emoji-picker.js) -- unlike the editor there's no eager mount at
+    all, so a page carrying the markup but never opened costs nothing beyond this shim. Loaded
+    unconditionally here (not gated per-Portal) since it's a Core primitive any Portal/extension
+    can use, not owned by whichever one happens to render first.
+--}}
+@vite(['k-core/src/Ux/css/emoji-picker.css', 'k-core/src/Ux/js/emoji-picker.js'])
 <style>{!! \Kopling\Core\Ux\Theme::css() !!}</style>
 {{--
     Every extension's css/js attached to the Portal this request resolved to (see

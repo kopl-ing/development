@@ -44,15 +44,16 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   `Ux\Card\Event\RenderingCard` (lets an extension append a class to a card's outer wrapper) —
   both reuse the existing `ListensToEvents`/`Manager::listeners()` mechanism, no new contract.
   See decisions.md, 2026-07-16.
+- Upvotes — per-tag `upvote_emoji`/`downvote_emoji` config (not a `PALETTE` addition: that
+  renders unconditionally on every card, which would make voting global rather than scoped to
+  tags the community actually wants it on). Dedicated vote buttons sit above the reactions rail
+  on any moment carrying a voting-enabled tag; reuses the existing `reactions` table, no new
+  schema. A `?sort=top` feed mode orders by thumbs-up count. Also shipped Tags' first admin CRUD
+  (`/admin/tags`, gated behind a new `manage-tags` permission), since per-tag vote config needed
+  somewhere to be set. See decisions.md, 2026-07-18.
 
 ### Still needed
 
-- Upvotes, dual-purposed from `reactions` rather than a separate extension: thumbs up/down become
-  a privileged reaction type, sticky above the other emoji in the card sidebar (reactions rail),
-  and moments become sortable by thumbs-up count (a "Top" sort mode for the feed).
-  - `Reaction::PALETTE` already has 👍, needs 👎 added.
-  - new capability: a sort-order toggle for the feed (chronological vs. most-thumbs-up) — the
-    feed is chronological-only today.
 - Email confirmation on sign-up — `auth-email-password` currently only has password
   *confirmation* (matching fields on the form), no actual email-verification flow.
 - WYSIWYG/rich-text editor integration — `composer`'s body field is a plain `<textarea>`, no

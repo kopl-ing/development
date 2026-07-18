@@ -1,0 +1,32 @@
+/* Plain, hand-written CSS -- same reasoning editor.css's own header comment gives: not a
+   second Tailwind entry point, uses the theme's own CSS custom properties. emoji-mart's Picker
+   renders into its own shadow DOM (see emoji-picker-mart.js), so only the popover's own
+   position/stacking is this file's concern -- none of Picker's internal styling can leak in
+   either direction. */
+
+.kop-emoji-picker {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.kop-emoji-picker__display {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.kop-emoji-picker__popover {
+    /* `position: fixed` with viewport coordinates computed in JS (see emoji-picker-mart.js's
+       own `position()`) -- appended onto the closest `<dialog>` (or document.body), never onto
+       `container` itself, so it floats free of any scrollable/height-constrained ancestor
+       (daisyUI's `.modal-box`) instead of extending that ancestor's own scroll area.
+       `visibility: hidden` until `position()` has actually measured and placed it, so it never
+       flashes at its unpositioned default (top-left of its host) for a frame first. z-index
+       only needs to beat sibling content within its own host -- a `<dialog>` shown via
+       `showModal()` already paints in the browser's top layer, above everything outside it,
+       regardless of z-index. */
+    position: fixed;
+    visibility: hidden;
+    z-index: 30;
+}

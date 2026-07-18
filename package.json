@@ -13,6 +13,7 @@
         "vite": "^8.1.4"
     },
     "dependencies": {
+        "@emoji-mart/data": "^1.2.1",
         "@tiptap/core": "^3.28.0",
         "@tiptap/extension-blockquote": "^3.28.0",
         "@tiptap/extension-link": "^3.28.0",
@@ -25,6 +26,7 @@
         "@tiptap/suggestion": "^3.28.0",
         "alpinejs": "^3.15.12",
         "daisyui": "^5.6.16",
+        "emoji-mart": "^5.6.0",
         "htmx.org": "4.0.0-beta5"
     }
 }

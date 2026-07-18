@@ -2,8 +2,11 @@
 
 return [
     'react' => 'React with :emoji',
+    'vote' => 'Vote :emoji',
     'emoji' => 'Emoji',
     'latest' => 'Latest reactions',
+    'sort_latest' => 'Latest',
+    'sort_top' => 'Top',
     'someone' => 'Someone',
     'word_placeholder' => 'Add a word…',
     'word_submit' => 'React',
