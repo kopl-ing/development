@@ -33,6 +33,21 @@
 /* ---- the "+" opener on the rail ---- */
 .kop-radd { font-size: 16px; line-height: 1; }
 
+/* ---- "just changed" flash on vote/reaction buttons, triggered by js/app.js on
+   htmx:after:settle -- mirrors the reaction glow on the marketing site's own live demo. Only
+   fires on an actual swap (yours, or someone else's arriving via the rail's OOB update), never
+   on a plain page load, so a feed full of cards doesn't all flash at once on first paint. Uses
+   the theme's own primary color (not a fixed hue) so it re-tunes across admin re-branding. */
+.kop-rpop { animation: kop-rpop-glow .8s ease; }
+@keyframes kop-rpop-glow {
+    0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-primary, #2b4a9b) 0%, transparent); }
+    35% { box-shadow: 0 0 14px 4px color-mix(in oklab, var(--color-primary, #2b4a9b) 55%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-primary, #2b4a9b) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .kop-rpop { animation: none; }
+}
+
 /* ---- picker modal ---- */
 .kop-rmodal {
     position: fixed;
