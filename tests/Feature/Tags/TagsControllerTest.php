@@ -34,7 +34,7 @@ it('denies a person without manage-tags', function () {
 
 it('renders the index page, including an emoji-picker field for an existing tag', function () {
     $operator = personWithManageTags();
-    Tag::create(['name' => 'Requests', 'slug' => 'requests-index', 'upvote_emoji' => '👍']);
+    Tag::forceCreate(['name' => 'Requests', 'slug' => 'requests-index', 'upvote_emoji' => '👍']);
 
     $html = $this->actingAs($operator)->get('/admin/tags')->assertOk()->getContent();
 

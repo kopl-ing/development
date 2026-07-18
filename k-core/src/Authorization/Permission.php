@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Authorization;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Kopling\Core\Database\Model;
 use Kopling\Core\People\Group;
 
 /**

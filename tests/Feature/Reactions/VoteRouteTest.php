@@ -29,7 +29,7 @@ it('accepts an emoji configured on the moment tag as an upvote', function () {
     $author = authorForVoteTest();
     $voter = voterForVoteTest();
     $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
-    $tag = Tag::create(['name' => 'Requests', 'slug' => 'requests-vote', 'upvote_emoji' => '👍', 'downvote_emoji' => '👎']);
+    $tag = Tag::forceCreate(['name' => 'Requests', 'slug' => 'requests-vote', 'upvote_emoji' => '👍', 'downvote_emoji' => '👎']);
     $moment->tags()->attach($tag->id);
 
     $this->actingAs($voter)
@@ -43,7 +43,7 @@ it('rejects an emoji not configured for that moment', function () {
     $author = authorForVoteTest();
     $voter = voterForVoteTest();
     $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
-    $tag = Tag::create(['name' => 'Requests', 'slug' => 'requests-vote-2', 'upvote_emoji' => '👍']);
+    $tag = Tag::forceCreate(['name' => 'Requests', 'slug' => 'requests-vote-2', 'upvote_emoji' => '👍']);
     $moment->tags()->attach($tag->id);
 
     $this->actingAs($voter)
@@ -65,7 +65,7 @@ it('toggles the vote off on a second identical submission', function () {
     $author = authorForVoteTest();
     $voter = voterForVoteTest();
     $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
-    $tag = Tag::create(['name' => 'Requests', 'slug' => 'requests-vote-3', 'upvote_emoji' => '👍']);
+    $tag = Tag::forceCreate(['name' => 'Requests', 'slug' => 'requests-vote-3', 'upvote_emoji' => '👍']);
     $moment->tags()->attach($tag->id);
 
     $this->actingAs($voter)->post("/_reactions/{$moment->id}/vote", ['emoji' => '👍']);

@@ -9,9 +9,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use Kopling\Core\Database\Concerns\HasExtendedCasts;
 
+/**
+ * Extends `Authenticatable` (Laravel's own auth-user base), not `Kopling\Core\Database\Model`
+ * -- PHP single inheritance means it can't do both, so it `use`s `HasExtendedCasts` directly
+ * instead, the same registry every other real model reads via `Database\Model`.
+ */
 class Person extends Authenticatable
 {
+    use HasExtendedCasts;
     use HasUuids;
     use Notifiable;
 

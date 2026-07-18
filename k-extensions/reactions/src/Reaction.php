@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Kopling\Reactions;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Database\Model;
 use Kopling\Core\People\Person;
 
 /**

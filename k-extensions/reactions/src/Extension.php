@@ -15,11 +15,12 @@ use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\ListensToEvents;
+use Kopling\Core\Extension\Contract\ValidatesModels;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Reactions\Command\SeedDemoReactionsCommand;
 use Kopling\Reactions\Listeners\SortMomentsByVotes;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, ListensToEvents
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, ListensToEvents, ValidatesModels
 {
     public static function name(): string
     {
@@ -46,6 +47,33 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     {
         return [
             QueryingMoments::class => SortMomentsByVotes::class,
+        ];
+    }
+
+    /**
+     * The `upvote_emoji`/`downvote_emoji` columns live on `tags`' own table (added by this
+     * extension's own migration -- see decisions.md, 2026-07-18) but are entirely reactions'
+     * concept, not tags'; this is what lets `TagsController` validate them without `tags` ever
+     * declaring a rule for a field it doesn't consider its own. `\Kopling\Tags\Tag::class` is a
+     * bare string reference here (`::class` never triggers autoloading), so this needs no
+     * `class_exists` guard the way an actual call into `Tag` would -- `Manager::
+     * modelValidationRules()` is a plain aggregation read by whoever asks for `Tag::class`
+     * specifically; if `tags` isn't installed, nothing ever looks this entry up.
+     *
+     * @return array<class-string, array{rules: array<string, array<int, string>>, messages: array<string, string>}>
+     */
+    public function modelValidationRules(): array
+    {
+        return [
+            \Kopling\Tags\Tag::class => [
+                'rules' => [
+                    'upvote_emoji' => ['nullable', 'string', 'max:16', 'different:downvote_emoji'],
+                    'downvote_emoji' => ['nullable', 'string', 'max:16'],
+                ],
+                'messages' => [
+                    'upvote_emoji.different' => __('kopling-reactions::messages.vote_emoji_must_differ'),
+                ],
+            ],
         ];
     }
 
@@ -82,6 +110,9 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * configure none) sit "sticky above" the generic emoji rail, per the roadmap's own wording.
      * `sort-toggle` fills Community's `content-top` slot (the same one Pin's own pinned section
      * uses) with a "Latest / Top" link pair, self-hiding when no tag configures upvoting yet.
+     * `tag-vote-fields` fills `tags`' own `kopling-tags::admin.tag-form` slot with the
+     * upvote/downvote emoji-picker pair -- `tags` never declares anything about voting itself,
+     * see `modelValidationRules()` above for the matching validation half of the same split.
      */
     public function ux(): Ux
     {
@@ -102,7 +133,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             ->as('modal')
             ->add('kopling-reactions::sort-toggle')
             ->in('kopling-core::community.content-top')
-            ->as('sort-toggle');
+            ->as('sort-toggle')
+            ->add('kopling-reactions::tag-vote-fields')
+            ->in('kopling-tags::admin.tag-form')
+            ->as('tag-vote-fields');
     }
 
     /**

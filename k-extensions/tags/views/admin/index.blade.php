@@ -1,4 +1,5 @@
 @extends('kopling-admin::layouts.admin')
+@php use Kopling\Core\Ux\Context; @endphp
 
 @section('content')
     @php
@@ -7,7 +8,12 @@
         // below (`create`, or `edit-{tag id}`) tells the inline script at the bottom which one
         // to re-open. old()'s own values are only applied to the form that actually submitted
         // (matched by that same `_form` value), so a validation error on one row's edit form
-        // never bleeds its old() input into another row or the create form.
+        // never bleeds its old() input into another row or the create form. Any extension
+        // filling the `kopling-tags::admin.tag-form` slot below (see `Context::$subject`
+        // carrying the tag being edited, null on create) recomputes this exact same `_form`
+        // convention itself from that context -- e.g. `reactions`' own vote-emoji fields -- so
+        // its old()/reopen behaviour matches these fields' without tags needing to pass
+        // anything extra through.
         $reopening = old('_form');
     @endphp
     <div class="max-w-4xl flex flex-col gap-6">
@@ -23,8 +29,12 @@
                     <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-tags::messages.name'), 'value' => $reopening === 'create' ? old('name') : '']" />
                     <x-k::form.input :data="['name' => 'slug', 'label' => __('kopling-tags::messages.slug'), 'value' => $reopening === 'create' ? old('slug') : '']" />
                     <x-k::form.input :data="['name' => 'color', 'label' => __('kopling-tags::messages.color'), 'value' => $reopening === 'create' ? old('color') : '']" />
-                    <x-k::form.emoji-picker :data="['name' => 'upvote_emoji', 'label' => __('kopling-tags::messages.upvote_emoji'), 'value' => $reopening === 'create' ? old('upvote_emoji') : null]" />
-                    <x-k::form.emoji-picker :data="['name' => 'downvote_emoji', 'label' => __('kopling-tags::messages.downvote_emoji'), 'value' => $reopening === 'create' ? old('downvote_emoji') : null]" />
+                    {{-- No :context on create -- Context::getSubject() requires a real subject
+                         or a query Builder, neither of which exists yet for a brand new tag.
+                         Omitting :context leaves every resolved entry's own $context null, and
+                         tag-vote-fields.blade.php's `$context?->getSubject()` short-circuits on
+                         that cleanly rather than ever calling getSubject() on a null subject. --}}
+                    <x-k::portal.slot name="kopling-tags::admin.tag-form" />
                     @if ($reopening === 'create' && $errors->any())
                         <p class="text-error text-sm">{{ $errors->first() }}</p>
                     @endif
@@ -42,8 +52,6 @@
                         <th>{{ __('kopling-tags::messages.name') }}</th>
                         <th>{{ __('kopling-tags::messages.slug') }}</th>
                         <th>{{ __('kopling-tags::messages.color') }}</th>
-                        <th>{{ __('kopling-tags::messages.upvote_emoji') }}</th>
-                        <th>{{ __('kopling-tags::messages.downvote_emoji') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -58,8 +66,6 @@
                                     <span class="badge badge-sm" style="background-color:{{ $tag->color }};border-color:{{ $tag->color }};color:#fff">{{ $tag->color }}</span>
                                 @endif
                             </td>
-                            <td>{{ $tag->upvote_emoji }}</td>
-                            <td>{{ $tag->downvote_emoji }}</td>
                             <td class="flex gap-2">
                                 <x-k::modal :label="__('kopling-tags::messages.edit')" :id="'modal-tag-'.$formKey">
                                     <x-slot:trigger>{{ __('kopling-tags::messages.edit') }}</x-slot:trigger>
@@ -70,8 +76,7 @@
                                         <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-tags::messages.name'), 'value' => $reopening === $formKey ? old('name') : $tag->name]" />
                                         <x-k::form.input :data="['name' => 'slug', 'label' => __('kopling-tags::messages.slug'), 'value' => $reopening === $formKey ? old('slug') : $tag->slug]" />
                                         <x-k::form.input :data="['name' => 'color', 'label' => __('kopling-tags::messages.color'), 'value' => $reopening === $formKey ? old('color') : $tag->color]" />
-                                        <x-k::form.emoji-picker :data="['name' => 'upvote_emoji', 'label' => __('kopling-tags::messages.upvote_emoji'), 'value' => $reopening === $formKey ? old('upvote_emoji') : $tag->upvote_emoji]" />
-                                        <x-k::form.emoji-picker :data="['name' => 'downvote_emoji', 'label' => __('kopling-tags::messages.downvote_emoji'), 'value' => $reopening === $formKey ? old('downvote_emoji') : $tag->downvote_emoji]" />
+                                        <x-k::portal.slot name="kopling-tags::admin.tag-form" :context="new Context(subject: $tag)" />
                                         @if ($reopening === $formKey && $errors->any())
                                             <p class="text-error text-sm">{{ $errors->first() }}</p>
                                         @endif

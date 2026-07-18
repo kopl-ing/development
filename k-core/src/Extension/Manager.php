@@ -26,6 +26,7 @@ use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\ListensToEvents;
+use Kopling\Core\Extension\Contract\ValidatesModels;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Extension\LoadOrder\Resolver;
 use Kopling\Core\Portal\Portal;
@@ -273,6 +274,42 @@ class Manager
         }
 
         return $commands;
+    }
+
+    /**
+     * Every extra validation rule (and custom message) any extension contributes for a model it
+     * doesn't own, keyed by the target model's fully-qualified class name -- e.g. `reactions`
+     * contributing `upvote_emoji`/`downvote_emoji` rules for `Kopling\Tags\Tag`. Two extensions
+     * contributing a rule for the exact same field on the exact same model is last-declared-wins,
+     * same collision convention `models()`'s cast registry already uses -- an edge case unlikely
+     * enough not to warrant its own resolution rule.
+     *
+     * @return array<class-string, array{rules: array<string, mixed>, messages: array<string, string>}>
+     */
+    public function modelValidationRules(): array
+    {
+        if (($cached = $this->cache->get()) !== null) {
+            return $cached['modelValidations'];
+        }
+
+        $declared = [];
+
+        foreach ($this->extensions() as $extension) {
+            if (! $extension instanceof ValidatesModels) {
+                continue;
+            }
+
+            foreach ($extension->modelValidationRules() as $class => $definition) {
+                $existing = $declared[$class] ?? ['rules' => [], 'messages' => []];
+
+                $declared[$class] = [
+                    'rules' => array_merge($existing['rules'], $definition['rules'] ?? []),
+                    'messages' => array_merge($existing['messages'], $definition['messages'] ?? []),
+                ];
+            }
+        }
+
+        return $declared;
     }
 
     /**

@@ -11,7 +11,7 @@ it('orders the feed by upvote count when sort=top is requested', function () {
     $author = Person::create(['name' => 'Bob', 'email' => 'bob-sort@example.test', 'password' => 'secret']);
     $voter = Person::create(['name' => 'Ada', 'email' => 'ada-sort@example.test', 'password' => 'secret']);
 
-    Tag::create(['name' => 'Requests', 'slug' => 'requests-sort', 'upvote_emoji' => '👍']);
+    Tag::forceCreate(['name' => 'Requests', 'slug' => 'requests-sort', 'upvote_emoji' => '👍']);
 
     $older = Moment::create(['person_id' => $author->id, 'title' => 'Older Low Votes', 'body' => 'Body']);
     $older->forceFill(['created_at' => now()->subMinutes(10)])->save();
@@ -37,7 +37,7 @@ it('stays chronological by default even when a tag configures voting', function 
     $author = Person::create(['name' => 'Bob', 'email' => 'bob-sort2@example.test', 'password' => 'secret']);
     $voter = Person::create(['name' => 'Ada', 'email' => 'ada-sort2@example.test', 'password' => 'secret']);
 
-    Tag::create(['name' => 'Requests', 'slug' => 'requests-sort2', 'upvote_emoji' => '👍']);
+    Tag::forceCreate(['name' => 'Requests', 'slug' => 'requests-sort2', 'upvote_emoji' => '👍']);
 
     $older = Moment::create(['person_id' => $author->id, 'title' => 'Older No Sort', 'body' => 'Body']);
     $older->forceFill(['created_at' => now()->subMinutes(10)])->save();

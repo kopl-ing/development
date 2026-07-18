@@ -17,6 +17,7 @@ use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
+use Kopling\Core\Extension\Contract\ValidatesModels;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Settings\EnabledExtensions;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -67,6 +68,7 @@ class ListExtensionRegistrations extends Command
         $this->icons($manager, $id);
         $this->adminSettings($manager, $id);
         $this->editor($manager, $package);
+        $this->modelValidations($manager, $package);
 
         return self::SUCCESS;
     }
@@ -388,6 +390,26 @@ class ListExtensionRegistrations extends Command
 
         foreach ($extension->editor() as $node) {
             $this->line("  <fg=gray>{$node->value}</>");
+        }
+
+        $this->newLine();
+    }
+
+    protected function modelValidations(Manager $manager, string $package): void
+    {
+        $this->components->info('Model validation rules (ValidatesModels)');
+
+        $extension = $manager->extensions(includeDisabled: true)[$package];
+
+        if (! $extension instanceof ValidatesModels) {
+            $this->line('  <fg=gray>none</>');
+            $this->newLine();
+
+            return;
+        }
+
+        foreach ($extension->modelValidationRules() as $class => $definition) {
+            $this->components->twoColumnDetail($class, implode(', ', array_keys($definition['rules'] ?? [])));
         }
 
         $this->newLine();

@@ -6,14 +6,20 @@ namespace Kopling\Tags;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Database\Model;
 
 /**
  * A tag. Mirrors core's own models (`HasUuids`, explicit `$fillable`); the `moments()`
  * relation is defined here rather than on `Moment` so the extension never has to reach into
  * a core model to add its own concern.
+ *
+ * `$fillable` deliberately never lists `upvote_emoji`/`downvote_emoji` -- real columns on this
+ * table (added by `reactions`' own migration), but entirely reactions' concept, not this
+ * class's. `TagsController` persists them via `forceCreate()`/`forceFill()` instead of mass
+ * assignment, so this model's own fillable list stays scoped to fields it actually considers
+ * its own. See decisions.md, 2026-07-18.
  */
 class Tag extends Model
 {
@@ -23,8 +29,6 @@ class Tag extends Model
         'name',
         'slug',
         'color',
-        'upvote_emoji',
-        'downvote_emoji',
     ];
 
     public function moments(): BelongsToMany

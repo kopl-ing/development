@@ -14,9 +14,6 @@ return [
     'name' => 'Name',
     'slug' => 'Slug',
     'color' => 'Color',
-    'upvote_emoji' => 'Upvote emoji',
-    'downvote_emoji' => 'Downvote emoji',
     'no_tags' => 'No tags yet.',
     'confirm_delete_tag' => 'Delete this tag? This cannot be undone.',
-    'vote_emoji_must_differ' => 'Upvote and downvote emoji must be different.',
 ];

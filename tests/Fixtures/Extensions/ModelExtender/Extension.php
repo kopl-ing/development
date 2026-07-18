@@ -12,7 +12,9 @@ use Kopling\Core\Extension\Contract\ExtendsModels;
 /**
  * A fixture extension exercising `ExtendsModels` end to end: a `hasMany` relation (proves
  * `Manager::models()`'s `resolveRelationUsing()` wiring actually resolves real rows) and a cast
- * (proves `Database\Model::getCasts()` actually reads back what `registerCasts()` stored).
+ * on two differently-based targets -- `Gadget` (extends `Database\Model`) and `Widget` (only
+ * `use`s `HasExtendedCasts` directly, mimicking `Person`'s real constraint) -- proving both
+ * paths read back the same registry `registerCasts()` populated, not two independent copies.
  */
 class Extension extends AbstractExtension implements ExtendsModels
 {
@@ -23,7 +25,7 @@ class Extension extends AbstractExtension implements ExtendsModels
 
     public static function description(): string
     {
-        return 'Adds a hasMany relation and a cast to a fixture model, for testing ExtendsModels.';
+        return 'Adds a hasMany relation and casts to fixture models, for testing ExtendsModels.';
     }
 
     /**
@@ -35,6 +37,8 @@ class Extension extends AbstractExtension implements ExtendsModels
             (new ExtendModel(Gadget::class))
                 ->relation((new Relation)->hasMany('parts', Part::class))
                 ->cast('metadata', 'array'),
+            (new ExtendModel(Widget::class))
+                ->cast('notes', 'array'),
         ];
     }
 }

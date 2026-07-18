@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Kopling\Pin;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Database\Model;
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
 

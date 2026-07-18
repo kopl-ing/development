@@ -8,6 +8,11 @@ return [
     'sort_latest' => 'Latest',
     'sort_top' => 'Top',
     'someone' => 'Someone',
+
+    // Tag admin form (kopling-tags::admin.tag-form slot)
+    'upvote_emoji' => 'Upvote emoji',
+    'downvote_emoji' => 'Downvote emoji',
+    'vote_emoji_must_differ' => 'Upvote and downvote emoji must be different.',
     'word_placeholder' => 'Add a word…',
     'word_submit' => 'React',
 

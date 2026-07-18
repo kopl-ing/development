@@ -46,6 +46,7 @@ class CacheRegistrations extends Command
                 ->map(fn (array $fields) => array_map(fn ($field) => $field->toArray(), $fields))
                 ->all(),
             'commands' => $manager->commands(),
+            'modelValidations' => $manager->modelValidationRules(),
         ]);
 
         $this->components->info('Cached Kopling extension registrations.');

@@ -2655,3 +2655,84 @@ measured post-append since emoji-mart's custom element only reports real size on
 not CSS, and closes (rather than re-tracks) on scroll/resize -- same "close, don't chase"
 posture Escape/click-outside already had. Full suite still green (171 tests); this specific fix
 itself remains visually unverified beyond Daniël's original repro.
+
+## 2026-07-18 — `Extend\Model::cast()` was dead for every real model; all real models now extend `Database\Model`
+
+**Decision:** `Kopling\Core\Database\Model::getCasts()` (the override reading `Manager::models()`'s
+registered casts) only takes effect for a class that actually extends `Database\Model` -- and no
+real model did. `Moment`, `Tag`, `Reaction`, `Reply`, `Pin`, `Group`, `Permission`, `ThemeToken`
+all extended plain `Illuminate\Database\Eloquent\Model` directly; only the test fixture
+(`ModelExtender\Gadget`) extended the Kopling base, proving the mechanism worked in isolation
+without ever actually being wired to anything real. `Extend\Model::cast()` has been silently
+inert in production since it was built. Found while designing a fillable-extension mechanism for
+tags/reactions (see the same day's "Upvotes" decision) -- fillable would have needed the
+identical registry shape and inherited the same gap.
+
+**Fix:** all eight real models now extend `Kopling\Core\Database\Model` (a one-line import
+swap each, no behavior change otherwise). `Person` can't -- it must extend `Authenticatable` --
+so `Database\Model`'s `getCasts()` override was extracted into a new trait,
+`Database\Concerns\HasExtendedCasts`, which `Person` `use`s directly. The trait deliberately
+declares no static property of its own and instead reads/writes `Database\Model::$extendedCasts`
+by explicit class reference (never `static::`) -- PHP gives each trait-*consuming* class its own
+independent copy of a property the trait itself declares, which would have silently given
+`Person` its own permanently-empty registry instead of the one `Manager::models()` actually
+populates. `Database\Model::$extendedCasts` is `public` (was `protected`) specifically so the
+trait can reach it from outside the class.
+
+**Verification added:** `ModelExtendingTest` gained a second fixture model, `Widget`, that only
+`use`s `HasExtendedCasts` (mirroring `Person`'s exact constraint, not extending `Database\Model`)
+-- proving the trait-only path shares the same registry a `Database\Model` subclass does, and a
+third test proving two targets' casts stay isolated from each other despite the shared registry.
+
+**Status:** Decided & implemented (`k-core/src/Database/Model.php`,
+`Database/Concerns/HasExtendedCasts.php`, and an import swap in all 8 real models + `Person`).
+Full suite green (175 tests, +2 from this fix specifically).
+
+## 2026-07-18 — Moved upvote/downvote ownership from `tags` to `reactions`
+
+**Decision:** The Upvotes implementation (this same day's earlier entry) put the
+`upvote_emoji`/`downvote_emoji` schema, validation, and admin form fields directly in
+`k-extensions/tags`, purely because tags already had a table/CRUD to bolt onto -- despite the
+roadmap's own wording ("dual-purposed **from** `reactions`") saying reactions owns this concept.
+Caught when asked to point at where it hooks into tags: it didn't hook in, it just lived there.
+Full write-up of the ownership-boundary lesson: `feedback-extension-ownership-boundaries`
+(agent memory). Fixed with two new, genuinely generic mechanisms rather than special-casing this
+one pair of columns:
+
+- **Migration moved** to `k-extensions/reactions/migrations/`, altering `tags`' table --
+  no new mechanism needed, any extension's migration may already alter a table it doesn't own
+  (`tags`' own `moment_tag` migration already does this to `moments`). Guarded with
+  `Schema::hasTable('tags')` so `reactions` stays genuinely soft-dependent on `tags` in its
+  migration too, matching the `class_exists` guards its runtime code already uses.
+- **New `Extension\Contract\ValidatesModels`** (`modelValidationRules(): array<class-string,
+  array{rules, messages}>`), aggregated by a new `Manager::modelValidationRules()` (same
+  cache-aware shape every other aggregator has, wired into `CacheRegistrations`/
+  `ListExtensionRegistrations`). `TagsController` merges `Tag::class`'s aggregated entry into
+  its own base rules (name/slug/color) and validates once, never naming `upvote_emoji`/
+  `downvote_emoji` itself.
+- **`Ux\Portal\Slot` gained an optional `:context` prop** (was page-level-only, no context
+  threading) -- the generic fix, not a bespoke `Footer`-style class for tags specifically. Tags'
+  admin form now opens `kopling-tags::admin.tag-form`, bound to the `Tag` being edited (or no
+  `:context` at all on create -- `Context::getSubject()` throws on a null subject, so the create
+  form omits the prop entirely rather than passing `Context(subject: null)`). `reactions`
+  registers its emoji-picker pair into that slot from its own view.
+- **`TagsController::store()`/`update()` now use `Tag::forceCreate()`/`forceFill()`**, not
+  `create()`/`update()` -- considered and rejected both a global `$guarded = []` (weakens mass-
+  assignment protection app-wide, worse given Kopling's actual third-party-extension ambition)
+  and a `fillable()` addition to `Extend\Model` (would've inherited the cast mechanism's own
+  dead-code prerequisite, this same day's other entry). By the time `validated()` returns, the
+  array already passed the fully-merged rule set, so bypassing `$fillable` at that one call site
+  is standard Laravel practice, not a new mechanism. `Tag::$fillable` reverted to just
+  `name`/`slug`/`color` -- it no longer names a concept it doesn't own.
+- **Tags' admin list table dropped its upvote/downvote columns entirely** (was reading
+  `$tag->upvote_emoji` directly for display) rather than leaving a smaller, still-inconsistent
+  trace of the same violation. A real, visible regression (no more at-a-glance visibility of
+  which tags vote) -- a proper "list column" extension point would fix it, not attempted here
+  since it's a materially different (per-row, two-part: header + cell) extensibility problem
+  than the create/edit form fields this refactor actually solved.
+
+**Status:** Decided & implemented (`k-core/src/Extension/Contract/ValidatesModels.php`,
+`Manager::modelValidationRules()`, `Ux/Portal/Slot.php`, `k-extensions/tags/src/Controllers/
+TagsController.php`, `k-extensions/tags/src/Tag.php`, `k-extensions/reactions/src/Extension.php`
++ `views/components/tag-vote-fields.blade.php` + its own migration). Full suite green (177
+tests, +2 for the new `ValidatesModels` aggregation). Not yet browser-verified.

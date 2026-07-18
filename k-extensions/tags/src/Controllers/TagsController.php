@@ -8,15 +8,22 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Kopling\Core\Extension\Manager;
 use Kopling\Tags\Tag;
 
 /**
- * Plain create/edit/delete for Tags -- mirrors GroupsController's shape. Per-tag vote-emoji
- * config (see Tag::$fillable) lives on the same form as name/slug/color; there's no dedicated
- * "voting settings" screen.
+ * Plain create/edit/delete for Tags -- mirrors GroupsController's shape. Declares validation
+ * rules for its own fields only (name/slug/color); anything else a tag's row happens to carry
+ * (e.g. reactions' own `upvote_emoji`/`downvote_emoji`) comes in entirely through
+ * `Manager::modelValidationRules()` -- this controller merges it in blind, never naming those
+ * fields itself. See decisions.md, 2026-07-18.
  */
 class TagsController
 {
+    public function __construct(private readonly Manager $manager)
+    {
+    }
+
     public function index(): View
     {
         return view('kopling-tags::admin.index', [
@@ -26,14 +33,14 @@ class TagsController
 
     public function store(Request $request): RedirectResponse
     {
-        Tag::create($this->validated($request));
+        Tag::forceCreate($this->validated($request));
 
         return redirect()->route('kopling-admin::admin/tags');
     }
 
     public function update(Request $request, Tag $tag): RedirectResponse
     {
-        $tag->update($this->validated($request, $tag));
+        $tag->forceFill($this->validated($request, $tag))->save();
 
         return redirect()->route('kopling-admin::admin/tags');
     }
@@ -49,23 +56,25 @@ class TagsController
     }
 
     /**
-     * `different:downvote_emoji` only runs once both fields are actually present -- `nullable`
-     * skips the rest of a field's own rules when it's null, so a tag with only one direction
-     * configured (or neither) never trips the "must differ" check; it only fires when both
-     * emoji are set and equal.
+     * `forceCreate()`/`forceFill()` (not `create()`/`update()`) deliberately bypass `$fillable`
+     * -- by the time this returns, every key in it already passed validation built from this
+     * exact merged rule set, so a *second* mass-assignment allow-list check on top would only
+     * be friction, not protection. This is also what lets an extension-contributed field (like
+     * `upvote_emoji`) persist at all without `Tag::$fillable` ever having to name it.
      *
-     * @return array{name: string, slug: string, color: ?string, upvote_emoji: ?string, downvote_emoji: ?string}
+     * @return array<string, mixed>
      */
     private function validated(Request $request, ?Tag $tag = null): array
     {
-        return $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', Rule::unique('tags', 'slug')->ignore($tag)],
-            'color' => ['nullable', 'string', 'max:32'],
-            'upvote_emoji' => ['nullable', 'string', 'max:16', 'different:downvote_emoji'],
-            'downvote_emoji' => ['nullable', 'string', 'max:16'],
-        ], [
-            'upvote_emoji.different' => __('kopling-tags::messages.vote_emoji_must_differ'),
-        ]);
+        $extra = $this->manager->modelValidationRules()[Tag::class] ?? ['rules' => [], 'messages' => []];
+
+        return $request->validate(
+            array_merge([
+                'name' => ['required', 'string', 'max:255'],
+                'slug' => ['required', 'string', 'max:255', Rule::unique('tags', 'slug')->ignore($tag)],
+                'color' => ['nullable', 'string', 'max:32'],
+            ], $extra['rules']),
+            $extra['messages'],
+        );
     }
 }

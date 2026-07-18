@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Ux\Theme;
 
-use Illuminate\Database\Eloquent\Model;
+use Kopling\Core\Database\Model;
 
 /**
  * One ad-hoc, per-token admin override row, layered on top of whatever the active `ChangesTheme`
