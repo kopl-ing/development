@@ -163,6 +163,27 @@ class Manager
     }
 
     /**
+     * Resolves a user-typed extension reference -- Composer package name ("kopling/example"),
+     * its derived id ("kopling-example"), or short name ("example") -- back to the Composer
+     * package name every other `Manager` method keys by. Null when nothing installed matches.
+     * Shared by every `kopling:extensions:*` command so each accepts the same three reference
+     * forms consistently, rather than each command re-implementing its own matching rules.
+     */
+    public function resolvePackage(string $needle): ?string
+    {
+        foreach (array_keys($this->extensions(includeDisabled: true)) as $package) {
+            if ($needle === $package
+                || $needle === $this->id($package)
+                || $needle === basename(str_replace('\\', '/', $package))
+            ) {
+                return $package;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Storage requests declared by every extension, grouped by extension id the same way
      * `id()` namespaces views/translations -- so the admin storage-mapping screen can show
      * which extension owns each request instead of one anonymous, flattened list. Within

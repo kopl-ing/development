@@ -13,8 +13,11 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider as Provider;
 use Illuminate\Support\Str;
 use Kopling\Core\Console\Commands\CacheRegistrations;
+use Kopling\Core\Console\Commands\DisableExtension;
 use Kopling\Core\Console\Commands\DiscoverExtensions;
+use Kopling\Core\Console\Commands\EnableExtension;
 use Kopling\Core\Console\Commands\ListExtensionRegistrations;
+use Kopling\Core\Console\Commands\ListExtensions;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
 use Kopling\Core\Extension\RegistrationCache;
@@ -50,6 +53,9 @@ class ServiceProvider extends Provider
                 DiscoverExtensions::class,
                 CacheRegistrations::class,
                 ListExtensionRegistrations::class,
+                ListExtensions::class,
+                EnableExtension::class,
+                DisableExtension::class,
                 ...$this->app->make(Manager::class)->commands(),
             ]);
         }

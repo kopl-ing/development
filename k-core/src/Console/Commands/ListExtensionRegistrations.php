@@ -38,7 +38,7 @@ class ListExtensionRegistrations extends Command
     public function handle(Manager $manager): int
     {
         $needle = $this->argument('extension');
-        $package = $this->resolvePackage($manager, $needle);
+        $package = $manager->resolvePackage($needle);
 
         if ($package === null) {
             $this->components->error("No installed extension matches [{$needle}].");
@@ -71,20 +71,6 @@ class ListExtensionRegistrations extends Command
         $this->modelValidations($manager, $package);
 
         return self::SUCCESS;
-    }
-
-    protected function resolvePackage(Manager $manager, string $needle): ?string
-    {
-        foreach (array_keys($manager->extensions(includeDisabled: true)) as $package) {
-            if ($needle === $package
-                || $needle === $manager->id($package)
-                || $needle === basename(str_replace('\\', '/', $package))
-            ) {
-                return $package;
-            }
-        }
-
-        return null;
     }
 
     protected function contracts(AbstractExtension $extension): string
