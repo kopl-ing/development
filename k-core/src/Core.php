@@ -21,8 +21,10 @@ use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Control;
 use Kopling\Core\Ux\Card\Footer;
 use Kopling\Core\Ux\Card\Top;
+use Kopling\Core\Ux\Community\Chrome;
 use Kopling\Core\Ux\Community\Navigation;
 use Kopling\Core\Ux\Community\ThemeSwitcher;
+use Kopling\Core\Ux\Community\UserMenu;
 use Kopling\Core\Ux\Editor;
 use Kopling\Core\Ux\Editor\EditorNode;
 
@@ -156,6 +158,8 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
         Body::defaults($ux);
         Navigation::defaults($ux);
         ThemeSwitcher::defaults($ux);
+        UserMenu::defaults($ux);
+        Chrome::defaults($ux);
         Editor::defaults($ux);
 
         return $ux;

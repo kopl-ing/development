@@ -34,6 +34,16 @@ use Kopling\Core\Ux\UxEntry;
  * (see `IndexController`, which just does `Moment::latest()`), so it isn't registered as a
  * placeholder link to nowhere, same reasoning as `Card\Footer::defaults()` staying empty
  * until reactions are real.
+ *
+ * `$data['slot']` overrides which slot gets resolved -- `self::SLOT` (Community's own nav
+ * links) when omitted. This is what lets Admin/Style Guide reuse this exact component (self-
+ * wrapping `<ul class="menu">`, itself one entry inside `Community\Chrome`'s generic sidebar
+ * slot) for their own, differently-named navigation slots instead of each hand-rolling the same
+ * `<ul>`+`<li>` shape -- same "$slot override, defaults preserve current behavior" trick
+ * `Card\Top`/`Body`/`Footer` already use. Passed via `$data` (not a direct constructor param,
+ * unlike `Top`'s own `?string $slot`) because, unlike those, this is itself registered *as* a
+ * `Ux::add()` entry -- reached through `<x-dynamic-component :data="...">`, which only ever
+ * supplies `$data`/`$context`, never arbitrary extra constructor arguments.
  */
 class Navigation extends Component
 {
@@ -44,9 +54,9 @@ class Navigation extends Component
      */
     public Collection $entries;
 
-    public function __construct(Manager $manager, public string $surface = 'menu')
+    public function __construct(Manager $manager, public string $surface = 'menu', public array $data = [])
     {
-        $this->entries = SlotResolver::resolve(self::SLOT, $manager->ux());
+        $this->entries = SlotResolver::resolve($data['slot'] ?? self::SLOT, $manager->ux());
     }
 
     public function render(): View

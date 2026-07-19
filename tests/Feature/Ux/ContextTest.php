@@ -98,3 +98,19 @@ it('isActor() is false against a Guest actor, even for a real, persisted person'
 
     expect((new Context())->isActor($person))->toBeFalse();
 });
+
+it('$portal defaults from the current request\'s InjectPortal attribute, same as $actor defaults from Auth::user()', function () {
+    $this->get('/');
+
+    expect((new Context())->isPortal('kopling-core::community'))->toBeTrue();
+});
+
+it('isPortal() is false for a different portal id than the one actually resolved', function () {
+    $this->get('/');
+
+    expect((new Context())->isPortal('kopling-admin::admin'))->toBeFalse();
+});
+
+it('isPortal() is false when the current request was never matched to any portal at all', function () {
+    expect((new Context())->isPortal('kopling-core::community'))->toBeFalse();
+});

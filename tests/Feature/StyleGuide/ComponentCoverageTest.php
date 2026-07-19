@@ -39,11 +39,18 @@ function coreUxComponentClasses(): \Illuminate\Support\Collection
     // Card\Top/Body/Footer/Control *are* directly-tagged (`<x-k::card.top>` etc.), just written
     // literally inside core's own `views/card/card.blade.php`, not the style guide's -- rendered
     // transitively whenever `<x-k::card.card>` is used here, not re-spelled a second time.
+    // Portal\Layout/Slot are the same story since the style guide's own layout
+    // (`layouts/style-guide.blade.php`) stopped calling them directly and started reusing
+    // `Community\Chrome` instead (see decisions.md) -- `<x-k::portal.layout>`/`<x-k::portal.slot>`
+    // now live only inside `chrome.blade.php`, exercised transitively every time this extension's
+    // own pages render at all, not re-spelled a second time either.
     $renderedTransitivelyByCard = [
         \Kopling\Core\Ux\Card\Top::class,
         \Kopling\Core\Ux\Card\Body::class,
         \Kopling\Core\Ux\Card\Footer::class,
         \Kopling\Core\Ux\Card\Control::class,
+        \Kopling\Core\Ux\Portal\Layout::class,
+        \Kopling\Core\Ux\Portal\Slot::class,
     ];
 
     return collect(File::allFiles(base_path('k-core/src/Ux')))

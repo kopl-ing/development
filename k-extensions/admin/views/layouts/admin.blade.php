@@ -1,35 +1,19 @@
-<x-k::portal.layout>
-    <div class="flex min-h-screen">
-        <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0">
-            {{--
-                daisyUI's own `.menu` sets `width: fit-content` (shrinks to its widest item's
-                label), not full-width -- `w-full` overrides it so each item's row/hover
-                background actually spans the sidebar's own width instead of just its label's.
-                Same fix as Community's own sidebar navigation (k-core/views/community/
-                navigation.blade.php).
-            --}}
-            <ul class="menu p-4 w-full">
-                <li class="menu-title">{{ $portal->label }}</li>
-                <x-k::portal.slot name="kopling-admin::admin.navigation" />
-            </ul>
-        </aside>
-        <div class="flex-1 flex">
-            <div class="flex-1">
-                <header class="navbar bg-base-100 border-b border-base-300">
-                    <div class="flex-1">
-                        <span class="text-lg font-semibold px-4">{{ $portal->label }}</span>
-                    </div>
-                    <div class="flex-none gap-2 px-4">
-                        <x-k::portal.slot name="kopling-admin::admin.topbar" />
-                    </div>
-                </header>
-                <main class="p-6">
-                    @yield('content')
-                </main>
-            </div>
-            <aside class="w-72 border-l border-base-300 p-4 hidden xl:block" id="rail">
-                <x-k::portal.slot name="kopling-admin::admin.rail" />
-            </aside>
-        </div>
-    </div>
-</x-k::portal.layout>
+{{--
+    Reuses Core's own shared chrome (`Community\Chrome`) instead of hand-rolling its own
+    topbar/sidebar/rail markup -- Community/Admin/Style Guide had quietly drifted into three
+    different widths despite starting as copies of each other (see decisions.md). `main-class=""`
+    (no extra narrowing, unlike Community's own reading-column default) since Admin's own content
+    -- settings tables, people/group lists -- wants the full width up to Chrome's own outer
+    `max-w-7xl`, not a narrow centered column.
+--}}
+<x-k::community.chrome
+    portal-id="kopling-admin::admin"
+    topbar-slot="kopling-admin::admin.topbar"
+    sidebar-slot="kopling-admin::admin.sidebar-panel"
+    rail-slot="kopling-admin::admin.rail"
+    :composer-slot="null"
+    :mobile-dock="false"
+    main-class=""
+>
+    @yield('content')
+</x-k::community.chrome>

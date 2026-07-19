@@ -45,6 +45,18 @@ class UxEntry
     public ?string $condition = null;
 
     /**
+     * Pins this entry to the very front of its slot, ahead of every entry without it -- unlike
+     * `$after`/`$before`, which position an entry relative to another entry's id (and so depend
+     * on that other entry actually being registered), this needs no anchor at all, for the
+     * "this must lead the slot, full stop" case (e.g. the Admin panel link always leading a
+     * user-menu dropdown when its own permission passes) that anchoring against a specific
+     * other id can't guarantee -- nothing else in the slot is required to exist, let alone be
+     * named, for this to hold. If more than one entry sets this, they keep their relative order
+     * against each other (stable), all still ahead of everything else.
+     */
+    public bool $first = false;
+
+    /**
      * Set by `SlotResolver::resolve()` right before rendering, when the slot being resolved
      * is bound to something (a `Moment`'s Card header, say) -- `null` for slots that aren't
      * (page-level ones like `kopling-core::community.navigation`). See `Context` itself for why this
@@ -89,6 +101,7 @@ class UxEntry
             'slot' => $this->slot,
             'after' => $this->after,
             'before' => $this->before,
+            'first' => $this->first,
             'condition' => $this->condition,
             'component' => $this->component,
             'data' => $this->data,
@@ -102,6 +115,7 @@ class UxEntry
         $entry->slot = $data['slot'];
         $entry->after = $data['after'];
         $entry->before = $data['before'];
+        $entry->first = $data['first'] ?? false;
         $entry->condition = $data['condition'];
 
         return $entry;

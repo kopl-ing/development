@@ -20,6 +20,12 @@ use Kopling\Core\Ux\UxEntry;
  * `Slot` component does, just bound to this card's own `Context` -- an extension targets
  * `SLOT` with the same `Ux::add()`/`replace()`/`remove()`/`after()`/`before()`/`when()` calls
  * it already knows from `kopling-core::community.navigation`.
+ *
+ * `$slot` overrides which slot actually gets resolved -- `self::SLOT` (Moment cards) when
+ * omitted, so this stays fully backward compatible. A second content type wanting this exact
+ * extensible top-row shape (Discussions' own Reply cards) passes its own slot instead of `Top`
+ * needing to be duplicated just to target a different, non-Moment-scoped name -- see `Card`,
+ * which is what actually threads this through from `<x-k::card.card>`.
  */
 class Top extends Component
 {
@@ -30,9 +36,9 @@ class Top extends Component
      */
     public Collection $entries;
 
-    public function __construct(Manager $manager, public Context $context)
+    public function __construct(Manager $manager, public Context $context, ?string $slot = null)
     {
-        $this->entries = SlotResolver::resolve(self::SLOT, $manager->ux(), $context);
+        $this->entries = SlotResolver::resolve($slot ?? self::SLOT, $manager->ux(), $context);
     }
 
     public function render(): View
@@ -46,7 +52,8 @@ class Top extends Component
      */
     public static function defaults(Ux $ux): void
     {
-        $ux->add(Avatar::class)->in(self::SLOT)->as('avatar')
+        $ux
+            ->add(Avatar::class)->in(self::SLOT)->as('avatar')
             ->add(Author::class)->in(self::SLOT)->as('author')->after('avatar')
             ->add(Timestamp::class)->in(self::SLOT)->as('timestamp')->after('author')
             ->add(Control::class)->in(self::SLOT)->as('control')->after('timestamp');

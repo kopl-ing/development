@@ -22,6 +22,9 @@ use Kopling\Core\Ux\UxEntry;
  * real reactions/reply feature behind this yet (`k-extensions/reactions` is still a bare
  * stub); a real one registers into this same slot when it exists, rather than this class
  * shipping a placeholder count.
+ *
+ * `$slot` overrides which slot gets resolved -- see `Top`'s own docblock for why (Discussions'
+ * Reply cards target their own slot here instead of Moments').
  */
 class Footer extends Component
 {
@@ -32,9 +35,9 @@ class Footer extends Component
      */
     public Collection $entries;
 
-    public function __construct(Manager $manager, public Context $context)
+    public function __construct(Manager $manager, public Context $context, ?string $slot = null)
     {
-        $this->entries = SlotResolver::resolve(self::SLOT, $manager->ux(), $context);
+        $this->entries = SlotResolver::resolve($slot ?? self::SLOT, $manager->ux(), $context);
     }
 
     public function render(): View

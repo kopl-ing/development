@@ -17,6 +17,9 @@ use Kopling\Core\Ux\UxEntry;
  * The main content area of a card. Resolves/renders `SLOT` the same way `Top`/`Footer` do --
  * default content (the title and body text) is just `Content`, registered like anything else
  * would be, not hardcoded into this class.
+ *
+ * `$slot` overrides which slot gets resolved -- see `Top`'s own docblock for why (Discussions'
+ * Reply cards target their own slot here instead of Moments').
  */
 class Body extends Component
 {
@@ -27,9 +30,9 @@ class Body extends Component
      */
     public Collection $entries;
 
-    public function __construct(Manager $manager, public Context $context)
+    public function __construct(Manager $manager, public Context $context, ?string $slot = null)
     {
-        $this->entries = SlotResolver::resolve(self::SLOT, $manager->ux(), $context);
+        $this->entries = SlotResolver::resolve($slot ?? self::SLOT, $manager->ux(), $context);
     }
 
     public function render(): View

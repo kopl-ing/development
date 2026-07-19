@@ -28,6 +28,21 @@ class Reply extends Model
         'body_html',
     ];
 
+    /**
+     * A reply renders through the exact same extensible `Top`/`Body`/`Footer` mechanism a
+     * Moment's own card does (`<x-k::card.card>`'s `$topSlot`/`$bodySlot`/`$footerSlot`), just
+     * its own slot family -- never Core's `Card\Top::SLOT`/`Body::SLOT`/`Footer::SLOT` directly.
+     * A `Reply` isn't a `Moment`: sharing the same global slot names would mean every
+     * Moment-only registration (reactions' vote/rail/words, this same extension's own
+     * teaser/engage/quote-op) renders on a reply too, with nothing about those concepts applying
+     * to one.
+     */
+    public const TOP_SLOT = 'kopling-discussions::reply.top';
+
+    public const BODY_SLOT = 'kopling-discussions::reply.body';
+
+    public const FOOTER_SLOT = 'kopling-discussions::reply.footer';
+
     public function moment(): BelongsTo
     {
         return $this->belongsTo(Moment::class);

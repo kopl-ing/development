@@ -39,6 +39,12 @@ class Context
     ) {
         $this->actor ??= Auth::user();
         $this->request ??= request();
+        // `InjectPortal` middleware already resolves and shares the current request's Portal as
+        // this exact request attribute, for every request -- reading it here means a Context
+        // built with no explicit $portal (Community\UserMenu's own bare `new Context()`, say)
+        // still knows which portal it's rendering on, the same way $actor already self-populates
+        // from Auth::user() instead of every caller having to fetch and pass it through by hand.
+        $this->portal ??= $this->request?->attributes->get('portal');
     }
 
     /**
@@ -73,6 +79,18 @@ class Context
         $bound = $this->getRoute()?->parameter($parameter);
 
         return $bound instanceof Model && $bound->is($this->subject);
+    }
+
+    /**
+     * Whether `$id` (a fully-qualified Portal id, e.g. "kopling-core::community") is the portal
+     * this context is currently rendering on -- e.g. a user-menu entry linking to a portal uses
+     * this to hide itself while already on that same portal, rather than showing a link to
+     * exactly where the viewer already is. `false` whenever there's no portal at all (a route not
+     * grouped under any Portal), same "absence just means no" rule `isRoute()` already follows.
+     */
+    public function isPortal(string $id): bool
+    {
+        return $this->portal?->id === $id;
     }
 
     /**

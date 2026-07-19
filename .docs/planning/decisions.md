@@ -3060,3 +3060,158 @@ Fixed all three, plus:
   (white) rather than being tinted to `$tag->color` again -- tinting an icon to match its own
   backdrop would render it invisible. Only contexts where the icon sits on a plain/neutral
   background (admin table, related-tags rail, the composer's Tagify swatch) tint it explicitly.
+
+---
+
+## 2026-07-19 — Topbar user menu (avatar dropdown), replacing the bare admin-panel link
+
+**Decision:** New `Ux\Community\UserMenu` component: a signed-in person's avatar in the
+community topbar, wrapped in a dropdown (`<x-k::dropdown>`) resolving its own nested slot
+(`UserMenu::SLOT`), same two-level pattern `Card\Top`/`Card\Control` already use. Renders nothing
+for a guest; renders a bare avatar (no dropdown) when the slot has no entries. Admin's own
+admin-panel link moved from a bare `Link` in `kopling-core::community.topbar` into this new slot,
+now using `Portal\Navigation\Item` (self-wraps its own `<li>`, the existing menu-item
+convention `Community\Navigation` already established) instead of `Link`.
+
+Added `Ux::first()` / `UxEntry::$first` / `SlotResolver` support: pins an entry to the front of
+its slot outright, no anchor id required -- `after()`/`before()` only position relative to
+*another* entry's id, which can't express "this must lead, full stop" when nothing else in the
+slot is guaranteed to exist. Admin's admin-link uses it so it always leads the user menu once its
+own `access-admin` permission passes, regardless of extension load/discovery order.
+
+`Card\Avatar` stays exactly as simple as it always was -- `$subject instanceof Person ? $subject
+: $subject?->person`, reading whichever the caller bound as `$context`'s own subject -- rather
+than gaining a new Context method or an actor-fallback branch. The caller's job, not Avatar's: a
+card binds `subject: $moment` as it always has (Avatar reads `$moment->person`, same as
+`Card\Author`/`Card\Timestamp`'s siblings sharing that exact same context); `UserMenu`'s view
+instead builds a dedicated `new Context(subject: $context->getActor())` right at the point it
+renders the avatar tag, since there's no Moment there at all -- the signed-in actor *is* the
+subject in that case. First draft added a `Context::getSubjectPerson()` method and an
+actor-fallback branch in `Avatar` to paper over this instead of just binding the right subject at
+each call site -- unnecessary; reverted.
+
+**Why:** No "pin to first" primitive existed; anchoring against a specific id would make every
+other extension's menu entries depend on Admin being installed just to render in the right order,
+or Admin depend on load-order sorting it early -- both fragile compared to a direct slot-level
+flag.
+
+**Status:** Decided & implemented. Full suite green (260 tests).
+
+---
+
+## 2026-07-19 — Reply cards reuse Core's Card/Top/Body/Footer via a slot override, not a duplicate set
+
+**Decision:** `Card\Top`/`Body`/`Footer` (and `Card` itself) gained an optional `?string $slot`
+override (`Card`: `$topSlot`/`$bodySlot`/`$footerSlot`), falling back to each class's own `SLOT`
+constant when omitted -- so Moment cards are entirely unaffected, and any second content type
+wanting this exact extensible avatar/author/timestamp + body + footer shape reuses the same three
+classes instead of Discussions hand-duplicating them.
+
+Discussions' `Reply` gained its own `TOP_SLOT`/`BODY_SLOT`/`FOOTER_SLOT` constants (a distinct
+slot family, `kopling-discussions::reply.*`) -- deliberately *not* Core's own
+`Card\Top::SLOT`/`Body::SLOT`/`Footer::SLOT`: a `Reply` isn't a `Moment`, and sharing the same
+global slot names would mean every Moment-only registration (reactions' vote/rail/words,
+discussions' own teaser/engage/quote-op) renders on a reply too. `Card\Avatar`/`Author`/
+`Timestamp` are reused unchanged (neither reads anything Moment-specific); a new
+`reply-content` anonymous component replaces `Content` (no title -- a reply doesn't have one);
+`quote-reply` is `quote-op`'s sibling, same `kop-quote-toggle` event contract, in the reply's own
+footer instead of the Moment's.
+
+`Card\Control` was left untouched -- the Moment's own "+ Quote" (`quote-op`) is already a plain
+`card.footer` entry, not a `Control` dropdown item, so replies never needed a post-actions
+dropdown of their own for this.
+
+`reply.blade.php`'s hand-rolled `chat`/`chat-bubble`/`chat-header`/`chat-footer` markup is gone,
+replaced by `<x-k::card.card>` with a `bg-base-300` override (via `Card`'s own `$attributes`,
+switched from a hardcoded class string to `$attributes->merge(['class' => ...])` so a caller can
+append a class at all) -- the only visual difference from a Moment's own `bg-base-100` card.
+`bg-base-200` was tried first and looked like no background at all: the page's own `<body>`
+(`portal/layout.blade.php`) is already `bg-base-200`, so a card in that same shade sits flush
+against the page. `base-300` is one step further, reading as "nested/recessed" under both the
+page and the Moment's own card -- the standard three-tier daisyUI depth convention.
+`reply-dock/dock.blade.php`'s reply counter, which selected `.chat` (a purely visual class that
+happened to double as reply-dock's only way to count replies in the DOM), now selects
+`[data-reply]` instead -- a `data-reply="{{ $reply->id }}"` attribute on the card itself, decoupling
+that count from whatever CSS class the card happens to render with.
+
+**Why:** Generalizing three already-generic classes (none of `Top`/`Body`/`Footer` ever read
+anything Moment-specific themselves -- only their `defaults()` and whatever registers into their
+`SLOT` did) is less code and less drift risk than a hand-copied parallel set that has to be kept
+in sync by hand forever after.
+
+**Status:** Decided & implemented. Full suite green (263 tests), including a new `ReplyCardTest`
+proving both halves live: the reply's own entries render, and reactions' rail (a real, installed
+extension, not stubbed) never appears on a reply card.
+
+---
+
+## 2026-07-19 — User menu entries hide themselves while already on their own portal
+
+**Decision:** `Context` gained `$portal` auto-detection (constructor defaults `$portal ??=
+$this->request?->attributes->get('portal')`, the exact value `InjectPortal` middleware already
+resolves and shares for every request) and `isPortal(string $id): bool`, mirroring `isRoute()`'s
+own shape/reasoning. `Portal\Navigation\Item` gained an optional `$data['hideOnPortal']` (a
+fully-qualified Portal id) -- opt-in, checked against `$context->isPortal()` in its own render,
+zero cost for the many `Item` registrations (sidebar nav, dock) that don't set it and never pass
+a `$context` in the first place.
+
+All three `UserMenu::SLOT` entries now set it: Core's own `community-link` ->
+`kopling-core::community`, Admin's `admin-link` -> `kopling-admin::admin`, Style Guide's
+`style-guide-link` -> `kopling-style-guide::style-guide`. Also: Admin's own topbar (previously a
+bare `Link` back to Community) now renders the same shared `UserMenu` Community/Style Guide use,
+so Admin gets the identical way back/around instead of a single hardcoded link -- and, along the
+way, the same missing-`flex` bug (present in all three topbar `<div class="flex-none gap-...">`
+containers -- `flex-none` alone doesn't turn on `gap-*`, `display:flex` does) got fixed
+everywhere it was copy-pasted, not just Community's own.
+
+**Why:** A link to the very portal you're already on is dead weight, and anchoring the check to
+one specific *route* (`isRoute()`) wouldn't cover every route inside a portal, just the one it
+already knew about -- `isPortal()` covers the whole portal, any route within it, for free.
+
+**Status:** Decided & implemented. Full suite green (273 tests): new `Context::isPortal()` cases
+in `ContextTest`, and `UserMenuHideOnPortalTest` proving each of the three real registrations
+hides on its own portal but not the other two -- assertions scoped to the dropdown's own markup,
+since a portal's label already appears elsewhere on its own page (and the style guide's own
+showcase content demonstrates `<x-k::link>` against its own route as an unrelated demo) regardless
+of whether hiding actually worked.
+
+---
+
+## 2026-07-19 — Community/Admin/Style Guide unified onto one shared chrome
+
+**Decision:** Community, Admin, and Style Guide had each hand-rolled their own
+navbar/sidebar/rail layout file -- copies of each other at first, but quietly drifted into three
+different widths/behaviors (Community narrow and centered, Admin wider, Style Guide full width;
+the same missing-`flex` gap bug got fixed three separate times as each was touched). `Community\
+Chrome` is now the one shared shell all three reuse: every constructor param (`$portalId`,
+`$topbarSlot`, `$sidebarSlot`, `$railSlot`, `$composerSlot`, `$mobileDock`, `$mainClass`) defaults
+to Community's own exact values, so `<x-k::community.chrome />` with no arguments (the feed's own
+call) is unchanged. Admin/Style Guide's own layout files are now a few lines each, just passing
+their own portal id/slot names and turning off the Community-feed-specific bits (`composerSlot:
+null`, `mobileDock: false`).
+
+`Community\Navigation` gained the same `$data['slot']` override `Card\Top`/`Body`/`Footer`
+already have (defaults to its own `SLOT`) -- Admin and Style Guide both reuse it, pointed at
+their own existing navigation slots, as their one entry in Chrome's generic sidebar-panel slot,
+instead of each hand-wrapping the same `<ul class="menu">` themselves. `Community\Sidebar`'s
+free-form widget blocks and `Navigation`'s self-wrapped `<ul>` can't share one `<ul>` container
+(invalid HTML), which is why the sidebar-panel slot itself renders raw, unwrapped -- each entry
+brings its own complete markup, same reasoning `Sidebar`'s own docblock already stated for why
+it's kept separate from `Navigation`. Style Guide's five hardcoded `<li><a href="#tokens">`
+section anchors became real `Ux::add()` entries too (a new `kopling-style-guide::nav-anchor`
+anonymous component, since they're same-page fragment links, not named routes `Item` could
+target) -- genuinely the same mechanism as everything else now, not a page-specific leftover.
+
+The only deliberate remaining difference is `$mainClass`: Community's own narrow, centered
+reading column for the feed vs. Admin/Style Guide's unconstrained width (settings tables,
+people/group lists, component showcases all want the room) -- both still bounded by the same
+outer `max-w-7xl` Chrome now applies identically everywhere.
+
+**Why:** Three copies of the same shell drift by construction -- every future fix (like the
+`gap-3` bug) has to be found and applied three times instead of once, and any real inconsistency
+(as here) has no single place to reconcile from.
+
+**Status:** Decided & implemented. Full suite green (275 tests) -- `ComponentCoverageTest` updated
+(`Portal\Layout`/`Slot` are now exercised transitively through `Chrome`, same reasoning as
+Card\Top/Body/Footer/Control already there), new `ChromeSidebarReuseTest` proving Admin's and
+Style Guide's own sidebar content still renders through the reused `Navigation` component.

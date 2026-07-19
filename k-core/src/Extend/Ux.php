@@ -116,6 +116,17 @@ class Ux
         return $this;
     }
 
+    /**
+     * Pins this entry to the very front of its slot -- see `UxEntry::$first` for why this
+     * exists alongside `after()`/`before()` rather than an anchor id doing the same job.
+     */
+    public function first(): static
+    {
+        $this->current->first = true;
+
+        return $this;
+    }
+
     public function as(string $id): static
     {
         $this->current->id = $id;

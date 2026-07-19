@@ -18,6 +18,9 @@ use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Card\Author;
+use Kopling\Core\Ux\Card\Avatar;
+use Kopling\Core\Ux\Card\Timestamp;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
 class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasIcons, HasPermissions, ExtendsModels, ExtendsPortals
@@ -48,6 +51,12 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
      * than markup hardcoded into show.blade.php -- so an extension that wants to own the one
      * reply surface itself (reply-dock) can `Ux::remove('kopling-discussions::default-composer')`
      * outright instead of only CSS-hiding a form whose editor mounts regardless.
+     *
+     * A reply's own card (`Reply::TOP_SLOT`/`BODY_SLOT`/`FOOTER_SLOT`, resolved with the reply
+     * itself bound as `$context`) reuses core's own `Avatar`/`Author`/`Timestamp` unchanged --
+     * neither reads anything Moment-specific -- alongside this extension's own `reply-content`
+     * (no title, unlike core's `Content`) and `quote-reply` (this reply's own "+ Quote", the
+     * sibling of `quote-op` above).
      */
     public function ux(): Ux
     {
@@ -66,7 +75,24 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->after('kopling-discussions::engage')
             ->add('kopling-discussions::composer')
             ->in('kopling-discussions::show.composer')
-            ->as('default-composer');
+            ->as('default-composer')
+            ->add(Avatar::class)
+            ->in(Reply::TOP_SLOT)
+            ->as('avatar')
+            ->add(Author::class)
+            ->in(Reply::TOP_SLOT)
+            ->as('author')
+            ->after('avatar')
+            ->add(Timestamp::class)
+            ->in(Reply::TOP_SLOT)
+            ->as('timestamp')
+            ->after('author')
+            ->add('kopling-discussions::reply-content')
+            ->in(Reply::BODY_SLOT)
+            ->as('reply-content')
+            ->add('kopling-discussions::quote-reply')
+            ->in(Reply::FOOTER_SLOT)
+            ->as('quote-reply');
     }
 
     /**

@@ -55,7 +55,14 @@ class SlotResolver
             }
         }
 
-        return $entries;
+        // `first` wins over whatever after()/before() positioning already happened above -- a
+        // stable partition (array_values(array_filter(...)) preserves relative order within
+        // each side), so more than one `first()` entry still keeps its own relative order,
+        // just all pushed ahead of everything else.
+        $pinned = array_values(array_filter($entries, fn (UxEntry $entry) => $entry->first));
+        $rest = array_values(array_filter($entries, fn (UxEntry $entry) => ! $entry->first));
+
+        return [...$pinned, ...$rest];
     }
 
     /**

@@ -6,13 +6,19 @@ namespace Kopling\Core\Ux\Card;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
+use Kopling\Core\People\Person;
 use Kopling\Core\Ux\Context;
 
 /**
  * A placeholder-initials avatar -- there's no real image/file upload behind this yet (see
  * Storage's still-unbuilt admin mapping), so this only ever renders initials, never an
  * `<img>`. Swapping in a real image once uploads exist replaces this component's view, not
- * anything that uses it. Reads the author's name off `$context->subject->person`.
+ * anything that uses it. Always renders whoever `$context`'s own subject is about -- a Moment's
+ * `->person` for a card (the usual case: `new Context(subject: $moment)`, shared with this
+ * card's other entries), or a `Person` given directly as the subject itself, for a caller with
+ * no card/Moment at all (`Community\UserMenu`'s navbar avatar: `new Context(subject:
+ * $context->getActor())`). Either way it's the caller's job to bind the right subject; this
+ * doesn't fall back to anything on its own.
  */
 class Avatar extends Component
 {
@@ -24,7 +30,8 @@ class Avatar extends Component
 
     public function render(): View
     {
-        $name = $this->context?->getSubject()?->person?->name;
+        $subject = $this->context?->getSubject();
+        $name = $subject instanceof Person ? $subject->name : $subject?->person?->name;
 
         return view('kopling-core::card.avatar', [
             'initials' => $this->initials($name),

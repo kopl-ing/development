@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Admin;
 
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
@@ -11,13 +12,15 @@ use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasAdminSettings;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\LoadOrder\Directive;
 use Kopling\Core\Extension\LoadOrder\InfluencesLoadOrder;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
-use Kopling\Core\Ux\Link;
+use Kopling\Core\Ux\Community\Navigation;
+use Kopling\Core\Ux\Community\UserMenu;
 use Kopling\Core\Ux\Portal\Navigation\Item;
 
 /**
@@ -31,7 +34,7 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
  * always in place first, without either side ever needing to know the other's Composer package
  * name (see `Extension\LoadOrder\Resolver`, and decisions.md, 2026-07-12).
  */
-class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx, ExtendsPortals, HasPermissions, HasPortals, InfluencesLoadOrder
+class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx, ExtendsPortals, HasIcons, HasPermissions, HasPortals, InfluencesLoadOrder
 {
     public static function name(): string
     {
@@ -63,6 +66,21 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
     }
 
     /**
+     * A safety helmet for the admin panel's own user-menu entry -- same `HasIcons` mechanism as
+     * any other semantic icon (see `Core::icons()`), so a `ChangesIcons` icon pack can override
+     * it, or a theme's own choice can replace it, without touching `ux()`'s `Item` registration
+     * itself.
+     *
+     * @return array<Icon>
+     */
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'admin-panel', label: __('kopling-admin::messages.admin_panel'), default: 'fas-helmet-safety'),
+        ];
+    }
+
+    /**
      * @return array<Portal>
      */
     public function portals(): array
@@ -89,9 +107,25 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
         ];
     }
 
+    /**
+     * `user-menu` in this portal's own topbar slot is the exact same avatar dropdown Community's
+     * chrome and the style guide's own layout render -- was a bare `Link` back to Community until
+     * now, replaced so a person browsing Admin gets the same consistent way back/around instead
+     * of a single hardcoded link. `admin-link` (this portal's own entry inside that dropdown, on
+     * every page that renders it) hides itself via `hideOnPortal` while already on the Admin
+     * portal -- no point linking to exactly where the viewer already is.
+     *
+     * `navigation-panel` reuses `Community\Navigation` (its own `$data['slot']` override pointed
+     * at this portal's existing `admin.navigation` slot -- `settings`/`people`/`groups` below are
+     * unchanged) as this portal's one entry in `Chrome`'s generic `admin.sidebar-panel` slot --
+     * the same shared chrome layout Community/Style Guide use (see `layouts/admin.blade.php`).
+     */
     public function ux(): Ux
     {
         return Ux::make()
+            ->add(Navigation::class, ['slot' => 'kopling-admin::admin.navigation'])
+            ->in('kopling-admin::admin.sidebar-panel')
+            ->as('navigation-panel')
             ->add(Item::class, [
                 'label' => __('kopling-admin::messages.settings'),
                 'route' => 'kopling-admin::admin/settings',
@@ -113,21 +147,19 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
             ->in('kopling-admin::admin.navigation')
             ->as('groups')
             ->when('kopling-core::manage-people')
-            ->add(Link::class, [
+            ->add(Item::class, [
                 'label' => __('kopling-admin::messages.admin_panel'),
                 'route' => 'kopling-admin::admin/index',
-                'variant' => 'ghost',
+                'icon' => 'kopling-admin::admin-panel',
+                'hideOnPortal' => 'kopling-admin::admin',
             ])
-            ->in('kopling-core::community.topbar')
+            ->in(UserMenu::SLOT)
             ->as('admin-link')
             ->when('access-admin')
-            ->add(Link::class, [
-                'label' => __('kopling-admin::messages.community'),
-                'route' => 'kopling-core::community/community',
-                'variant' => 'ghost',
-            ])
+            ->first()
+            ->add(UserMenu::class)
             ->in('kopling-admin::admin.topbar')
-            ->as('community-link');
+            ->as('user-menu');
     }
 
     /**

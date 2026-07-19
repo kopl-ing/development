@@ -64,7 +64,7 @@
             },
             recount() {
                 const wrap = document.getElementById('replies-{{ $moment->id }}');
-                this.count = (wrap ? wrap.querySelectorAll('.chat').length : 0) + 1;
+                this.count = (wrap ? wrap.querySelectorAll('[data-reply]').length : 0) + 1;
                 this.onScroll();
             },
             onScroll() {
