@@ -1,6 +1,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+{{--
+    Optional -- Core::adminSettings()'s own "community-description" field. Read directly via
+    Settings::get() here (not threaded through any component) since a <meta> tag belongs in the
+    document head regardless of which Portal/layout is rendering, unlike community-name/-logo
+    (Community\Chrome's own concern, since those only ever substitute for a Portal's own label).
+--}}
+@if ($description = \Kopling\Core\Settings\Settings::get('kopling-core::community-description'))
+    <meta name="description" content="{{ $description }}">
+@endif
 <title>@yield('title', 'Kopling')</title>
 @vite(['k-core/src/Ux/css/app.css', 'k-core/src/Ux/js/app.js'])
 {{--

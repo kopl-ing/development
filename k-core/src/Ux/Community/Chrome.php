@@ -9,6 +9,7 @@ use Illuminate\View\Component;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Portal\Portal;
+use Kopling\Core\Settings\Settings;
 
 /**
  * The one navbar/sidebar/main/rail chrome shell every portal now shares -- Community's own
@@ -33,10 +34,20 @@ use Kopling\Core\Portal\Portal;
  * would be invalid HTML inside a `<ul>`; `Community\Navigation` (reused, with its own `$data
  * ['slot']` override -- see its own docblock) self-wraps its own `<ul class="menu">` instead, as
  * one of potentially several entries in this same generic slot.
+ *
+ * `$label`/`$logo` substitute `Core::adminSettings()`'s own "community-name"/"community-logo"
+ * for `$portal->label` in the topbar -- but only when `$portalId` is actually
+ * `kopling-core::community`; Admin/Style Guide keep showing their own real portal label
+ * regardless of what's configured there. `$logo`, when set, takes over from `$label` entirely
+ * (an `<img>` instead of text) -- see `chrome.blade.php`'s own header markup.
  */
 class Chrome extends Component
 {
     public Portal $portal;
+
+    public string $label;
+
+    public ?string $logo;
 
     public function __construct(
         Manager $manager,
@@ -49,6 +60,12 @@ class Chrome extends Component
         public string $mainClass = 'max-w-2xl mx-auto',
     ) {
         $this->portal = $manager->portals()->firstWhere('id', $this->portalId);
+
+        $isCommunity = $this->portalId === 'kopling-core::community';
+
+        $this->label = ($isCommunity ? Settings::get('kopling-core::community-name') : null)
+            ?? $this->portal->label;
+        $this->logo = $isCommunity ? Settings::get('kopling-core::community-logo') : null;
     }
 
     public function render(): View

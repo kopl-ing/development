@@ -3215,3 +3215,31 @@ outer `max-w-7xl` Chrome now applies identically everywhere.
 (`Portal\Layout`/`Slot` are now exercised transitively through `Chrome`, same reasoning as
 Card\Top/Body/Footer/Control already there), new `ChromeSidebarReuseTest` proving Admin's and
 Style Guide's own sidebar content still renders through the reused `Navigation` component.
+
+---
+
+## 2026-07-19 — Community identity settings: name, logo, meta description
+
+**Decision:** `Core` implements `HasAdminSettings` again (previously reverted with the Font
+Awesome kit feature) for three new, all-optional fields: `community-name`, `community-logo`
+(a plain URL `Input`, no file upload -- Storage's own admin mapping still doesn't exist),
+`community-description` (a `TextArea`, used as the site's `<meta name="description">`).
+
+`community-name`/`community-logo` are read directly in `Community\Chrome`'s own constructor,
+substituted for `$portal->label` -- but only when `$portalId` is actually
+`kopling-core::community`; Admin and Style Guide (both reusing the same `Chrome` now, see the
+entry above) keep showing their own real portal label regardless of what's configured. The logo,
+once set, replaces the name entirely (an `<img>` instead of text). `community-description` is
+read directly in `layouts/partials/head.blade.php` instead -- a `<meta>` tag belongs in the
+document head regardless of which portal/layout is rendering, unlike the name/logo which are
+specifically `Chrome`'s own topbar concern.
+
+**Why:** Community-specific by name (not a generic "site name"/"site logo") because that's
+literally the scope asked for -- Admin/Style Guide are Kopling's own tooling, not part of "the
+community" a name/logo is meant to represent.
+
+**Status:** Decided & implemented. Full suite green (281 tests): `CoreAdminSettingsTest` (the
+three fields' shape), `ChromeCommunityIdentityTest` (name/logo substitution scoped correctly to
+Community only, meta description present/absent). Fixed `ManagerAdminSettingsTest`'s "Core
+declares no admin settings" example again (same fix as the Font Awesome entry above, now for a
+second, real reason) -- swapped to the `Pinned` fixture.

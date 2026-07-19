@@ -10,7 +10,15 @@
         <header class="navbar bg-base-100 border-b border-base-300 sticky top-0 z-30">
             <div class="flex w-full max-w-7xl mx-auto items-center">
                 <div class="flex-1">
-                    <span class="text-lg font-semibold px-4">{{ $portal->label }}</span>
+                    {{-- $logo, when set, replaces $label entirely -- both come from Chrome's own
+                         constructor, already scoped to only substitute Core's admin-configured
+                         community-name/community-logo while $portalId is actually
+                         "kopling-core::community" (see its own docblock). --}}
+                    @if ($logo)
+                        <img src="{{ $logo }}" alt="{{ $label }}" class="h-8 px-4">
+                    @else
+                        <span class="text-lg font-semibold px-4">{{ $label }}</span>
+                    @endif
                 </div>
                 {{--
                     `flex` (not just `flex-none`, which only governs how this div behaves as a

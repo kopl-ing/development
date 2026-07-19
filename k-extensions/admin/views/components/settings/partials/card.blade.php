@@ -34,35 +34,33 @@
             @endunless
         </div>
 
-        <div x-show="open" class="mt-4">
+        {{--
+            Description (+ icon) is its own full-width row, not a column squeezed to half the
+            card's width alongside the fields -- a field's own `w-full` input previously meant
+            "full width of that cramped half-column," not the card, which visibly outgrew the
+            room it had the moment a field's label/placeholder ran long.
+        --}}
+        <div x-show="open" class="mt-4 flex flex-col gap-6">
+            <div class="flex flex-col gap-3">
+                @if ($extension['iconLg'])
+                    <img src="{{ $extension['iconLg'] }}" alt="" class="size-24 rounded-lg">
+                @endif
+                <p class="opacity-70 text-sm">{{ $extension['description'] }}</p>
+            </div>
+
             @if ($extension['fields']->isNotEmpty())
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="flex flex-col gap-3">
-                        @if ($extension['iconLg'])
-                            <img src="{{ $extension['iconLg'] }}" alt="" class="size-24 rounded-lg">
-                        @endif
-                        <p class="opacity-70 text-sm">{{ $extension['description'] }}</p>
-                    </div>
-                    <div class="flex flex-col gap-4">
-                        @foreach ($extension['fields'] as $entry)
-                            <x-dynamic-component
-                                :component="$entry['field']->component"
-                                :data="array_merge($entry['field']->data, [
-                                    'name' => $entry['field']->id,
-                                    'label' => $entry['field']->label,
-                                    'description' => $entry['field']->description,
-                                    'value' => $entry['value'],
-                                ])"
-                            />
-                        @endforeach
-                    </div>
-                </div>
-            @else
-                <div class="flex flex-col gap-3">
-                    @if ($extension['iconLg'])
-                        <img src="{{ $extension['iconLg'] }}" alt="" class="size-24 rounded-lg">
-                    @endif
-                    <p class="opacity-70 text-sm">{{ $extension['description'] }}</p>
+                <div class="flex flex-col gap-4">
+                    @foreach ($extension['fields'] as $entry)
+                        <x-dynamic-component
+                            :component="$entry['field']->component"
+                            :data="array_merge($entry['field']->data, [
+                                'name' => $entry['field']->id,
+                                'label' => $entry['field']->label,
+                                'description' => $entry['field']->description,
+                                'value' => $entry['value'],
+                            ])"
+                        />
+                    @endforeach
                 </div>
             @endif
         </div>
