@@ -32,6 +32,8 @@ class ServiceProvider extends Provider
     {
         $this->app['config']->set('auth.providers.users.model', Person::class);
 
+        $this->mergeConfigFrom(__DIR__.'/../../config/core.php', 'kopling-core');
+
         $this->app->singleton(Manifest::class, function ($app) {
             return new Manifest(
                 $app->make('files'),

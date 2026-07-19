@@ -1,3 +1,4 @@
+@php use Kopling\Core\Ux\Context; @endphp
 {{--
     The Community portal's chrome only -- topbar/sidebar/rail/composer -- with no opinion on
     what the main content actually is. `layouts/community.blade.php` (the feed) fills this with
@@ -35,7 +36,18 @@
                 </main>
 
                 <aside class="w-72 border-l border-base-300 p-4 hidden xl:block" id="rail">
-                    <x-k::portal.slot name="kopling-core::community.rail" />
+                    {{--
+                        `subject` is the current route's bound "moment" parameter when there is
+                        one (e.g. the discussion page, `/m/{moment}`), null on every other page
+                        (the feed has no single subject) -- `Context::isRoute()` already exists
+                        for exactly this "is this bound to what the current route is about"
+                        check, safely returning false on a null subject rather than throwing, so
+                        anything registered here can render nothing unless it's actually on a
+                        page about one specific Moment. Moment is Core's own model, so this is
+                        Core binding its own concept, not reaching into a foreign extension's.
+                    --}}
+                    <x-k::portal.slot name="kopling-core::community.rail"
+                        :context="new Context(subject: request()->route('moment'))" />
                 </aside>
             </div>
         </div>

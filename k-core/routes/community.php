@@ -15,6 +15,8 @@ Route::get('moments/load', [LatestMomentsController::class, 'load'])->name('mome
 
 Route::post('theme', ThemeController::class)->name('theme.set');
 
+Route::get('icon-search', IconSearchController::class)->name('icon-search');
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login'])->name('login.attempt');

@@ -23,3 +23,14 @@
     --tagify-dd-color-primary: var(--color-primary, #2b4a9b);
     border-radius: var(--radius-field, 0.5rem);
 }
+
+/* A small colored dot before a pill/suggestion's label -- only ever rendered when a caller's
+   item data carries a `color` (see tag-input-tagify.js's own custom `tag`/`dropdownItem`
+   templates); absent for every other TagInput use. */
+.kop-tag-swatch {
+    display: inline-block;
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 999px;
+    flex-shrink: 0;
+}

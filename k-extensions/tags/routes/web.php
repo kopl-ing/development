@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Kopling\Core\Ux\Form\IconSearch\IconRenderer;
 use Kopling\Tags\Tag;
 
 // Required inside the Community portal's own Route::group() (see Extension::extendsPortals()),
@@ -19,12 +20,16 @@ Route::get('/tag/{slug}', function (string $slug) {
 })->name('tags.show');
 
 // The search endpoint `<x-k::form.tag-input>` calls from the tag picker (see `views/components/
-// select.blade.php`) -- fulfils that component's own contract (JSON array of {id, label}
-// pairs, matched by tag-input-tagify.js directly onto Tagify's own whitelist item shape).
-// Capped at 5 regardless of how many tags exist, matching what a picker should ever show at
-// once; called again with an empty `q` on focus, so an empty query still returns *something*
-// (alphabetically first 5) rather than nothing. `auth`-gated since only a signed-in person ever
-// sees the compose form this feeds.
+// select.blade.php`) -- fulfils that component's own contract (JSON array of {id, label, ...}
+// items, matched by tag-input-tagify.js directly onto Tagify's own whitelist item shape).
+// `color`/`icon` ride along too -- tag-input-tagify.js's own custom pill/dropdown templates
+// render them when present and are no-ops when absent, so this doesn't change the contract for
+// any other TagInput caller. `icon` is already-rendered SVG (never raw markup from a caller,
+// see IconRenderer), same "API/DB never hands back trusted markup on its own" rule the icon
+// picker's own search endpoint follows. Capped at 5 regardless of how many tags exist, matching
+// what a picker should ever show at once; called again with an empty `q` on focus, so an empty
+// query still returns *something* (alphabetically first 5) rather than nothing. `auth`-gated
+// since only a signed-in person ever sees the compose form this feeds.
 Route::middleware('auth')->get('/_tags/search', function () {
     $query = trim((string) request()->query('q', ''));
 
@@ -37,5 +42,7 @@ Route::middleware('auth')->get('/_tags/search', function () {
     return response()->json($tags->map(fn (Tag $tag) => [
         'id' => $tag->id,
         'label' => $tag->name,
+        'color' => $tag->color,
+        'icon' => $tag->icon ? IconRenderer::svg($tag->icon, '0.9em', $tag->color) : null,
     ])->values());
 })->name('tags.search');

@@ -77,7 +77,14 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
             ->when('kopling-tags::manage-tags')
             ->add('kopling-tags::select', ['min' => null, 'max' => null])
             ->in('kopling-composer::compose.fields')
-            ->as('select');
+            ->as('select')
+            // The current moment's own tags, in the rail -- only ever renders on a moment
+            // detail page (see views/components/related-tags.blade.php's own
+            // `$context->isRoute('moment')` guard); a no-op everywhere else `community.rail`
+            // renders, same as `widgets`' pulse/tags cards self-hiding when they have nothing.
+            ->add('kopling-tags::related-tags')
+            ->in('kopling-core::community.rail')
+            ->as('related-tags');
     }
 
     /**

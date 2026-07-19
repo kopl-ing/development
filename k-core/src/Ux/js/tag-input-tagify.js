@@ -21,9 +21,49 @@ function debounce(fn, delay) {
     };
 }
 
+// `color`/`icon` ride through unchanged when a caller's search/initial-value response includes
+// them (tags' own `/_tags/search` and `views/components/select.blade.php` do; nothing else does
+// yet) -- `undefined` otherwise, which the custom templates below already treat as "render
+// nothing extra". This keeps TagInput itself domain-agnostic: it renders whatever optional
+// fields a caller's data happens to carry, without knowing or caring what a "tag" is.
 function toWhitelistItem(item) {
-    return { value: item.label, id: item.id };
+    return { value: item.label, id: item.id, color: item.color, icon: item.icon };
 }
+
+// Same structural shape as Tagify's own default `tag`/`dropdownItem` templates (github.com/
+// yairEO/tagify, src/parts/templates.js) -- only insertion is one optional swatch/icon pair
+// right before the label -- so Tagify's own remove/edit/ARIA/dedupe behaviour (all of which
+// read the rest of this markup) keeps working unchanged.
+const templates = {
+    tag(tagData) {
+        const _s = this.settings;
+
+        return `<tag title="${tagData.title || tagData.value}"
+            contenteditable='false'
+            tabIndex="${_s.a11y.focusableTags ? 0 : -1}"
+            class="${_s.classNames.tag} ${tagData.class || ''}"
+            ${this.getAttributes(tagData)}>
+            <x title='' tabIndex="${_s.a11y.focusableTags ? 0 : -1}" class="${_s.classNames.tagX}" role='button' aria-label='remove tag'></x>
+            <div>
+                ${tagData.color ? `<span class="kop-tag-swatch" style="background-color:${tagData.color}"></span>` : ''}
+                ${tagData.icon || ''}
+                <span ${_s.mode === 'select' && _s.userInput ? "contenteditable='true'" : ''} autocapitalize="false" autocorrect="off" spellcheck='false' class="${_s.classNames.tagText}">${tagData[_s.tagTextProp] || tagData.value}</span>
+            </div>
+        </tag>`;
+    },
+    dropdownItem(item) {
+        const classNames = this.settings.classNames;
+
+        return `<div ${this.getAttributes(item)}
+            class="${classNames.dropdownItem} ${this.isTagDuplicate(item.value) ? classNames.dropdownItemSelected : ''} ${item.class || ''}"
+            tabindex="0"
+            role="option">
+            ${item.color ? `<span class="kop-tag-swatch" style="background-color:${item.color}"></span>` : ''}
+            ${item.icon || ''}
+            ${item.mappedValue || item.value}
+        </div>`;
+    },
+};
 
 /**
  * Mounts one tag input on `node` (a `[data-tag-input]` element) and returns its imperative API.
@@ -48,6 +88,7 @@ export function mount(node) {
         whitelist: initial.map(toWhitelistItem),
         value: initial.map(toWhitelistItem),
         maxTags: max,
+        templates,
         dropdown: {
             enabled: 0, // show suggestions immediately on focus, not after N characters typed
             maxItems: 5,

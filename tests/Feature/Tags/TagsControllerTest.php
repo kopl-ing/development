@@ -128,6 +128,52 @@ it('updates a tag', function () {
         ->and($tag->upvote_emoji)->toBe('🔥');
 });
 
+it('renders an icon-picker field, showing the existing tag\'s icon svg', function () {
+    $operator = personWithManageTags();
+    Tag::create(['name' => 'Design', 'slug' => 'design-icon-test', 'icon' => 'palette']);
+
+    $html = $this->actingAs($operator)->get('/admin/tags')->assertOk()->getContent();
+
+    expect($html)->toContain('data-kop-icon-picker')
+        ->and($html)->toContain('<svg');
+});
+
+it('creates a tag with an icon and description', function () {
+    $operator = personWithManageTags();
+
+    $this->actingAs($operator)
+        ->post('/admin/tags', [
+            '_form' => 'modal-tag-create',
+            'name' => 'Design',
+            'slug' => 'design',
+            'icon' => 'palette',
+            'description' => 'Anything about visual design.',
+        ])
+        ->assertRedirect('/admin/tags');
+
+    $tag = Tag::where('slug', 'design')->firstOrFail();
+    expect($tag->icon)->toBe('palette')
+        ->and($tag->description)->toBe('Anything about visual design.');
+});
+
+it('updates a tag\'s icon and description', function () {
+    $operator = personWithManageTags();
+    $tag = Tag::create(['name' => 'Old', 'slug' => 'old-icon-test']);
+
+    $this->actingAs($operator)
+        ->post("/admin/tags/{$tag->id}", [
+            '_form' => 'modal-tag-edit-'.$tag->id,
+            'name' => 'Old',
+            'slug' => 'old-icon-test',
+            'icon' => 'star',
+            'description' => 'Updated description.',
+        ])
+        ->assertRedirect('/admin/tags');
+
+    expect($tag->refresh()->icon)->toBe('star')
+        ->and($tag->description)->toBe('Updated description.');
+});
+
 it('deletes a tag and cascades its moment_tag rows', function () {
     $operator = personWithManageTags();
     $tag = Tag::create(['name' => 'Doomed', 'slug' => 'doomed']);

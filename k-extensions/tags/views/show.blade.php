@@ -1,4 +1,7 @@
-@php use Kopling\Core\Ux\Context; @endphp
+@php
+    use Kopling\Core\Ux\Context;
+    use Kopling\Core\Ux\Form\IconSearch\IconRenderer;
+@endphp
 {{--
     The tag page: everything under one tag. Reuses Community's own chrome (`<x-k::community.
     chrome>`, see k-core/views/community/chrome.blade.php) and core's own card component, so a
@@ -13,8 +16,13 @@
         </div>
 
         <h1 class="flex items-center gap-2 text-2xl font-bold">
-            <span class="badge badge-lg"
+            {{-- Same "inherit currentColor, don't tint" reasoning as the card badge row --
+                 this sits on the tag's own color as its background, not beside it. --}}
+            <span class="badge badge-lg gap-1.5"
                   @if ($tag->color) style="background-color:{{ $tag->color }};border-color:{{ $tag->color }};color:#fff" @endif>
+                @if ($tag->icon)
+                    {!! IconRenderer::svg($tag->icon, '1.1em') !!}
+                @endif
                 {{ $tag->name }}
             </span>
         </h1>

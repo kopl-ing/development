@@ -25,6 +25,8 @@ export default defineConfig({
                 'emoji-picker-style': fileURLToPath(new URL('./k-core/src/Ux/css/emoji-picker.css', import.meta.url)),
                 'tag-input': fileURLToPath(new URL('./k-core/src/Ux/js/tag-input.js', import.meta.url)),
                 'tag-input-style': fileURLToPath(new URL('./k-core/src/Ux/css/tag-input.css', import.meta.url)),
+                'icon-picker': fileURLToPath(new URL('./k-core/src/Ux/js/icon-picker.js', import.meta.url)),
+                'icon-picker-style': fileURLToPath(new URL('./k-core/src/Ux/css/icon-picker.css', import.meta.url)),
             },
             output: {
                 // editor.js/emoji-picker.js/tag-input.js each dynamically import() their own
@@ -41,6 +43,7 @@ export default defineConfig({
                     if (name === 'editor-style.css') return 'editor.css';
                     if (name === 'emoji-picker-style.css') return 'emoji-picker.css';
                     if (name === 'tag-input-style.css') return 'tag-input.css';
+                    if (name === 'icon-picker-style.css') return 'icon-picker.css';
 
                     return '[name][extname]';
                 },

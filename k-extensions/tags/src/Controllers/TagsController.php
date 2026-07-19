@@ -70,6 +70,8 @@ class TagsController
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', Rule::unique('tags', 'slug')->ignore($tag)],
             'color' => ['nullable', 'string', 'max:32'],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
         ]);
 
         return $request->validate($merged['rules'], $merged['messages']);

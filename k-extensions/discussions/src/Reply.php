@@ -7,6 +7,7 @@ namespace Kopling\Discussions;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection as SupportCollection;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Database\Model;
 use Kopling\Core\People\Person;
@@ -77,5 +78,32 @@ class Reply extends Model
             'people' => $replies->pluck('person_id')->unique()->count(),
             'words' => $replies->sum(fn (self $reply) => str_word_count(PlainTextExtractor::extract((string) $reply->body))),
         ];
+    }
+
+    /**
+     * Up to `$limit` distinct people who've replied to `$moment`, most-recent-reply-first -- the
+     * teaser's avatar row ("faces" are the fastest, pre-linguistic belonging signal a newcomer
+     * scans for). A dedicated query, not reused from `statsFor()`'s already-loaded collection:
+     * `statsFor()` only ever needs `person_id` for uniqueness counting, never the full `person`
+     * row, so eager-loading it there for every card in a feed would cost every reader for a
+     * signal only the teaser actually renders. Memoized per-moment per-request, same reasoning
+     * `statsFor()` already documents -- both are called once per card from separate slots.
+     *
+     * @return SupportCollection<int, Person>
+     */
+    public static function recentContributors(Moment $moment, int $limit = 5): SupportCollection
+    {
+        static $cache = [];
+
+        return $cache[$moment->getKey()] ??= static::query()
+            ->where('moment_id', $moment->id)
+            ->with('person')
+            ->latest()
+            ->get()
+            ->unique('person_id')
+            ->take($limit)
+            ->pluck('person')
+            ->filter()
+            ->values();
     }
 }

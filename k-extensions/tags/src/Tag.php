@@ -7,6 +7,7 @@ namespace Kopling\Tags;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Database\Model;
 
@@ -29,6 +30,8 @@ class Tag extends Model
         'name',
         'slug',
         'color',
+        'icon',
+        'description',
     ];
 
     public function moments(): BelongsToMany
@@ -52,5 +55,31 @@ class Tag extends Model
         }
 
         return $moment->getRelation('tags')->sortBy('name')->values();
+    }
+
+    /**
+     * The most recent activity under this tag -- the newest of its own moments' `created_at`,
+     * or (with `discussions` installed) the newest reply to any of its moments, whichever is
+     * later. Powers the related-tags rail's recency stamp: a timestamp proves life, a count
+     * only proves size. Always at least the tag's own newest moment, since a tag with any
+     * moment at all has *some* activity to report. `class_exists()`-guarded reach into
+     * `discussions`' `Reply`, same soft-integration convention `widgets`' pulse card already
+     * uses for the same class -- not a new cross-extension coupling.
+     */
+    public function latestActivity(): ?Carbon
+    {
+        $latest = $this->moments()->max('moments.created_at');
+
+        if (class_exists(\Kopling\Discussions\Reply::class)) {
+            $latestReply = \Kopling\Discussions\Reply::query()
+                ->whereIn('moment_id', $this->moments()->pluck('moments.id'))
+                ->max('created_at');
+
+            if ($latestReply !== null && ($latest === null || $latestReply > $latest)) {
+                $latest = $latestReply;
+            }
+        }
+
+        return $latest ? Carbon::parse($latest) : null;
     }
 }

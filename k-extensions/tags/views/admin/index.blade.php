@@ -1,5 +1,8 @@
 @extends('kopling-admin::layouts.admin')
-@php use Kopling\Core\Ux\Context; @endphp
+@php
+    use Kopling\Core\Ux\Context;
+    use Kopling\Core\Ux\Form\IconSearch\IconRenderer;
+@endphp
 
 @section('content')
     @php
@@ -30,6 +33,8 @@
                     <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-tags::messages.name'), 'value' => $reopening === 'modal-tag-create' ? old('name') : '']" />
                     <x-k::form.input :data="['name' => 'slug', 'label' => __('kopling-tags::messages.slug'), 'value' => $reopening === 'modal-tag-create' ? old('slug') : '']" />
                     <x-k::form.input :data="['name' => 'color', 'label' => __('kopling-tags::messages.color'), 'value' => $reopening === 'modal-tag-create' ? old('color') : '']" />
+                    <x-k::form.icon-picker :data="['name' => 'icon', 'label' => __('kopling-tags::messages.icon'), 'value' => $reopening === 'modal-tag-create' ? old('icon') : null, 'color' => $reopening === 'modal-tag-create' ? old('color') : null]" />
+                    <x-k::form.text-area :data="['name' => 'description', 'label' => __('kopling-tags::messages.description'), 'value' => $reopening === 'modal-tag-create' ? old('description') : '']" />
                     {{-- No :context on create -- Context::getSubject() requires a real subject
                          or a query Builder, neither of which exists yet for a brand new tag.
                          Omitting :context leaves every resolved entry's own $context null, and
@@ -50,6 +55,7 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th></th>
                         <th>{{ __('kopling-tags::messages.name') }}</th>
                         <th>{{ __('kopling-tags::messages.slug') }}</th>
                         <th>{{ __('kopling-tags::messages.color') }}</th>
@@ -60,6 +66,7 @@
                     @foreach ($tags as $tag)
                         @php $modalId = 'modal-tag-edit-'.$tag->id; @endphp
                         <tr>
+                            <td>{!! $tag->icon ? IconRenderer::svg($tag->icon, color: $tag->color) : '' !!}</td>
                             <td>{{ $tag->name }}</td>
                             <td>{{ $tag->slug }}</td>
                             <td>
@@ -77,6 +84,8 @@
                                         <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-tags::messages.name'), 'value' => $reopening === $modalId ? old('name') : $tag->name]" />
                                         <x-k::form.input :data="['name' => 'slug', 'label' => __('kopling-tags::messages.slug'), 'value' => $reopening === $modalId ? old('slug') : $tag->slug]" />
                                         <x-k::form.input :data="['name' => 'color', 'label' => __('kopling-tags::messages.color'), 'value' => $reopening === $modalId ? old('color') : $tag->color]" />
+                                        <x-k::form.icon-picker :data="['name' => 'icon', 'label' => __('kopling-tags::messages.icon'), 'value' => $reopening === $modalId ? old('icon') : $tag->icon, 'color' => $reopening === $modalId ? old('color') : $tag->color]" />
+                                        <x-k::form.text-area :data="['name' => 'description', 'label' => __('kopling-tags::messages.description'), 'value' => $reopening === $modalId ? old('description') : $tag->description]" />
                                         <x-k::portal.slot name="kopling-tags::admin.tag-form" :context="new Context(subject: $tag)" />
                                         @if ($reopening === $modalId && $errors->any())
                                             <p class="text-error text-sm">{{ $errors->first() }}</p>

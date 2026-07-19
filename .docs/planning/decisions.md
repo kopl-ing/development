@@ -2962,3 +2962,101 @@ ships without a showcase entry (reflects `k-core/src/Ux`, resolves each class's 
 `ComponentTag::resolve()`, greps the style guide's own Blade source -- caught one real bug on
 first run, `TextArea`'s tag being `text-area` not `textarea`). Extension-side enforcement (a lint
 checking a given extension's CSS only references core's theme variables) remains unbuilt.
+
+---
+
+## 2026-07-19 — Guest-to-member conversion pass: recent-activity "faces", tag icons, related tags on moment pages
+
+**Decision:** A set of changes translating product advice on converting guests into members
+("show life, not size") into the codebase:
+
+- `Kopling\Core\Http\GraphQl\GraphQlClient` -- a generic, API-agnostic GraphQL POST client
+  (`{query, variables}`, optional bearer token), config'd via `k-core/config/core.php`
+  (`mergeConfigFrom`'d in `ServiceProvider`).
+- `Ux\Form\IconPicker` (+ `Ux\Form\IconSearch\FontAwesomeIconSearch`, `IconRenderer`,
+  `Http\Controllers\IconSearchController` at `GET /icon-search`) -- a new core form component
+  searching Font Awesome's public GraphQL API (`searchPaginated`) by name, but rendering only
+  from the already-installed `owenvoke/blade-fontawesome` package locally (solid style,
+  `fas-{id}`) -- the API is a name index only, never a source of SVG markup. `searchUrl`
+  defaults to this one shared core route, unlike `TagInput`'s caller-supplied one, since icon
+  search never varies by caller.
+- `tags`: added `icon`/`description` columns (its own first-class fields, not a cross-extension
+  slot contribution like `reactions`' vote-emoji columns), wired into the admin CRUD form.
+- `discussions`: `Reply::recentContributors()` -- the teaser now shows an avatar row of recent
+  repliers (faces are the fastest, pre-linguistic belonging signal) alongside its existing
+  pluralized "N people used X words" line; hidden entirely when there are zero replies.
+- `widgets`: the sidebar "popular tags" card now ranks by a 7-day recent-activity window (new
+  moments + replies, `class_exists()`-soft-detecting `discussions`' `Reply`) instead of lifetime
+  `withCount('moments')` -- a tag with nothing recent no longer appears at all, and each ranked
+  tag shows contributor avatars + a `diffForHumans()` recency stamp instead of a raw count.
+- `k-core`'s `community/chrome.blade.php` now binds `Context(subject: request()->route('moment'))`
+  onto the previously-context-less `kopling-core::community.rail` slot, so anything registered
+  there can check `Context::isRoute('moment')` to render only on a moment's own detail page.
+  `tags` uses this for a new "related tags" rail card: the current moment's own tags, each with
+  icon/name/description/`Tag::latestActivity()` (soft-detects `discussions`' `Reply` the same way
+  `widgets` already does).
+
+**Why:** Directly implements the advice's core claims -- a tag/count is a "popularity monument,"
+timestamps and faces prove life, and the highest-value moment to show tag context is on the
+moment itself (most first visits land there, not the homepage), not a directory nobody asked for.
+
+**Not done in this pass:** guest composer visibility (does a guest see a real, focused composer
+or a login wall? -- `login_to_reply` message text suggests the latter, not yet investigated),
+"ask interests after first reply" (needs a "follow a tag" concept that doesn't exist yet), and
+locale-matching (bigger infra lift, out of scope).
+
+**Status:** Decided & implemented. Full suite green (243 tests). `npm run build` verified.
+Not yet browser-verified -- the Font Awesome GraphQL search specifically is worth checking live
+(schema confirmed against the real docs for `searchPaginated`'s `id`/`label`/`unicode` fields
+and `IconsPaginated`'s pagination fields, but the full `Icon` type's field list wasn't fully
+enumerable from the docs fetch, so only those verified fields are queried).
+
+**Follow-up (same day):** `IconPicker`'s empty state now shows a "+" placeholder, matching
+`EmojiPicker`. `IconRenderer::svg()` takes an optional `$color`, tinting a tag's icon with its
+own `color` wherever it renders (admin table, the icon-picker's own current-value preview,
+related-tags rail). `Ux\Form\TagInput` gained a generic (opt-in, no-op when absent) capability:
+custom Tagify `tag`/`dropdownItem` templates rendering an optional `color` swatch + `icon` per
+item, carried through by `tags`' own `/_tags/search` and `select.blade.php` -- deliberately kept
+in the shared, domain-agnostic component rather than tags reaching into Tagify itself. Explicitly
+**not** made to participate in `Icon.php`'s pack-swapping (`HasIcons`/`ChangesIcons`): that
+mechanism is a small, code-declared, developer-curated set (chrome icons like "home"), and a
+Tag's icon is an open, per-record admin choice from Font Awesome's whole catalog -- forcing the
+latter through the former would mean an icon-pack author providing a mapping for potentially any
+of ~2,000 icons, not the ~5-10 ids the mechanism was actually built for. A tag's icon is content
+data, like its `color`, not site chrome.
+
+**Bug found live (same day):** `widgets`' tags card cached a raw `Carbon` instance (the tag's
+`last_activity`) via `Cache::remember()`. Every Feature test stayed green because Pest's test
+env forces `CACHE_STORE=array` (phpunit.xml), which never actually serializes anything -- real
+production uses the `file` driver, a genuine PHP `serialize()`/`unserialize()`, which doesn't
+reliably reconstruct `Carbon` (`__PHP_Incomplete_Class` / "must be loaded before unserialize()"
+the moment `diffForHumans()` was called on the very next request). Reproduced directly against
+the real `file` store across two separate `php artisan tinker` processes before and after the
+fix, confirming both the failure and the repair independent of any test harness. Fixed by caching
+`->toIso8601String()` instead and `Carbon::parse()`-ing it back on read -- same "cache plain
+values, re-hydrate on read" rule this file already stated for Eloquent models, which apparently
+also covers Carbon. Added a regression test (`TagsWidgetTest`, "survives a real file-cache
+serialize/unserialize round trip") that forces `cache.default => file` for one test rather than
+trusting the suite's default `array` store -- verified it actually fails against the old code
+before confirming it passes against the fix, not just written and assumed correct.
+
+**Follow-up (visual feedback, same day):** none of the four tag-icon render sites actually
+showed the icon at first pass -- the card badge row, the tag show page's own header, and the
+widgets sidebar card all missed it entirely (only `related-tags` and the admin table had it).
+Fixed all three, plus:
+
+- Card badge row (`kopling-tags::tags`) now suppresses itself entirely when a moment carries
+  only the one tag whose own `/tag/{slug}` page is currently being viewed (`request()->
+  route('slug')`) -- a lone pill repeating the page's own subject added nothing. A second tag,
+  or any other page, still renders normally.
+- Widgets' popular-tags card was rethought, not just patched: one line (badge+icon+name+recency)
+  crammed alongside a 5-avatar row left no room for the avatars to read as faces rather than
+  noise. Split into two rows per tag (name+recency, then avatars), capped visible avatars at 3
+  with a "+N" count for the rest, added a `title` attribute per avatar (the real contributor's
+  name) -- confirmed these were always real posters/repliers, never filler, the visual density
+  was the actual problem.
+- Icon tinting rule clarified: inside a badge whose *background* is already the tag's own color
+  (card badge row, tag show header, widgets card), the icon inherits that badge's `currentColor`
+  (white) rather than being tinted to `$tag->color` again -- tinting an icon to match its own
+  backdrop would render it invisible. Only contexts where the icon sits on a plain/neutral
+  background (admin table, related-tags rail, the composer's Tagify swatch) tint it explicitly.

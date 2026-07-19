@@ -1,7 +1,14 @@
 <x-k::portal.layout>
     <div class="flex min-h-screen">
         <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0">
-            <ul class="menu p-4">
+            {{--
+                daisyUI's own `.menu` sets `width: fit-content` (shrinks to its widest item's
+                label), not full-width -- `w-full` overrides it so each item's row/hover
+                background actually spans the sidebar's own width instead of just its label's.
+                Same fix as Community's own sidebar navigation (k-core/views/community/
+                navigation.blade.php).
+            --}}
+            <ul class="menu p-4 w-full">
                 <li class="menu-title">{{ $portal->label }}</li>
                 <x-k::portal.slot name="kopling-admin::admin.navigation" />
             </ul>

@@ -29,6 +29,13 @@
     emoji-picker.js already is.
 --}}
 @vite(['k-core/src/Ux/css/tag-input.css', 'k-core/src/Ux/js/tag-input.js'])
+{{--
+    Same shape as emoji-picker.js above: a tiny always-loaded shim, no lazy-loaded second module
+    (unlike the emoji picker, there's no heavy bundled dataset to defer -- search results are
+    already server-rendered SVG, see Ux/js/icon-picker.js's own docblock). Loaded unconditionally
+    here for the same "Core primitive, not Portal-owned" reason as the others.
+--}}
+@vite(['k-core/src/Ux/css/icon-picker.css', 'k-core/src/Ux/js/icon-picker.js'])
 <style>{!! \Kopling\Core\Ux\Theme::css() !!}</style>
 {{--
     Every extension's css/js attached to the Portal this request resolved to (see
