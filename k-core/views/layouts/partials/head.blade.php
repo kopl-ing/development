@@ -1,3 +1,4 @@
+@php use Kopling\Core\Settings\Settings; @endphp
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -7,10 +8,10 @@
     document head regardless of which Portal/layout is rendering, unlike community-name/-logo
     (Community\Chrome's own concern, since those only ever substitute for a Portal's own label).
 --}}
-@if ($description = \Kopling\Core\Settings\Settings::get('kopling-core::community-description'))
+@if ($description = Settings::get('kopling-core::community-description'))
     <meta name="description" content="{{ $description }}">
 @endif
-<title>@yield('title', 'Kopling')</title>
+<title>@yield('title', Settings::get('kopling-core::community-name', 'Kopling'))</title>
 @vite(['k-core/src/Ux/css/app.css', 'k-core/src/Ux/js/app.js'])
 {{--
     editor.js is its own Vite entry, not folded into app.js -- a page with no editor mount point
