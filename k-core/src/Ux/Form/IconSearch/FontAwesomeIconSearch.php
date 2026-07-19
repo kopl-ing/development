@@ -29,7 +29,7 @@ class FontAwesomeIconSearch
 
     public function __construct()
     {
-        $this->client = new GraphQlClient(self::ENDPOINT, config('kopling-core.font_awesome_token'));
+        $this->client = new GraphQlClient(self::ENDPOINT);
     }
 
     /**
