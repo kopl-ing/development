@@ -2736,3 +2736,205 @@ one pair of columns:
 TagsController.php`, `k-extensions/tags/src/Tag.php`, `k-extensions/reactions/src/Extension.php`
 + `views/components/tag-vote-fields.blade.php` + its own migration). Full suite green (177
 tests, +2 for the new `ValidatesModels` aggregation). Not yet browser-verified.
+
+## 2026-07-19 — Tag assignment: closed the "moment_tag only ever populated by a demo seeder" gap
+
+**Problem:** `tags` had a full `Tag` model, browse page, and (as of yesterday) admin CRUD, but
+no product path ever wrote to `moment_tag` -- only `SeedDemoTagsCommand` did, an artisan-only
+demo command. Composer's own create-moment form had no tag field at all.
+
+**Decision:** Extended the same two mechanisms from yesterday's ownership refactor rather than
+inventing new ones -- this is the second real consumer proving they generalize:
+
+- **`Extend\Model` gained a `saved()` hook**, alongside `creating()`/`saving()` -- the actual
+  gap: a many-to-many sync needs the owning row's real primary key, which only exists *after*
+  the insert (`creating`/`saving` both fire pre-write). `tags` registers a `saved()` hook on
+  `Moment` that syncs `moment_tag` from `request('tags')` -- guarded on `request()->has('tags')`,
+  not a default-to-empty read, since `saved()` fires on *every* save of a `Moment` (a future
+  title-only edit, a seeder), and defaulting a missing key to `[]` would silently strip an
+  unrelated save's tags. Delete-side cleanup needs nothing new: `moment_tag`'s FK columns
+  already have `cascadeOnDelete()` on both sides (checked before building anything), which is
+  more robust than an Eloquent `deleting` hook anyway -- it fires regardless of deletion path,
+  not just Eloquent-mediated ones.
+- **`Ux/Portal/Slot` reused as-is** for composer's own new `kopling-composer::compose.fields`
+  slot (no `:context` -- there's no `Moment` yet during compose, same "omit rather than pass a
+  null subject" rule tags' own admin form already established). `tags` fills it with a picker,
+  composer stays fully ignorant tags exists.
+- **`ValidatesModels` reused as-is** -- `tags` contributes an `exists:tags,id` rule for
+  `Moment::class`'s `tags`/`tags.*` fields, merged into `StoreMomentRequest::rules()`. Its
+  `messages()` isn't container-resolved by Laravel the way `rules()` is (`FormRequest::
+  createDefaultValidator()` calls `$this->messages()` plainly, not through `Container::call()`)
+  -- resolves `Manager` via `app()` directly instead of a type-hinted parameter.
+- **New, genuinely reusable core primitive**: `Ux/Form/MultiSelect` gained optional `min`/`max`
+  (a rendering hint only -- enforcement is a separate `ValidatesModels` rule) and a default-slot
+  override for per-option markup, falling back to its existing plain-checkbox loop when no slot
+  content is given. `tags`' own `select.blade.php` (colored badges) is the first real consumer
+  of the slot; every existing caller (Person -> Group assignment) renders identically, unchanged.
+  Min/max both `null` for this first integration (no constraint) -- picker and validation rule
+  have to be updated together if that changes.
+
+**Status:** Decided & implemented (`k-core/src/Extend/Model.php`, `Manager::models()`,
+`Ux/Form/MultiSelect.php`, `k-extensions/tags/src/Extension.php` + `views/components/
+select.blade.php`, `k-extensions/composer/src/Requests/StoreMomentRequest.php` +
+`views/components/composer.blade.php`). Full suite green (185 tests, +7 for the new
+end-to-end compose-with-tags flow, +2 for the `saved()` hook itself, +4 for `MultiSelect`'s new
+capabilities). Not yet browser-verified.
+
+## 2026-07-19 — Core/tags ownership audit: three findings, all fixed
+
+**Audit:** Reviewed `k-core` for logic that should have lived in `tags`, and `tags` for logic
+that should have lived in `k-core` (confirming the boundary from the two prior 2026-07-18/19
+refactors held, before committing this branch). Three findings, all addressed:
+
+1. **`k-core/src/Ux/Card/Tag.php` + `views/card/tag.blade.php` deleted.** A generic badge
+   component literally named `Tag`, predating the real Tags extension (traced via `git log` to
+   the first two commits) and completely unreferenced anywhere in the codebase. `Card\Top.php`'s
+   own comment ("No `Tag` here on purpose") confirms the real tags extension deliberately never
+   used it, but it was never removed -- a dead name-collision with the real `Kopling\Tags\Tag`
+   domain model.
+2. **`Manager::mergeModelValidationRules(string $modelClass, array $rules, array $messages =
+   []): array{rules, messages}`** -- `TagsController::validated()` and `StoreMomentRequest::
+   rules()`/`messages()` had independently hand-written the identical "merge my own base rules
+   with whatever `modelValidationRules()` aggregated" idiom. Returns the merged pair rather than
+   calling `$request->validate()` itself, since a `FormRequest`'s own `rules()`/`messages()`
+   can't validate themselves -- the caller decides how to use the result.
+3. **The modal-reopen-on-validation-error pattern moved from `tags`' own view into
+   `Ux/Modal.php` itself.** Was entirely tag-specific-looking (a page-level `$reopening`
+   variable + a shared bottom-of-page inline script) despite having nothing to do with tags --
+   any admin screen with more than one modal has the identical problem. `<x-k::modal>` now
+   self-reopens: any instance whose own `$id` matches a hidden `<input name="_form">`'s
+   round-tripped `old('_form')` value shows itself again, with zero page-level script needed.
+   Callers only need one hidden input per form, matching the modal's own `:id` -- `tags`' admin
+   view and `reactions`' `tag-vote-fields.blade.php` both updated to the same convention (the
+   `_form` value is now the modal's *full* id, e.g. `modal-tag-edit-{id}`, not the shorter
+   `edit-{id}` key it used before this generalized).
+
+**Debugging note worth keeping:** discovered while writing the cross-request test for #3 --
+`Illuminate\Testing\TestResponse::assertSessionHasErrors()` has a side effect that clears the
+`errors` session flash before a subsequent request in the same test can read it (`old('_form')`/
+`_old_input` survives regardless; only `session('errors')` does not). Any future test asserting
+behavior across a validation-failure request *and* a follow-up request must not chain
+`assertSessionHasErrors()` on the first response -- the follow-up assertion itself is the
+stronger proof anyway. Separately: `old()` reads via `request()->session()`, which only a real
+HTTP request's `StartSession` middleware ever attaches -- a bare `$this->blade()` render needs
+`app('request')->setLaravelSession(app('session')->driver())` called first, or `old()` always
+returns the default regardless of what's in the session store directly.
+
+**Status:** Decided & implemented (`k-core/src/Ux/Modal.php` + `views/ux/modal.blade.php`,
+`Manager::mergeModelValidationRules()`, `k-extensions/tags/src/Controllers/TagsController.php`
++ `views/admin/index.blade.php`, `k-extensions/composer/src/Requests/StoreMomentRequest.php`,
+`k-extensions/reactions/views/components/tag-vote-fields.blade.php`). Full suite green (189
+tests, +4 for the modal self-reopen mechanism). Not yet browser-verified.
+
+## 2026-07-19 — `Ux/Form/Combobox`: a searchable, pilled multi-select, replacing the tag picker's checkbox list
+
+**Decision:** The tag picker built into composer's form (see the compose-with-tags entry, same
+day) rendered every installed tag as a checkbox up front -- fine at today's scale, but the
+wrong shape once a tag catalog grows (ships every tag to every page load, no search). Requested
+directly: a Filament-style multi-select -- searched server-side, capped results, chosen values
+shown as pills.
+
+Built as a new Core primitive, `Ux/Form/Combobox` (`k-core/src/Ux/Form/Combobox.php` +
+`views/ux/form/combobox.blade.php`), not a `MultiSelect` variant -- the interaction model is
+fundamentally different (server-searched/paginated vs. render-every-option), so it needed a new
+component rather than another prop. Same domain split as `EmojiPicker`: Core owns the widget
+(pills, search input, selection state, min/max hint reusing the same convention `MultiSelect`
+established), the caller owns the domain entirely through one thing -- a `searchUrl` the
+component `hx-get`s (debounced, and again on focus so an empty query can still show something,
+e.g. "5 most relevant"). The search endpoint's only obligation is a documented markup contract:
+each result carries `data-combobox-option`/`data-id`/`data-label`; Core's own delegated `@click`
+listener on the (possibly htmx-swapped) results container never looks past those three
+attributes, so styling/content inside is entirely the endpoint's own choice.
+
+Vanilla inline `x-data` (not `Alpine.data()`, same load-order reasoning `editor.js` already
+documents) + htmx -- no new JS bundle, unlike `EmojiPicker`'s dynamic-imported payload, since
+the interaction itself (add/remove a pill, toggle a results panel) is simple enough for Alpine
+alone. Known v1 gap, stated plainly rather than pretended away: mouse/tap selection only, no
+arrow-key/Enter navigation through results -- acceptable for a 5-result list, worth revisiting
+if that changes.
+
+`tags`' own picker (`views/components/select.blade.php`) shrank considerably -- it no longer
+renders any tag options itself, only resolves already-selected ids to `{id, label}` pairs (for
+pills to show without a round-trip) and points at its own new `GET /_tags/search` route
+(`auth`-gated, capped at 5, `views/components/search-results.blade.php` fulfilling Combobox's
+markup contract with a colored dot per tag).
+
+**Bug caught while adjusting existing coverage:** the compose-page test asserting the picker
+renders a tag's name was passing for the wrong reason after this swap -- the name it found
+came from `widgets`' unrelated "Popular tags" sidebar, not the picker itself (which, being
+search-driven now, never inlines a tag's name into the page at all). Fixed to assert the
+picker's actual markup (`data-combobox-results`, the wired `hx-get` URL) instead.
+
+**Status:** Decided & implemented. Full suite green (195 tests, +6 for `Combobox` itself and
+the tags search endpoint). Not yet browser-verified -- the htmx/Alpine interaction (debounced
+search, pill add/remove, click-outside-close) is the part most worth checking live; it's
+reasoned through carefully here but untested outside Pest's HTML-string assertions.
+
+## 2026-07-19 — Replaced the hand-rolled `Combobox` with `Ux/Form/TagInput`, built on `@yaireo/tagify`
+
+**Decision:** The hand-rolled `Combobox` (this same day's earlier entry -- htmx-driven search,
+inline Alpine for pill state) was rejected outright after review. Replaced with `Ux/Form/
+TagInput`, built on `@yaireo/tagify` (MIT, github.com/yairEO/tagify, zero dependencies,
+~20KB gzip JS + ~3KB CSS -- verified via `npm pack` before adding, same discipline every prior
+dependency in this codebase got) rather than continuing to hand-roll: it's a real, mature widget
+(keyboard nav, ARIA, edit-in-place all included -- closing the "known v1 limitation: no
+keyboard nav" gap the hand-rolled version had to admit to), and its own "mixed tags" mode
+specifically leaves room for a future inline-@mention/#tag feature typed directly into a
+moment's body to reuse the same dependency later -- the deciding factor over the also-considered
+`Tom Select` (Apache-2.0, similarly small, more general "enhanced select" shape but no path to
+inline mentions).
+
+Same domain split as `EmojiPicker`/the `Combobox` it replaces: Core owns the widget end to end
+(`k-core/src/Ux/Form/TagInput.php` + view + `Ux/js/tag-input.js` shim + `tag-input-tagify.js`
+payload, mirroring `editor.js`'s dynamic-import split -- mounts eagerly like the editor, not
+behind a click like `EmojiPicker`, since a tag input needs to be interactive the moment its page
+loads), the caller owns the domain through one thing -- a `searchUrl` returning JSON `{id,
+label}` pairs (Tagify's own async-whitelist pattern, followed exactly as documented: null the
+whitelist, `loading(true)`, replace it with the response, `loading(false).dropdown.show()`,
+`AbortController` to cancel a stale in-flight request).
+
+One real integration wrinkle: Tagify's own native behavior is to serialize the whole selection
+as *one* JSON string back into its underlying input, not a plain PHP array. Every server-side
+consumer already expected `request()->input('tags', [])` as a real array (from repeated
+`name="tags[]"` inputs) -- rather than touch `TagsController`/`StoreMomentRequest`/the `saved()`
+hook to accommodate Tagify's own format, `tag-input-tagify.js` keeps a set of real hidden
+`name="{name}[]"` inputs in sync on every `add`/`remove` event instead, so the server-side
+contract established earlier the same day didn't have to change at all.
+
+Reskinned via Tagify's own documented CSS custom properties (`--tag-bg`, `--tags-border-color`,
+etc.) onto the active theme's tokens, same "hand-written CSS on top of the theme's own
+variables" convention `editor.css`/`emoji-picker.css` already use -- `tag-input.css` imports
+Tagify's stylesheet first, then overrides.
+
+**Status:** Decided & implemented. Full suite green (196 tests). `npm run build` /
+`build:core-dist` both verified. Not yet browser-verified -- the actual remote-search/pill
+interaction is the part most worth checking live, more so than usual: it's grounded directly in
+Tagify's own documented API (verified against the real README, not memory) rather than
+guesswork, but still untested outside Pest's HTML/JSON assertions.
+
+## `Ux::add()` id collisions silently overwrite instead of erroring
+
+**Decision:** `Manager::applyUxAdd()` now throws a `\LogicException` when a second `Add` entry
+resolves to an id an earlier `Add` in the same registry already used, instead of silently
+overwriting it.
+
+**Why:** `tags`' own `Extension::ux()` had two `->add()` calls both landing on
+`->as('tags')` (the card-body tag badge, and the admin-nav item) -- same extension, so both
+resolved to the identical fully-qualified id `kopling-tags::tags`. `applyUxAdd()` stores entries
+in a plain `$registry[$entry->id] = $entry` array, so the second silently replaced the first's
+entire registration, including its `slot` -- the badge stopped rendering into `card.body` with
+no error anywhere. The DB relation (`saved()`'s `sync()`) was never affected; this was purely a
+UI-registration collision, which is what made it confusing to track down from a bug report of
+"tags don't show on the card" (persistence was fine the whole time). Fixed the immediate bug by
+renaming the admin-nav entry to `->as('admin-nav')`, and added the guard so the next same-name
+collision fails loudly at the point it's introduced rather than silently dropping a slot
+somewhere downstream. A legitimate `Ux::replace()`/`remove()` targeting an existing id is
+unaffected -- only two `Add`s on the same id trip the guard.
+
+**Status:** Decided & implemented. Full suite green (197 tests) after the guard was added;
+confirmed it doesn't false-positive on any other extension's `ux()` (every other `->as()` name
+in the codebase is already unique within its own extension). Also strengthened
+`ComposerControllerTest`'s "assigns the submitted tags to the new moment" test to assert the tag
+badge is actually present in the response HTML, not just the DB pivot row -- the real coverage
+gap that let this ship unnoticed; reverting the fix locally confirmed the test now fails loudly
+on this exact regression.

@@ -1,4 +1,6 @@
-{{-- Compose-first: a calm one-line box that grows on focus into title (optional) + body.
+{{-- Compose-first: a calm one-line box that grows on focus into title + body, both required
+     (the `moments` table's own `title` column is `NOT NULL` -- validation matches that, rather
+     than the schema staying looser than what the form actually enforces).
      Posting hx-prepends the new moment onto #moments-feed and collapses back. Inline Alpine +
      htmx only — no bundled JS of this component's own (the editor's own JS is core's editor.js/
      editor-tiptap.js, mounted via the editor component below, see its own docblock for why it
@@ -32,7 +34,7 @@
                     {{ strtoupper(mb_substr($me->name ?? '?', 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <input type="text" name="title" maxlength="150" x-show="open" x-cloak
+                    <input type="text" name="title" maxlength="150" required x-show="open" x-cloak
                            placeholder="{{ __('kopling-composer::messages.title_placeholder') }}"
                            class="input input-sm w-full font-semibold px-0 mb-1 border-0 focus:outline-none bg-transparent">
                     <div x-ref="editor">
@@ -40,6 +42,12 @@
                     </div>
                 </div>
             </div>
+
+            {{-- No :context -- there's no Moment yet during compose, always create-mode, same
+                 "omit :context entirely rather than pass a null subject" rule tags' own admin
+                 form follows (Context::getSubject() throws on a null subject). Empty by default
+                 (Card\Footer-style) until an extension (tags' own tag picker) fills it. --}}
+            <x-k::portal.slot name="kopling-composer::compose.fields" />
 
             <div x-show="open" x-cloak class="flex items-center justify-end gap-2 pt-1">
                 <button type="button" @click="open = false; clearEditor(); $refs.form.reset()"

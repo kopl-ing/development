@@ -15,11 +15,12 @@ use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
+use Kopling\Core\Extension\Contract\ValidatesModels;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Portal\Navigation\Item;
 use Kopling\Tags\Command\SeedDemoTagsCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, HasPermissions
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasCommands, HasPermissions, ValidatesModels
 {
     public static function name(): string
     {
@@ -51,6 +52,12 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * way the reactions extension registers into the footer. Also adds the admin nav entry
      * for the tag CRUD screen, gated behind `manage-tags`, matching how Admin's own Extension
      * gates its People/Groups/Settings nav entries.
+     *
+     * `select` fills composer's own `kopling-composer::compose.fields` slot with the tag
+     * picker (`views/components/select.blade.php`) -- composer never declares anything about
+     * tags itself. `min`/`max` both `null` for now (no constraint) -- if that ever changes,
+     * update `modelValidationRules()` below's rule to match; the picker's own hint text and the
+     * server-side enforcement have to agree.
      */
     public function ux(): Ux
     {
@@ -66,8 +73,32 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                 'route' => 'kopling-admin::admin/tags',
             ])
             ->in('kopling-admin::admin.navigation')
-            ->as('tags')
-            ->when('kopling-tags::manage-tags');
+            ->as('admin-nav')
+            ->when('kopling-tags::manage-tags')
+            ->add('kopling-tags::select', ['min' => null, 'max' => null])
+            ->in('kopling-composer::compose.fields')
+            ->as('select');
+    }
+
+    /**
+     * The `tags` array the picker above posts -- validated here so `composer` never has to
+     * declare anything about it, same split `TagsController`'s own merge for `Tag::class`
+     * already established. No min/max enforced yet, matching the picker's own unconstrained
+     * `ux()` registration above.
+     *
+     * @return array<class-string, array{rules: array<string, array<int, string>>, messages: array<string, string>}>
+     */
+    public function modelValidationRules(): array
+    {
+        return [
+            Moment::class => [
+                'rules' => [
+                    'tags' => ['array'],
+                    'tags.*' => ['exists:tags,id'],
+                ],
+                'messages' => [],
+            ],
+        ];
     }
 
     /**
@@ -84,13 +115,39 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * moment instead of a `whereHas` per card -- the O(cards) cost issue #4 measured.
      * `Tag::forMoment` reads this relation.
      *
+     * `saved()` is the actual write path for the tag picker `ux()` registers into composer's
+     * form (see `views/components/select.blade.php`) -- fires post-insert (and post-update, for
+     * whenever a real moment-edit flow exists), with the moment's own real id already assigned,
+     * which `creating()`/`saving()` can't offer since a pivot sync needs the owning side's key.
+     * Guarded on `request()->has('tags')`, not a default-to-empty read -- `saved()` fires on
+     * *every* save of a `Moment`, including ones composer's own field was never part of (a
+     * future title-only edit, a seeder), so defaulting a missing key to `[]` and syncing would
+     * silently strip an unrelated save's tags. `composer` never learns tags exists either way.
+     *
+     * `$moment->load('tags')` after `sync()` is deliberate, not redundant -- `sync()` runs
+     * through `$moment->tags()` (the *method*, a fresh relation query each call) rather than
+     * the magic `$moment->tags` property accessor, so it never touches this same instance's own
+     * cached relation. Composer renders its just-posted moment from this exact `$moment` object
+     * (`kopling-composer::partials.moment`, the same request, no re-fetch from the DB) --
+     * without this explicit reload, `Tag::forMoment()`'s own "load if not already loaded" check
+     * would still be technically correct, but only a *second* request (a real page reload) would
+     * ever see the freshly-synced tags; the one response that actually needs them wouldn't.
+     *
      * @return array<Model>
      */
     public function models(): array
     {
         return [
             (new Model(Moment::class))
-                ->relation((new Relation)->belongsToMany('tags', Tag::class, 'moment_tag')->eagerLoad()),
+                ->relation((new Relation)->belongsToMany('tags', Tag::class, 'moment_tag')->eagerLoad())
+                ->saved(function (Moment $moment) {
+                    if (! request()->has('tags')) {
+                        return;
+                    }
+
+                    $moment->tags()->sync(request()->input('tags', []));
+                    $moment->load('tags');
+                }),
         ];
     }
 

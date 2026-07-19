@@ -17,6 +17,8 @@ export default defineConfig({
                 'k-core/src/Ux/js/editor.js',
                 'k-core/src/Ux/css/emoji-picker.css',
                 'k-core/src/Ux/js/emoji-picker.js',
+                'k-core/src/Ux/css/tag-input.css',
+                'k-core/src/Ux/js/tag-input.js',
             ],
             refresh: [
                 'k-core/src/**/*.blade.php',

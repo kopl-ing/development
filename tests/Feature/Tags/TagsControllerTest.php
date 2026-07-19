@@ -48,7 +48,7 @@ it('creates a tag with vote emoji', function () {
 
     $this->actingAs($operator)
         ->post('/admin/tags', [
-            '_form' => 'create',
+            '_form' => 'modal-tag-create',
             'name' => 'Feature Requests',
             'slug' => 'feature-requests',
             'upvote_emoji' => '👍',
@@ -66,7 +66,7 @@ it('rejects a tag whose upvote and downvote emoji are the same', function () {
 
     $this->actingAs($operator)
         ->post('/admin/tags', [
-            '_form' => 'create',
+            '_form' => 'modal-tag-create',
             'name' => 'Feature Requests',
             'slug' => 'feature-requests',
             'upvote_emoji' => '👍',
@@ -77,12 +77,33 @@ it('rejects a tag whose upvote and downvote emoji are the same', function () {
     expect(Tag::where('slug', 'feature-requests')->exists())->toBeFalse();
 });
 
+it('reopens the exact modal that failed validation, not the other one, on the follow-up page load', function () {
+    $operator = personWithManageTags();
+    $tag = Tag::create(['name' => 'Old', 'slug' => 'old']);
+
+    // No assertion chained on this response -- Illuminate\Testing\TestResponse::
+    // assertSessionHasErrors() has a side effect that clears the errors flash before a
+    // follow-up request can read it (old('_form')/`_old_input` survives regardless; only
+    // `session('errors')` does not) -- the reopen script actually appearing below is itself
+    // the stronger proof that validation failed and flashed correctly.
+    $this->actingAs($operator)->post("/admin/tags/{$tag->id}", [
+        '_form' => 'modal-tag-edit-'.$tag->id,
+        'name' => '', // required, so this fails
+        'slug' => 'old',
+    ]);
+
+    $html = $this->actingAs($operator)->get('/admin/tags')->assertOk()->getContent();
+
+    expect($html)->toContain('modal-tag-edit-'.$tag->id.'")?.showModal()')
+        ->and($html)->not->toContain('modal-tag-create")?.showModal()');
+});
+
 it('allows a tag with only one vote direction configured', function () {
     $operator = personWithManageTags();
 
     $this->actingAs($operator)
         ->post('/admin/tags', [
-            '_form' => 'create',
+            '_form' => 'modal-tag-create',
             'name' => 'Feature Requests',
             'slug' => 'feature-requests',
             'upvote_emoji' => '👍',
@@ -96,7 +117,7 @@ it('updates a tag', function () {
 
     $this->actingAs($operator)
         ->post("/admin/tags/{$tag->id}", [
-            '_form' => 'edit-'.$tag->id,
+            '_form' => 'modal-tag-edit-'.$tag->id,
             'name' => 'New Name',
             'slug' => 'old',
             'upvote_emoji' => '🔥',

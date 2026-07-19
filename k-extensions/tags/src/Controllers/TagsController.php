@@ -66,15 +66,12 @@ class TagsController
      */
     private function validated(Request $request, ?Tag $tag = null): array
     {
-        $extra = $this->manager->modelValidationRules()[Tag::class] ?? ['rules' => [], 'messages' => []];
+        $merged = $this->manager->mergeModelValidationRules(Tag::class, [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['required', 'string', 'max:255', Rule::unique('tags', 'slug')->ignore($tag)],
+            'color' => ['nullable', 'string', 'max:32'],
+        ]);
 
-        return $request->validate(
-            array_merge([
-                'name' => ['required', 'string', 'max:255'],
-                'slug' => ['required', 'string', 'max:255', Rule::unique('tags', 'slug')->ignore($tag)],
-                'color' => ['nullable', 'string', 'max:32'],
-            ], $extra['rules']),
-            $extra['messages'],
-        );
+        return $request->validate($merged['rules'], $merged['messages']);
     }
 }

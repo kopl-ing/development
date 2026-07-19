@@ -17,3 +17,25 @@ Route::get('/tag/{slug}', function (string $slug) {
 
     return view('kopling-tags::show', ['tag' => $tag, 'moments' => $moments]);
 })->name('tags.show');
+
+// The search endpoint `<x-k::form.tag-input>` calls from the tag picker (see `views/components/
+// select.blade.php`) -- fulfils that component's own contract (JSON array of {id, label}
+// pairs, matched by tag-input-tagify.js directly onto Tagify's own whitelist item shape).
+// Capped at 5 regardless of how many tags exist, matching what a picker should ever show at
+// once; called again with an empty `q` on focus, so an empty query still returns *something*
+// (alphabetically first 5) rather than nothing. `auth`-gated since only a signed-in person ever
+// sees the compose form this feeds.
+Route::middleware('auth')->get('/_tags/search', function () {
+    $query = trim((string) request()->query('q', ''));
+
+    $tags = Tag::query()
+        ->when($query !== '', fn ($builder) => $builder->where('name', 'like', '%'.$query.'%'))
+        ->orderBy('name')
+        ->limit(5)
+        ->get();
+
+    return response()->json($tags->map(fn (Tag $tag) => [
+        'id' => $tag->id,
+        'label' => $tag->name,
+    ])->values());
+})->name('tags.search');

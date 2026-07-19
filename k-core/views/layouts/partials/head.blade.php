@@ -20,6 +20,15 @@
     can use, not owned by whichever one happens to render first.
 --}}
 @vite(['k-core/src/Ux/css/emoji-picker.css', 'k-core/src/Ux/js/emoji-picker.js'])
+{{--
+    Same shape as editor.js again: a tiny always-loaded shim, with the real `@yaireo/tagify`
+    payload only ever dynamically import()ed once a `<x-k::form.tag-input>` mount point actually
+    exists (see Ux/js/tag-input.js) -- mounts eagerly, like the editor, not behind a click like
+    the emoji picker, since a tag input needs to be visible and interactive the moment its page
+    loads. Loaded unconditionally here for the same "Core primitive, not Portal-owned" reason
+    emoji-picker.js already is.
+--}}
+@vite(['k-core/src/Ux/css/tag-input.css', 'k-core/src/Ux/js/tag-input.js'])
 <style>{!! \Kopling\Core\Ux\Theme::css() !!}</style>
 {{--
     Every extension's css/js attached to the Portal this request resolved to (see

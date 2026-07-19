@@ -9,12 +9,20 @@ use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ExtendsModels;
 
 /**
- * A fixture extension exercising `ExtendsModels`' `creating()`/`saving()` end to end: a
- * `creating()` hook that stamps a column the caller never set (and can reject a create outright)
- * and a `saving()` hook that transforms an attribute on both insert and update.
+ * A fixture extension exercising `ExtendsModels`' `creating()`/`saving()`/`saved()` end to end:
+ * a `creating()` hook that stamps a column the caller never set (and can reject a create
+ * outright), a `saving()` hook that transforms an attribute on both insert and update, and a
+ * `saved()` hook that logs each fire -- proving it sees a real assigned primary key (something
+ * `creating()` structurally can't, since it runs before the insert) and fires on both create
+ * and update, same as `saving()`.
  */
 class Extension extends AbstractExtension implements ExtendsModels
 {
+    /**
+     * @var array<int, array{id: mixed, wasRecentlyCreated: bool}>
+     */
+    public static array $savedLog = [];
+
     public static function name(): string
     {
         return 'Model Hooker Fixture';
@@ -22,7 +30,7 @@ class Extension extends AbstractExtension implements ExtendsModels
 
     public static function description(): string
     {
-        return 'Adds creating()/saving() hooks to a fixture model, for testing ExtendsModels.';
+        return 'Adds creating()/saving()/saved() hooks to a fixture model, for testing ExtendsModels.';
     }
 
     /**
@@ -43,6 +51,12 @@ class Extension extends AbstractExtension implements ExtendsModels
                 })
                 ->saving(function (Message $message) {
                     $message->body = strtoupper((string) $message->body);
+                })
+                ->saved(function (Message $message) {
+                    static::$savedLog[] = [
+                        'id' => $message->id,
+                        'wasRecentlyCreated' => $message->wasRecentlyCreated,
+                    ];
                 }),
         ];
     }

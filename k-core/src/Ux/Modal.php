@@ -22,10 +22,17 @@ use Illuminate\View\Component;
  * (e.g. one "Manage groups" modal per person row) never collide. Takes a `trigger` named slot
  * for the button's contents and the default slot for the panel's body.
  *
- * `$id` may be passed explicitly instead, when a caller needs a stable, predictable id to
- * target from its own JS (e.g. re-opening a specific create/edit dialog after a validation
- * redirect-back leaves it closed with errors sitting in the `$errors` bag -- see the tags
- * admin CRUD screen for the first caller doing this).
+ * `$id` may be passed explicitly instead, when a caller needs a stable, predictable id -- e.g.
+ * one this same modal reads back itself: a plain redirect-back on a failed validation leaves
+ * the dialog closed with errors sitting in the `$errors` bag, so this component self-reopens
+ * whenever a hidden `<input type="hidden" name="_form" value="{{ $id }}">` inside its own slot
+ * content round-trips through `old('_form')` matching this exact instance's `$id` (see
+ * `ux/modal.blade.php`'s own script at the bottom) -- no page-level script or `$reopening`
+ * variable needed from the caller, just that one hidden field per form. `tags`' admin CRUD
+ * screen was the first caller to need this, originally hand-rolled entirely in its own view
+ * (page-level `$reopening` var + a shared bottom-of-page script) before moving here -- nothing
+ * about the pattern was actually tag-specific, so any future admin screen with more than one
+ * modal would otherwise have had to re-invent it from scratch.
  */
 class Modal extends Component
 {

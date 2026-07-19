@@ -23,13 +23,15 @@ export default defineConfig({
                 'editor-style': fileURLToPath(new URL('./k-core/src/Ux/css/editor.css', import.meta.url)),
                 'emoji-picker': fileURLToPath(new URL('./k-core/src/Ux/js/emoji-picker.js', import.meta.url)),
                 'emoji-picker-style': fileURLToPath(new URL('./k-core/src/Ux/css/emoji-picker.css', import.meta.url)),
+                'tag-input': fileURLToPath(new URL('./k-core/src/Ux/js/tag-input.js', import.meta.url)),
+                'tag-input-style': fileURLToPath(new URL('./k-core/src/Ux/css/tag-input.css', import.meta.url)),
             },
             output: {
-                // editor.js/emoji-picker.js each dynamically import() their own real payload
-                // (editor-tiptap.js / emoji-picker-mart.js) so pages without a mount point, or
-                // whose picker nobody ever opened, never load it -- chunkFileNames keeps each
-                // split chunk's own name fixed/unhashed too, same reasoning entryFileNames
-                // already applies to the real entries.
+                // editor.js/emoji-picker.js/tag-input.js each dynamically import() their own
+                // real payload so pages without a mount point, or whose picker nobody ever
+                // opened, never load it -- chunkFileNames keeps each split chunk's own name
+                // fixed/unhashed too, same reasoning entryFileNames already applies to the real
+                // entries.
                 entryFileNames: '[name].js',
                 chunkFileNames: '[name].js',
                 assetFileNames: (asset) => {
@@ -38,6 +40,7 @@ export default defineConfig({
                     if (name === 'style.css') return 'app.css';
                     if (name === 'editor-style.css') return 'editor.css';
                     if (name === 'emoji-picker-style.css') return 'emoji-picker.css';
+                    if (name === 'tag-input-style.css') return 'tag-input.css';
 
                     return '[name][extname]';
                 },

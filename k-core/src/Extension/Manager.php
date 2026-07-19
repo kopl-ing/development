@@ -313,6 +313,29 @@ class Manager
     }
 
     /**
+     * The step every `ValidatesModels` consumer otherwise re-derives by hand: merge a
+     * controller's own base rules/messages for `$modelClass` with whatever
+     * `modelValidationRules()` aggregated for it. Returns the merged pair rather than calling
+     * `$request->validate()` itself -- a `FormRequest`'s own `rules()`/`messages()` can't call
+     * `validate()` on itself (that's the mechanism validating *them*), so the caller decides how
+     * to use the result: hand both straight to `$request->validate($rules, $messages)` in a
+     * plain controller, or return `['rules']`/`['messages']` from a `FormRequest`'s own methods.
+     *
+     * @param  array<string, mixed>  $rules
+     * @param  array<string, string>  $messages
+     * @return array{rules: array<string, mixed>, messages: array<string, string>}
+     */
+    public function mergeModelValidationRules(string $modelClass, array $rules, array $messages = []): array
+    {
+        $extra = $this->modelValidationRules()[$modelClass] ?? ['rules' => [], 'messages' => []];
+
+        return [
+            'rules' => array_merge($rules, $extra['rules']),
+            'messages' => array_merge($messages, $extra['messages']),
+        ];
+    }
+
+    /**
      * Every permission declared by every extension, with `Permission::$id` already prefixed
      * with the owning extension's `id()` -- an author writes just the local part
      * ("manage-reactions"), never the prefix, so it can't drift or collide with another
@@ -511,28 +534,28 @@ class Manager
 
     /**
      * Registers every model extension declared by every extension -- relations directly against
-     * the target model via `Model::resolveRelationUsing()`, `creating()`/`saving()` hooks via
-     * the target model's own native Eloquent `Model::creating()`/`saving()` (no base-class
-     * requirement, unlike casts below), casts into `Database\Model`'s own flat, class-keyed cast
-     * registry (`Database\Model::registerCasts()`, read by its `getCasts()` override) -- a side
-     * effect, not an aggregation like `permissions()`/`portals()`, so there's nothing meaningful
-     * to return beyond what `ListExtensionRegistrations`-style introspection might want (mirrors
+     * the target model via `Model::resolveRelationUsing()`, `creating()`/`saving()`/`saved()`
+     * hooks via the target model's own native Eloquent equivalents (no base-class requirement,
+     * unlike casts below), casts into `Database\Model`'s own flat, class-keyed cast registry
+     * (`Database\Model::registerCasts()`, read by its `getCasts()` override) -- a side effect,
+     * not an aggregation like `permissions()`/`portals()`, so there's nothing meaningful to
+     * return beyond what `ListExtensionRegistrations`-style introspection might want (mirrors
      * `listeners()` otherwise). An `Extend\Model` instance is scoped to exactly one model class
      * by its own constructor, so there's exactly one place "which model" is declared; where more
      * than one extension targets the same model, their `relations`/`casts` are combined, not
      * replaced -- a relation-name collision is last-registered-wins (`resolveRelationUsing()`'s
      * own rule), a cast-key collision is last-declared-wins among extensions, though core's own
      * `$casts` always wins regardless of declaration order (see `Database\Model::getCasts()`).
-     * `creating`/`saving` hooks never collide -- Eloquent supports multiple listeners per event
-     * natively, so every extension's hook for the same model/event fires, in load order.
+     * `creating`/`saving`/`saved` hooks never collide -- Eloquent supports multiple listeners per
+     * event natively, so every extension's hook for the same model/event fires, in load order.
      *
      * `Collection::ensure(Extend\Model::class)` guards `ExtendsModels::models()` itself --
      * every item it returns must actually be a `Kopling\Core\Extend\Model` extender, not some
      * other value an implementor mistakenly returned.
      *
      * Cached on the instance (`Manager` is bound as a singleton) so the `resolveRelationUsing()`/
-     * `creating()`/`saving()`/cast-registry side effects only ever run once, the same reasoning
-     * `extensions()` already caches on.
+     * `creating()`/`saving()`/`saved()`/cast-registry side effects only ever run once, the same
+     * reasoning `extensions()` already caches on.
      */
     public function models(): Collection
     {
@@ -577,6 +600,10 @@ class Manager
 
             if ($model->saving !== null) {
                 $class::saving($model->saving);
+            }
+
+            if ($model->saved !== null) {
+                $class::saved($model->saved);
             }
 
             $casts[$model->model] = array_merge($casts[$model->model] ?? [], $model->casts);
@@ -888,6 +915,24 @@ class Manager
         // PortalExtension::$portal already use -- left exactly as written, never prefixed.
         if (is_string($entry->condition) && ! str_contains($entry->condition, '::')) {
             $entry->condition = $prefix.$entry->condition;
+        }
+
+        // Two Add entries resolving to the same id can only ever be the *same* extension
+        // reusing an ->as() name across two unrelated ->add() calls (the prefix is always the
+        // owning extension's own id, so two different extensions can never collide here no
+        // matter what local name either picks) -- there is no legitimate reason for this, and
+        // the registry being a plain id-keyed array means it would otherwise silently overwrite
+        // the first entry outright, including its own `slot`, not just its `component`/`data`
+        // -- a whole feature going quietly missing from wherever the first one rendered, with no
+        // error anywhere. `Ux::replace()`/`remove()` are the real mechanism for intentionally
+        // targeting an already-registered entry; a second plain `add()` never is. Same
+        // fail-loudly-on-an-author-mistake convention `commands()` already uses.
+        if (isset($registry[$entry->id]) && $registry[$entry->id]->action === UxAction::Add) {
+            throw new \LogicException(sprintf(
+                'Two Ux::add() entries both resolve to id "%s" -- give one a distinct ->as() name. '
+                .'A second add() silently overwrites the first (including its own slot), it never merges with it.',
+                $entry->id
+            ));
         }
 
         $registry[$entry->id] = $entry;

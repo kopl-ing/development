@@ -33,6 +33,8 @@ class Model
 
     public ?Closure $saving = null;
 
+    public ?Closure $saved = null;
+
     public function __construct(public readonly string $model)
     {
     }
@@ -76,6 +78,26 @@ class Model
     public function saving(Closure $callback): self
     {
         $this->saving = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Against Eloquent's native `saved` event -- fires *after* the row is written, on both
+     * insert and update, with a real primary key already assigned. `creating`/`saving` both fire
+     * pre-write, before an insert has an id at all -- the wrong side of the write for anything
+     * that needs to touch a *relation* on the model just created/updated (e.g. syncing a
+     * many-to-many pivot from a submitted id list), since a pivot row needs the owning side's
+     * real key to reference. This is that hook. Same closure/argument shape as `creating()`/
+     * `saving()` otherwise -- reach for `request()`/`Auth::user()` inside it the same way a
+     * controller would, and guard on `request()->has(...)` rather than defaulting a missing key
+     * to empty, since `saved` fires on *every* save of the target model, not just the one form
+     * this hook cares about -- an unguarded default would silently wipe the relation on any
+     * unrelated save that doesn't carry that key at all.
+     */
+    public function saved(Closure $callback): self
+    {
+        $this->saved = $callback;
 
         return $this;
     }
