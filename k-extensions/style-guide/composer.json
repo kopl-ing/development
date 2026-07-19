@@ -1,0 +1,19 @@
+{
+    "name": "kopling/style-guide",
+    "description": "A living showcase of every <x-k::*> component core ships -- the design-system registry the charter's Open Questions still names as undecided, kept honest by a coverage test rather than hand-maintained docs.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\StyleGuide\\": "src/"
+        }
+    }
+}

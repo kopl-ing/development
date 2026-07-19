@@ -15,7 +15,12 @@
         @endforeach
     </div>
 @else
-    <ul class="menu p-4">
+    {{--
+        daisyUI's own `.menu` sets `width: fit-content` (shrinks to its widest item's label),
+        not full-width -- `w-full` overrides it so each item's row/hover background actually
+        spans the sidebar's own width instead of just its label's.
+    --}}
+    <ul class="menu p-4 w-full">
         @foreach ($entries as $entry)
             <x-dynamic-component :component="$entry->component" :data="$entry->data" :context="$entry->context" />
         @endforeach
