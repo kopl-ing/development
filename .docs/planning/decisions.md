@@ -2938,3 +2938,27 @@ in the codebase is already unique within its own extension). Also strengthened
 badge is actually present in the response HTML, not just the DB pivot row -- the real coverage
 gap that let this ship unnoticed; reverting the fix locally confirmed the test now fails loudly
 on this exact regression.
+
+---
+
+## 2026-07-19 — Extensions follow core's daisyUI theme; hand-rolled CSS is the exception, and even then must consume core's theme variables
+
+**Decision:** Extensions style themselves through core's `<x-k::*>` components and theme tokens,
+with only minor customization on top. Shipping custom CSS is the exception, reserved for cases
+like wrapping a third-party widget (e.g. an image gallery) that has no core equivalent -- and
+even then, that CSS must read/apply core's daisyUI CSS variables (`--color-primary`,
+`--color-base-100`, etc.) rather than hardcoding its own values.
+
+**Why:** Formalizes what `extend.html`'s existing safelisted-utilities rule already implied but
+never stated outright. Hardcoded colors in extension CSS silently break runtime re-theming (an
+admin re-brands via `Theme::css()` and the extension's own widget doesn't follow) and fragment
+the visual "feel" as more extensions ship.
+
+**Status:** Decided; core's own side is now enforced. `k-extensions/style-guide` (a normal,
+disableable extension, not `CannotBeDisabled`) showcases every directly-invokable core
+`<x-k::*>` component at `/style-guide` (gated by `access-style-guide`), and
+`tests/Feature/StyleGuide/ComponentCoverageTest.php` fails CI the moment a new core component
+ships without a showcase entry (reflects `k-core/src/Ux`, resolves each class's tag via the real
+`ComponentTag::resolve()`, greps the style guide's own Blade source -- caught one real bug on
+first run, `TextArea`'s tag being `text-area` not `textarea`). Extension-side enforcement (a lint
+checking a given extension's CSS only references core's theme variables) remains unbuilt.

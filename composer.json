@@ -31,6 +31,7 @@
         "kopling/pin": "@dev",
         "kopling/reactions": "@dev",
         "kopling/reply-dock": "@dev",
+        "kopling/style-guide": "@dev",
         "kopling/tags": "@dev",
         "kopling/theme-delft": "@dev",
         "kopling/theme-midnight": "@dev",

@@ -53,9 +53,13 @@ function coreUxComponentClasses(): \Illuminate\Support\Collection
             ->replace('/', '\\'))
         ->filter(fn (string $class) => class_exists($class) && is_subclass_of($class, \Illuminate\View\Component::class))
         ->reject(fn (string $class) => in_array($class, [...$leafOnly, ...$renderedTransitivelyByCard], true))
-        // Needs real Portal/feed wiring to mean anything -- already exercised by the actual
-        // Community page, not faked here. See decisions.md's style-guide scoping entry.
-        ->reject(fn (string $class) => str_starts_with($class, 'Kopling\\Core\\Ux\\Community\\'))
+        // The rest of Community\* needs real Portal/feed wiring to mean anything -- already
+        // exercised by the actual Community page, not faked here (see decisions.md's style-guide
+        // scoping entry). ThemeSwitcher is the one exception: its own $data['themes']/['active']
+        // override lets it render a real preview independent of that live wiring, so it's shown
+        // rather than excluded.
+        ->reject(fn (string $class) => str_starts_with($class, 'Kopling\\Core\\Ux\\Community\\')
+            && $class !== \Kopling\Core\Ux\Community\ThemeSwitcher::class)
         ->values();
 }
 

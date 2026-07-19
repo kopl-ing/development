@@ -1,13 +1,14 @@
 @php
     use Kopling\Core\Content\Moment;
     use Kopling\Core\People\Person;
-    use Kopling\Core\Ux\Context;
     use Illuminate\Support\Str;
 
     // A fixture Moment/Person -- never persisted, exists only for this preview. `Card`/`Top`/
     // `Body`/`Footer`/`Control` all type their subject as a real `Model` (see Context::$subject),
     // so a plain array/DTO won't satisfy them; an unsaved model instance does, as long as it
-    // carries the attributes/relations those components actually read.
+    // carries the attributes/relations those components actually read. Kept here, not in
+    // `card/recipe.blade.php`, so the "code" panel shown for the Card example is just the one
+    // meaningful invocation line, not this fixture's own setup noise.
     $person = new Person(['name' => 'Jane Doe']);
     $person->id = (string) Str::uuid();
 
@@ -30,7 +31,7 @@
     directly -- they're `Ux::add()`-only leaves, never invoked as bare `<x-k::card.*>` tags by
     convention (see ComponentCoverageTest's exclusion list for the same reasoning).
 --}}
-<section id="card" class="flex flex-col gap-4">
+<section id="card" class="flex flex-col gap-6">
     <h2 class="text-xl font-semibold border-b border-base-300 pb-2">
         {{ __('kopling-style-guide::messages.card') }}
     </h2>
@@ -40,5 +41,9 @@
         too, not just Core's own defaults.
     </p>
 
-    <x-k::card.card :context="new Context(subject: $moment)" />
+    @include('kopling-style-guide::partials.example', [
+        'path' => 'kopling-style-guide::sections.card.recipe',
+        'label' => 'Card',
+        'with' => ['moment' => $moment],
+    ])
 </section>

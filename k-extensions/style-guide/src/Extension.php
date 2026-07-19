@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Kopling\StyleGuide;
 
 use Kopling\Core\Extend\Permission;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
+use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Community\ThemeSwitcher;
 
 /**
  * A design-system showcase, not a "real" feature -- its own Portal (gated by
@@ -21,7 +24,7 @@ use Kopling\Core\Portal\PortalExtension;
  * extension's own showcase honest as core's `<x-k::*>` inventory grows -- the enforcement, not
  * this class, is the point.
  */
-class Extension extends AbstractExtension implements HasPortals, ExtendsPortals, HasPermissions
+class Extension extends AbstractExtension implements HasPortals, ExtendsPortals, HasPermissions, ChangesUx
 {
     public static function name(): string
     {
@@ -72,5 +75,19 @@ class Extension extends AbstractExtension implements HasPortals, ExtendsPortals,
             new PortalExtension('kopling-style-guide::style-guide')
                 ->routes(__DIR__.'/../routes/web.php'),
         ];
+    }
+
+    /**
+     * A live, working theme toggle in this portal's own topbar slot (see
+     * `layouts/style-guide.blade.php`) -- not just the passive demo in the Actions section, so
+     * every real installed theme can actually be flipped through while browsing the style guide
+     * itself. Same component, same global `kopling_theme` cookie the real Community topbar uses.
+     */
+    public function ux(): Ux
+    {
+        return Ux::make()
+            ->add(ThemeSwitcher::class)
+            ->in('kopling-style-guide::style-guide.topbar')
+            ->as('theme-switcher');
     }
 }
