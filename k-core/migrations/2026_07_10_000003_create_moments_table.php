@@ -17,7 +17,10 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('person_id')->constrained(table: 'people')->cascadeOnDelete();
             $table->string('title');
+            // Canonical ProseMirror JSON document. `body_html` is the sanitized rendered HTML
+            // `DocumentRenderer` produces from it at write time.
             $table->text('body');
+            $table->text('body_html')->nullable();
             $table->timestamps();
         });
     }

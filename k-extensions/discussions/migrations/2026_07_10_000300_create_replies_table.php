@@ -16,7 +16,10 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('moment_id')->constrained(table: 'moments')->cascadeOnDelete();
             $table->foreignUuid('person_id')->constrained(table: 'people')->cascadeOnDelete();
+            // Same repurposing as moments' own `body`/`body_html` -- canonical ProseMirror JSON
+            // document plus its rendered HTML.
             $table->text('body');
+            $table->text('body_html')->nullable();
             $table->timestamps();
         });
     }
