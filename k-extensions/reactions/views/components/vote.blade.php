@@ -27,7 +27,7 @@
         $mine = $state['mine'];
         $canVote = $state['canReact'];
     @endphp
-    <div id="votes-{{ $moment->id }}" class="flex flex-wrap items-center gap-3">
+    <div id="votes-{{ $moment->id }}" class="flex shrink-0 flex-nowrap items-center gap-3">
         @foreach ($pairs as $pair)
             @php
                 $emoji = $pair['emoji'];

@@ -9,8 +9,9 @@ use Illuminate\View\Component;
 use Kopling\Core\Ux\Context;
 
 /**
- * `Body`'s default child -- the moment's own title and text. Reads `$context->subject`
- * directly, same as every other slot-rendered leaf in this domain.
+ * `Body`'s default child -- the moment's own text. Its title renders in `Top` instead (see
+ * `Card\Title`), not here. Reads `$context->subject` directly, same as every other
+ * slot-rendered leaf in this domain.
  */
 class Content extends Component
 {
@@ -23,9 +24,7 @@ class Content extends Component
     public function render(): View
     {
         return view('kopling-core::card.content', [
-            'title' => $this->context?->getSubject()?->title,
             'bodyHtml' => $this->context?->getSubject()?->body_html,
-            'url' => $this->context?->getSubjectUrl(),
         ]);
     }
 }

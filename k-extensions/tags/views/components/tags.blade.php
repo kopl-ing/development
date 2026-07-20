@@ -4,8 +4,10 @@
 @endphp
 @props(['data' => [], 'context' => null])
 {{--
-    A moment's tags as badge links, rendered at the top of the card body (before core's
-    `content`). Reads `$context->subject` (the Moment) like every card leaf. Each badge links
+    A moment's tags as badge links, floating on the card's own top edge, above the title
+    (`Card\Badges::SLOT` -- see that component's own docblock for the positioning mechanics)
+    rather than inside the body itself. Reads `$context->subject` (the Moment) like every card
+    leaf. Each badge links
     to the tag's own page, with its icon before its name. A tag's optional `color` is a per-tag
     brand choice independent of the daisyUI theme, so it's applied as an inline style (the one
     sanctioned exception to "semantic colours only") -- the icon deliberately isn't tinted to
@@ -30,7 +32,7 @@
     }
 @endphp
 @if ($tags->isNotEmpty())
-    <div class="mb-1 flex flex-wrap items-center gap-1.5">
+    <div class="flex flex-wrap items-center gap-1.5">
         @foreach ($tags as $tag)
             <a href="{{ route('kopling-core::community/tags.show', $tag->slug) }}"
                class="badge badge-sm gap-1 no-underline"

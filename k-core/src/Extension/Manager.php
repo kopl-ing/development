@@ -7,6 +7,7 @@ namespace Kopling\Core\Extension;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
+use Illuminate\Database\Eloquent\Relations\Relation as EloquentRelation;
 use Illuminate\Support\Collection;
 use Kopling\Core\Core;
 use Kopling\Core\Database\Model as DatabaseModel;
@@ -569,14 +570,18 @@ class Manager
      * `$casts` always wins regardless of declaration order (see `Database\Model::getCasts()`).
      * `creating`/`saving`/`saved` hooks never collide -- Eloquent supports multiple listeners per
      * event natively, so every extension's hook for the same model/event fires, in load order.
+     * `morphAlias()` (if set) is applied via `Relation::morphMap()` (never `enforceMorphMap()` --
+     * see `Extend\Model::morphAlias()`'s own docblock for why), which merges rather than
+     * replaces -- two `Extend\Model` declarations from different extensions can each register
+     * their own alias without either clobbering the other's.
      *
      * `Collection::ensure(Extend\Model::class)` guards `ExtendsModels::models()` itself --
      * every item it returns must actually be a `Kopling\Core\Extend\Model` extender, not some
      * other value an implementor mistakenly returned.
      *
      * Cached on the instance (`Manager` is bound as a singleton) so the `resolveRelationUsing()`/
-     * `creating()`/`saving()`/`saved()`/cast-registry side effects only ever run once, the same
-     * reasoning `extensions()` already caches on.
+     * `creating()`/`saving()`/`saved()`/morph-map/cast-registry side effects only ever run once,
+     * the same reasoning `extensions()` already caches on.
      */
     public function models(): Collection
     {
@@ -625,6 +630,10 @@ class Manager
 
             if ($model->saved !== null) {
                 $class::saved($model->saved);
+            }
+
+            if ($model->morphAlias !== null) {
+                EloquentRelation::morphMap([$model->morphAlias => $class]);
             }
 
             $casts[$model->model] = array_merge($casts[$model->model] ?? [], $model->casts);

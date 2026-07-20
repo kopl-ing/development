@@ -12,7 +12,7 @@
     page-loaded one.
 
     `bg-base-300` is the only visual difference from a Moment's own `bg-base-100` card --
-    everything else (border, card-body padding/layout) stays identical. Not `bg-base-200`: the
+    everything else (outline, section padding/layout) stays identical. Not `bg-base-200`: the
     page itself is `bg-base-200` (`portal/layout.blade.php`'s own `<body>`), so a card using that
     same shade would sit flush against the page with no visible surface at all. `base-300` is the
     next step down from the page background, reading as "nested/recessed" under the Moment's own
@@ -23,6 +23,7 @@
 <x-k::card.card
     :context="new Context(subject: $reply)"
     :top-slot="Reply::TOP_SLOT"
+    :badges-slot="Reply::BADGES_SLOT"
     :body-slot="Reply::BODY_SLOT"
     :footer-slot="Reply::FOOTER_SLOT"
     class="bg-base-300"

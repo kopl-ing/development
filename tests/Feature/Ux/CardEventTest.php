@@ -23,7 +23,7 @@ it('renders with no extra classes when nothing listens', function () {
         'context' => new Context(subject: $moment),
     ]);
 
-    expect($html)->toContain('class="card card-border bg-base-100"');
+    expect($html)->toContain('class="card bg-base-100 outline -outline-offset-1 outline-base-content/10"');
 });
 
 it('lets a RenderingCard listener append a class to the card wrapper', function () {

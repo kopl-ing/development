@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
-use Kopling\Reactions\Reaction;
 use Kopling\Tags\Tag;
 
 it('orders the feed by upvote count when sort=top is requested', function () {
@@ -19,14 +18,14 @@ it('orders the feed by upvote count when sort=top is requested', function () {
     $newer = Moment::create(['person_id' => $author->id, 'title' => 'Newer High Votes', 'body' => 'Body']);
     $newer->forceFill(['created_at' => now()])->save();
 
-    Reaction::create(['moment_id' => $newer->id, 'person_id' => $voter->id, 'emoji' => '👍']);
+    $newer->reactions()->create(['person_id' => $voter->id, 'emoji' => '👍']);
 
     // Chronologically $newer already sorts first -- the real assertion here is that a vote on
     // the OLDER moment still wins under sort=top, proving the query is ordered by votes_count
     // and not merely falling back to its own chronological default.
-    Reaction::create(['moment_id' => $older->id, 'person_id' => $voter->id, 'emoji' => '👍']);
+    $older->reactions()->create(['person_id' => $voter->id, 'emoji' => '👍']);
     $secondVoter = Person::create(['name' => 'Cleo', 'email' => 'cleo-sort@example.test', 'password' => 'secret']);
-    Reaction::create(['moment_id' => $older->id, 'person_id' => $secondVoter->id, 'emoji' => '👍']);
+    $older->reactions()->create(['person_id' => $secondVoter->id, 'emoji' => '👍']);
 
     $html = $this->get('/?sort=top')->assertOk()->getContent();
 
@@ -47,7 +46,7 @@ it('stays chronological by default even when a tag configures voting', function 
 
     // The older moment has the votes -- if the query were still (accidentally) ordering by
     // votes here, it would sort first. It must not: sort=top wasn't requested.
-    Reaction::create(['moment_id' => $older->id, 'person_id' => $voter->id, 'emoji' => '👍']);
+    $older->reactions()->create(['person_id' => $voter->id, 'emoji' => '👍']);
 
     $html = $this->get('/')->assertOk()->getContent();
 

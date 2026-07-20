@@ -25,10 +25,11 @@
     Renders through the exact same `<x-k::card.card :context="...">` one-liner
     `community/moment.blade.php` uses for a real Moment (see that view's own comment) -- Top/
     Body/Footer/Control resolve whatever's actually registered in their slots, so this shows
-    Core's real defaults (Avatar/Author/Timestamp/Control, Content) *and* anything any installed
-    extension has added (tags, reactions, ...), not a hand-drawn mock of them. `Card\Author`/
-    `Avatar`/`Content`/`Timestamp`/`Row`/`Column` are exercised this way rather than tagged
-    directly -- they're `Ux::add()`-only leaves, never invoked as bare `<x-k::card.*>` tags by
+    Core's real defaults (Title/Avatar/Author/Timestamp/Control, Content) *and* anything any
+    installed extension has added (tags, reactions, ...), not a hand-drawn mock of them.
+    `Card\Author`/`Avatar`/`Content`/`Title`/`Timestamp`/`Row`/`Column` are exercised this way
+    rather than tagged directly -- they're `Ux::add()`-only leaves, never invoked as bare
+    `<x-k::card.*>` tags by
     convention (see ComponentCoverageTest's exclusion list for the same reasoning).
 --}}
 <section id="card" class="flex flex-col gap-6">

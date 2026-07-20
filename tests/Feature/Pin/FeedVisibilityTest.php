@@ -19,7 +19,7 @@ it('renders a pinned moment once, in the pinned section, decorated -- not duplic
 
     expect(substr_count($html, 'Pinned One'))->toBe(1)
         ->and(substr_count($html, 'Plain One'))->toBe(1)
-        ->and($html)->toContain('border-info');
+        ->and($html)->toContain('outline-info');
 });
 
 it('shows a Groups-targeted pin as a normal, undecorated moment to a viewer outside the targeted groups', function () {
@@ -37,5 +37,5 @@ it('shows a Groups-targeted pin as a normal, undecorated moment to a viewer outs
     // The Moment itself still shows -- Groups targeting scopes who sees it as *pinned*, not
     // whether the Moment exists in the feed at all -- but exactly once, and undecorated.
     expect(substr_count($html, 'Targeted Pin'))->toBe(1)
-        ->and($html)->not->toContain('border-success');
+        ->and($html)->not->toContain('outline-success');
 });

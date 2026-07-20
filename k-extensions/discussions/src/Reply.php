@@ -29,15 +29,21 @@ class Reply extends Model
     ];
 
     /**
-     * A reply renders through the exact same extensible `Top`/`Body`/`Footer` mechanism a
-     * Moment's own card does (`<x-k::card.card>`'s `$topSlot`/`$bodySlot`/`$footerSlot`), just
-     * its own slot family -- never Core's `Card\Top::SLOT`/`Body::SLOT`/`Footer::SLOT` directly.
-     * A `Reply` isn't a `Moment`: sharing the same global slot names would mean every
-     * Moment-only registration (reactions' vote/rail/words, this same extension's own
-     * teaser/engage/quote-op) renders on a reply too, with nothing about those concepts applying
-     * to one.
+     * A reply renders through the exact same extensible `Top`/`Badges`/`Body`/`Footer` mechanism
+     * a Moment's own card does (`<x-k::card.card>`'s `$topSlot`/`$badgesSlot`/`$bodySlot`/
+     * `$footerSlot`), just its own slot family -- never Core's `Card\Top::SLOT`/`Badges::SLOT`/
+     * `Body::SLOT`/`Footer::SLOT` directly. A `Reply` isn't a `Moment`: sharing the same global
+     * slot names would mean every Moment-only registration (reactions' vote/rail/words, tags'
+     * own badge row, this same extension's own teaser/engage/quote-op) renders on a reply too,
+     * with nothing about those concepts applying to one. `BADGES_SLOT` has no registrations
+     * today -- kept for the same reason the other three are always passed rather than left to
+     * default to Core's own constants: so a future Core registration into its own
+     * `Card\Badges::SLOT` (mirroring how tags targets it for Moments) can never silently bleed
+     * onto a reply's card just because this one slot was the one left unscoped.
      */
     public const TOP_SLOT = 'kopling-discussions::reply.top';
+
+    public const BADGES_SLOT = 'kopling-discussions::reply.badges';
 
     public const BODY_SLOT = 'kopling-discussions::reply.body';
 

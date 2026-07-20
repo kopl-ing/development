@@ -30,6 +30,23 @@
 .kop-rchip__emoji { font-size: 16px; line-height: 1; }
 .kop-rchip__word { opacity: .9; }
 
+/* ---- the reacting person's own chip, rendered as a real <button> so the whole thing is a
+   click-to-remove control -- reset the browser's own button chrome so it still looks exactly
+   like the plain (non-interactive) .kop-rchip <span> everyone else's chips use, then add a
+   hover/focus background so it visibly reads as clickable, same treatment daisyUI's own
+   .kop-rmodal__emoji already gives its picker buttons. */
+.kop-rchip--mine {
+    border: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: background .12s;
+}
+.kop-rchip--mine:hover,
+.kop-rchip--mine:focus-visible {
+    background: var(--color-base-300, #d1d5db);
+}
+
 /* ---- the "+" opener on the rail ---- */
 .kop-radd { font-size: 16px; line-height: 1; }
 

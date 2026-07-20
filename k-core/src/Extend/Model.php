@@ -35,8 +35,35 @@ class Model
 
     public ?Closure $saved = null;
 
+    public ?string $morphAlias = null;
+
     public function __construct(public readonly string $model)
     {
+    }
+
+    /**
+     * Registers this model under a short alias in Laravel's own polymorphic morph map
+     * (`Relation::morphMap()`, applied as a side effect by `Manager::models()`) --
+     * `morphTo`/`morphMany` columns then store `$alias` instead of the model's fully-qualified
+     * class name, and a caller can resolve the class back from that same alias via
+     * `Relation::getMorphedModel()` without ever needing a hard reference to it (see
+     * `Kopling\Reactions\Reaction::resolveReactable()`, which is exactly why this exists --
+     * routing a reaction to a Reply from `k-extensions/reactions` without that extension ever
+     * importing `Kopling\Discussions\Reply`). Deliberately `morphMap()`, not
+     * `enforceMorphMap()`: the latter also flips `Relation::requireMorphMap()` app-wide, which
+     * then throws for *any* unmapped model's `getMorphClass()` call anywhere in the app --
+     * including ones with nothing to do with a `morphAlias()` declaration at all (`Context::
+     * getSubjectUrl()` calls `getMorphClass()` on whatever a card's subject happens to be, mapped
+     * or not). `morphMap()` merges across calls the same way, so more than one `Extend\Model`
+     * declaration (from different extensions, or Core) can each register their own alias
+     * independently, the same "contribute, don't replace" shape every other collector in this
+     * codebase already has -- it just doesn't also forbid every model that never opted in.
+     */
+    public function morphAlias(string $alias): self
+    {
+        $this->morphAlias = $alias;
+
+        return $this;
     }
 
     public function cast(string $attribute, string $type): self

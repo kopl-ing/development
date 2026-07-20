@@ -3,8 +3,8 @@
 return [
     'react' => 'React with :emoji',
     'vote' => 'Vote :emoji',
+    'remove_reaction' => 'Remove reaction',
     'emoji' => 'Emoji',
-    'latest' => 'Latest reactions',
     'sort_latest' => 'Latest',
     'sort_top' => 'Top',
     'someone' => 'Someone',

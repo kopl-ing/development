@@ -17,6 +17,7 @@ use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\ValidatesModels;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Card\Badges;
 use Kopling\Core\Ux\Portal\Navigation\Item;
 use Kopling\Tags\Command\SeedDemoTagsCommand;
 
@@ -47,11 +48,14 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     }
 
     /**
-     * A tag badge row at the top of each card's body (before core's own `content`), reading
-     * the moment from `$context->subject`. Registered by anonymous-component tag, the same
-     * way the reactions extension registers into the footer. Also adds the admin nav entry
-     * for the tag CRUD screen, gated behind `manage-tags`, matching how Admin's own Extension
-     * gates its People/Groups/Settings nav entries.
+     * A tag badge row floating on the card's own top edge, above the title, reading the moment
+     * from `$context->subject`. Registered into `Card\Badges::SLOT` -- the slot Core reserves
+     * for whatever belongs floating on a card's own edge -- rather than into `Body` or `Top`
+     * itself, so the badges read as card metadata straddling the card's boundary (like a ribbon)
+     * instead of ordinary body content or a second header row. Registered by anonymous-component
+     * tag, the same way the reactions extension registers into the footer. Also adds the admin
+     * nav entry for the tag CRUD screen, gated behind `manage-tags`, matching how Admin's own
+     * Extension gates its People/Groups/Settings nav entries.
      *
      * `select` fills composer's own `kopling-composer::compose.fields` slot with the tag
      * picker (`views/components/select.blade.php`) -- composer never declares anything about
@@ -61,13 +65,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      */
     public function ux(): Ux
     {
-        // `before` takes the anchor's fully-qualified id -- core's Content entry resolves to
-        // `core::content` (see Card\Body::defaults), so the tag row sits above the title/body.
         return Ux::make()
             ->add('kopling-tags::tags')
-            ->in('kopling-core::card.body')
+            ->in(Badges::SLOT)
             ->as('tags')
-            ->before('kopling-core::content')
             ->add(Item::class, [
                 'label' => __('kopling-tags::messages.admin_tags'),
                 'route' => 'kopling-admin::admin/tags',

@@ -13,7 +13,7 @@ use Kopling\Tags\Tag;
  */
 function cardTagRowMarker(): string
 {
-    return 'mb-1 flex flex-wrap items-center gap-1.5';
+    return 'flex flex-wrap items-center gap-1.5';
 }
 
 function momentWithAuthorForBadge(): Moment

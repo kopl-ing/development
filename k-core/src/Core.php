@@ -18,6 +18,7 @@ use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Card\Badges;
 use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Control;
 use Kopling\Core\Ux\Card\Footer;
@@ -195,6 +196,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
         $ux = Ux::make();
 
         Top::defaults($ux);
+        Badges::defaults($ux);
         Footer::defaults($ux);
         Control::defaults($ux);
         Body::defaults($ux);

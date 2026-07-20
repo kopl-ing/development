@@ -9,7 +9,9 @@ use Kopling\Core\Content\Moment;
 use Kopling\Core\Ux\Card\Event\RenderingCard;
 
 /**
- * Appends a reason-colored border to a pinned Moment's card. Reads `$moment->pin` (the magic
+ * Recolors a pinned Moment's card outline (`Card`'s own `outline-base-content/10`, see
+ * `card.blade.php`) to the pin's reason color, plus a faint matching background tint. Reads
+ * `$moment->pin` (the magic
  * relation accessor, not `getRelation()`) so it works whether or not the relation was already
  * eager-loaded: the main feed's paginator eager-loads it for every card in one batch (see
  * `Extension::models()`), but a moment freshly prepended by the live poll
@@ -30,7 +32,7 @@ class DecoratePinnedCard
         $pin = $moment->pin;
 
         if ($pin?->isVisibleTo(Auth::user())) {
-            $event->addClass("border-{$pin->color()} bg-{$pin->color()}/5");
+            $event->addClass("outline-{$pin->color()} bg-{$pin->color()}/5");
         }
     }
 }

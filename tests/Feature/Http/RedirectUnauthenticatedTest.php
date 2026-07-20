@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 
 it('redirects a plain guest request cleanly instead of throwing', function () {
-    $this->post('/_reactions/not-a-real-id', ['emoji' => '👍'])
+    $this->post('/_reactions/moment/not-a-real-id', ['emoji' => '👍'])
         ->assertRedirect();
 
     $this->assertGuest();
@@ -19,7 +19,7 @@ it('redirects a plain guest request cleanly instead of throwing', function () {
 
 it('sends an HX-Redirect header for an htmx guest request', function () {
     $response = $this->withHeader('HX-Request', 'true')
-        ->post('/_reactions/not-a-real-id', ['emoji' => '👍']);
+        ->post('/_reactions/moment/not-a-real-id', ['emoji' => '👍']);
 
     $response->assertStatus(401)
         ->assertHeader('HX-Redirect');

@@ -10,7 +10,10 @@
 
     Only on the moment's own discussion page (`$context->isRoute('moment')`): that's the only
     place a listener (reply-dock's composer) actually exists to receive the event, so it would be
-    a dead button anywhere else the card renders (the feed, a rail).
+    a dead button anywhere else the card renders (the feed, a rail). `ml-auto shrink-0` pins it to
+    the footer row's own end, same reasoning as `engage`'s own docblock -- the two never render
+    together (this is moment-page-only, `engage` is everywhere-but), but both carry the class so
+    whichever one actually renders ends up in the same place.
 --}}
 @php
     $moment = $context?->getSubject();
@@ -29,7 +32,7 @@
                 @kop-quotes-changed.window="quoted = $event.detail.ids.includes(@js($momentId))"
                 @click="$dispatch('kop-quote-toggle', { id: @js($momentId), author: @js($momentAuthor), text: @js($momentQuoteText) })"
                 :class="quoted && 'text-primary'"
-                class="btn btn-sm btn-ghost gap-1"
+                class="btn btn-sm btn-ghost ml-auto shrink-0 gap-1"
                 x-text="quoted ? @js(__('kopling-discussions::messages.unquote')) : @js(__('kopling-discussions::messages.quote'))">{{ __('kopling-discussions::messages.quote') }}</button>
     @endif
 @endauth
