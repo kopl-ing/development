@@ -37,10 +37,23 @@ use Kopling\Core\Ux\Context;
  * global slot family where every Moment-only registration -- reactions, discussions' own
  * teaser/engage, tags' own badge row -- would otherwise bleed onto a Reply that has none of
  * those concepts).
+ *
+ * `$url` is `$context->getSubjectUrl()` -- the same `Extend\Model::linksTo()` lookup `Title`
+ * and Discussions' own `engage` link already call independently -- resolved once here so the
+ * view can render the whole-card stretched-link overlay, the aura-glow wrapper, and the trailing
+ * caret icon (all in `card.blade.php`) only when the subject actually has somewhere to go. `group`
+ * is the one hover-related class added here, at the `.card` level, since `Title`'s own
+ * `group-hover:text-primary` needs a `group` ancestor to react to -- the aura glow and caret
+ * icon react to plain `:hover` instead (see `card.blade.php`'s own comment for why that doesn't
+ * need `group` at all). A subject with no `linksTo()` registration (a Reply card, or a Moment
+ * with Discussions uninstalled) gets none of this, automatically -- there's no separate "is this
+ * card clickable" flag to keep in sync with the real link.
  */
 class Card extends Component
 {
     public string $classes;
+
+    public ?string $url = null;
 
     public function __construct(
         public Context $context,
@@ -52,7 +65,12 @@ class Card extends Component
         $event = new RenderingCard($context);
         event($event);
 
-        $this->classes = implode(' ', $event->classes);
+        $this->url = $context->getSubjectUrl();
+
+        $this->classes = implode(' ', array_filter([
+            implode(' ', $event->classes),
+            $this->url ? 'group cursor-pointer' : null,
+        ]));
     }
 
     public function render(): View

@@ -7,4 +7,5 @@ return [
     'post_actions' => 'Post actions',
     'account_menu' => 'Account menu',
     'community' => 'Community',
+    'open' => 'Open',
 ];
