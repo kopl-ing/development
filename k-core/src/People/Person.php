@@ -60,4 +60,19 @@ class Person extends Authenticatable
             ->where('group_permission.permission', $id)
             ->exists();
     }
+
+    /**
+     * A deterministic per-identity accent color for an avatar -- the same seed (a Person's id,
+     * or a bare name for a reactor with no resolvable Person) always produces the same hue, so
+     * one person reads as the same color everywhere they show up.
+     */
+    public static function colorFor(string $seed): string
+    {
+        return 'hsl('.(crc32($seed) % 360).'deg 45% 45%)';
+    }
+
+    public function avatarColor(): string
+    {
+        return static::colorFor($this->id);
+    }
 }

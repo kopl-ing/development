@@ -31,11 +31,12 @@ class Avatar extends Component
     public function render(): View
     {
         $subject = $this->context?->getSubject();
-        $name = $subject instanceof Person ? $subject->name : $subject?->person?->name;
+        $person = $subject instanceof Person ? $subject : $subject?->person;
 
         return view('kopling-core::card.avatar', [
-            'initials' => $this->initials($name),
-            'name' => $name,
+            'initials' => $this->initials($person?->name),
+            'name' => $person?->name,
+            'color' => $person?->avatarColor(),
         ]);
     }
 

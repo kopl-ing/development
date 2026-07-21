@@ -1,6 +1,7 @@
 @php
     use Illuminate\Support\Facades\Cache;
     use Illuminate\Support\Str;
+    use Kopling\Core\People\Person;
     use Kopling\Core\Ux\Form\IconSearch\IconRenderer;
 
     // "Heat", not lifetime popularity -- a tag with nothing from the last week doesn't appear at
@@ -112,7 +113,7 @@
                             <span class="avatar-group -space-x-2">
                                 @foreach ($tag['contributors'] as $person)
                                     <div class="avatar avatar-placeholder" title="{{ $person['name'] }}">
-                                        <div class="w-6 bg-neutral text-neutral-content">
+                                        <div class="w-6 text-white" style="background:{{ Person::colorFor($person['id']) }}">
                                             <span class="text-[10px]">{{ Str::of($person['name'])->explode(' ')->take(2)->map(fn (string $word) => Str::upper(Str::substr($word, 0, 1)))->implode('') }}</span>
                                         </div>
                                     </div>

@@ -15,14 +15,14 @@
     $contributors = $moment && $stats && $stats['count'] > 0 ? Reply::recentContributors($moment) : collect();
 @endphp
 @if ($moment && $stats)
-    <div class="flex items-center gap-2 text-sm opacity-70 py-2 px-6 italic">
+    <div class="flex items-center gap-2 text-xs opacity-70 py-2 px-6 italic">
         {{-- Never shown for a moment with no replies -- an empty avatar row would look barren,
              the opposite of the "warm, alive" signal this exists to give. --}}
         @if ($contributors->isNotEmpty())
             <span class="avatar-group -space-x-3">
                 @foreach ($contributors as $person)
-                    <div class="avatar avatar-placeholder">
-                        <div class="w-6 bg-neutral text-neutral-content">
+                    <div class="avatar avatar-placeholder not-italic">
+                        <div class="w-6 text-white" style="background:{{ $person->avatarColor() }}">
                             <span class="text-xs">{{ Str::of($person->name)->explode(' ')->take(2)->map(fn (string $word) => Str::upper(Str::substr($word, 0, 1)))->implode('') }}</span>
                         </div>
                     </div>

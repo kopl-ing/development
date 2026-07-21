@@ -1,4 +1,7 @@
-@php use Kopling\Reactions\Reaction; @endphp
+@php
+    use Kopling\Core\People\Person;
+    use Kopling\Reactions\Reaction;
+@endphp
 @props(['data' => [], 'context' => null, 'oob' => false])
 {{--
     Worded reactions ("Latest reactions"), merged into the rail's own row rather than a strip of
@@ -40,7 +43,7 @@
                 $name = $reaction->person?->name ?? __('kopling-reactions::messages.someone');
                 $parts = preg_split('/\s+/', trim($name)) ?: [''];
                 $initials = strtoupper(mb_substr($parts[0], 0, 1).(count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
-                $hue = crc32((string) ($reaction->person?->id ?? $name)) % 360;
+                $color = Person::colorFor((string) ($reaction->person?->id ?? $name));
                 $mine = $actor && $actor->id === $reaction->person_id;
             @endphp
             {{-- avatar circle · emoji · word (name on hover), matching the demo. Explicit
@@ -55,13 +58,13 @@
                         class="kop-rchip kop-rchip--mine shrink-0"
                         title="{{ __('kopling-reactions::messages.remove_reaction') }}"
                         aria-label="{{ __('kopling-reactions::messages.remove_reaction') }}">
-                    <span class="kop-rchip__avatar" style="background:hsl({{ $hue }}deg 45% 45%)">{{ $initials }}</span>
+                    <span class="kop-rchip__avatar" style="background:{{ $color }}">{{ $initials }}</span>
                     <span class="kop-rchip__emoji" aria-hidden="true">{{ $reaction->emoji }}</span>
                     <span class="kop-rchip__word">{{ $reaction->word }}</span>
                 </button>
             @else
                 <span class="kop-rchip shrink-0" title="{{ $name }}">
-                    <span class="kop-rchip__avatar" style="background:hsl({{ $hue }}deg 45% 45%)">{{ $initials }}</span>
+                    <span class="kop-rchip__avatar" style="background:{{ $color }}">{{ $initials }}</span>
                     <span class="kop-rchip__emoji" aria-hidden="true">{{ $reaction->emoji }}</span>
                     <span class="kop-rchip__word">{{ $reaction->word }}</span>
                 </span>

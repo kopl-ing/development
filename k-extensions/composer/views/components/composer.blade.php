@@ -30,7 +30,7 @@
               class="card-body gap-3 p-4">
             @csrf
             <div class="flex items-start gap-3">
-                <div class="w-9 h-9 shrink-0 rounded-full bg-primary text-primary-content grid place-items-center text-sm font-bold">
+                <div class="w-9 h-9 shrink-0 rounded-full text-white grid place-items-center text-sm font-bold" style="background:{{ $me->avatarColor() }}">
                     {{ strtoupper(mb_substr($me->name ?? '?', 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
