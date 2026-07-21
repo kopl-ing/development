@@ -15,8 +15,7 @@
     $contributors = $moment && $stats && $stats['count'] > 0 ? Reply::recentContributors($moment) : collect();
 @endphp
 @if ($moment && $stats)
-    <a href="{{ $context->getSubjectUrl() }}"
-       class="mt-1 flex items-center gap-2 text-sm opacity-70 transition-opacity hover:opacity-100">
+    <div class="flex items-center gap-2 text-sm opacity-70 transition-opacity hover:opacity-100 py-2 px-6 italic">
         {{-- Never shown for a moment with no replies -- an empty avatar row would look barren,
              the opposite of the "warm, alive" signal this exists to give. --}}
         @if ($contributors->isNotEmpty())
@@ -40,5 +39,5 @@
                 ]) }}
             @endif
         </span>
-    </a>
+    </div>
 @endif

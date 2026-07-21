@@ -15,7 +15,7 @@ $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->t
     {{-- $portal comes from InjectPortal's shared view global, not passed explicitly. --}}
     @include('kopling-core::community.poll', ['since' => $since])
 
-    <div id="moments-feed" class="flex flex-col gap-4">
+    <div id="moments-feed" class="flex flex-col gap-8">
         @foreach ($moments as $moment)
             @include('kopling-core::community.moment', ['moment' => $moment])
         @endforeach

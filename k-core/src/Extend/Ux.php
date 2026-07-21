@@ -127,6 +127,17 @@ class Ux
         return $this;
     }
 
+    /**
+     * Marks this entry as edge-to-edge -- see `UxEntry::$flush` for what that means and why
+     * it only matters in `Card\Body`.
+     */
+    public function flush(): static
+    {
+        $this->current->flush = true;
+
+        return $this;
+    }
+
     public function as(string $id): static
     {
         $this->current->id = $id;

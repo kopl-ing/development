@@ -57,6 +57,16 @@ class UxEntry
     public bool $first = false;
 
     /**
+     * Opts this entry out of the padded box `Card\Body` otherwise wraps every stacked entry
+     * in -- for something meant to bleed edge-to-edge within its own section (a card image,
+     * say) rather than sit inset like ordinary text content. Only `Body` reads this; entries
+     * in `Top`/`Footer` render inline within one shared row instead of stacked boxes, so it's
+     * meaningless there. Default `false` keeps every existing registration's current, padded
+     * appearance unchanged.
+     */
+    public bool $flush = false;
+
+    /**
      * Set by `SlotResolver::resolve()` right before rendering, when the slot being resolved
      * is bound to something (a `Moment`'s Card header, say) -- `null` for slots that aren't
      * (page-level ones like `kopling-core::community.navigation`). See `Context` itself for why this
@@ -102,6 +112,7 @@ class UxEntry
             'after' => $this->after,
             'before' => $this->before,
             'first' => $this->first,
+            'flush' => $this->flush,
             'condition' => $this->condition,
             'component' => $this->component,
             'data' => $this->data,
@@ -116,6 +127,7 @@ class UxEntry
         $entry->after = $data['after'];
         $entry->before = $data['before'];
         $entry->first = $data['first'] ?? false;
+        $entry->flush = $data['flush'] ?? false;
         $entry->condition = $data['condition'];
 
         return $entry;
