@@ -5,35 +5,22 @@ declare(strict_types=1);
 namespace Kopling\Core\Ux\Editor;
 
 /**
- * Turns a ProseMirror/TipTap JSON document into trusted HTML, entirely server-side, at write
- * time -- deliberately NOT a sanitizer for arbitrary client-supplied HTML. It only knows how
- * to emit a closed, hand-mapped set of node/mark -> tag pairings (`EditorNode`'s cases, plus
- * the always-on base schema paragraph/text/listItem/taskItem/doc); there is no allowlist to
- * keep in sync with what the renderer can produce, because it structurally cannot emit a tag
- * it wasn't written to emit. All text is `htmlspecialchars`-escaped; a `link` mark's `href` is
- * scheme-allowlisted (http/https/mailto only) to block `javascript:` and similar.
+ * Turns a ProseMirror/TipTap JSON document into trusted HTML server-side, at write time --
+ * NOT a sanitizer for arbitrary client-supplied HTML. It only emits a closed, hand-mapped set of
+ * node/mark -> tag pairings (`EditorNode`'s cases); there's no allowlist to keep in sync, because
+ * it structurally cannot emit a tag it wasn't written to emit. Text is always
+ * `htmlspecialchars`-escaped; a `link`'s `href` is scheme-allowlisted (http/https/mailto) to
+ * block `javascript:`.
  *
- * `render()` and `validate()` deliberately take different postures toward an unrecognized or
- * currently-disabled node/mark type: `validate()` (the input boundary, called from a
- * `FormRequest`) rejects it outright -- a document containing something outside the currently
- * enabled set is a 422, not silently accepted. `render()` (the output boundary, called at
- * display time from already-persisted rows) instead silently skips just that node/mark's own
- * wrapping tag while still rendering its children -- for forward/backward compatibility (an
- * `EditorNode` a row used at write time might since have been disabled) and as defense-in-depth
- * against anything that reached storage despite validation.
+ * `validate()` (input boundary, from a `FormRequest`) rejects an unrecognized/disabled node
+ * outright -- a 422, not silently accepted. `render()` (output boundary, from already-persisted
+ * rows) instead skips just that node's own tag while still rendering its children, for
+ * forward/backward compatibility and as defense-in-depth.
  */
 class DocumentRenderer
 {
-    /**
-     * A generous but bounded nesting ceiling -- catches a pathological/adversarial document
-     * before it can blow the PHP call stack, not a realistic editor's own output.
-     */
     protected const MAX_DEPTH = 64;
 
-    /**
-     * A rich-text post shouldn't need more than this; also bounds how much work `render()`/
-     * `validate()` ever do on a single document.
-     */
     protected const MAX_BYTES = 100_000;
 
     protected const ALWAYS_ALLOWED = ['doc', 'paragraph', 'listItem', 'taskItem'];

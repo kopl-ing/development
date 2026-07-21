@@ -14,17 +14,9 @@ use Kopling\Core\Ux\SlotResolver;
 use Kopling\Core\Ux\UxEntry;
 
 /**
- * The bottom row of a card. Reuses daisyUI's own `card-actions` part class, which is just a
- * flex row itself; `Row`/`Column` arrange whatever's placed inside further, if a single flex
- * row isn't enough. Resolves/renders `SLOT` the same way `Top` does.
- *
- * `defaults()` deliberately registers nothing -- no fake reply/reaction counts. There's no
- * real reactions/reply feature behind this yet (`k-extensions/reactions` is still a bare
- * stub); a real one registers into this same slot when it exists, rather than this class
- * shipping a placeholder count.
- *
- * `$slot` overrides which slot gets resolved -- see `Top`'s own docblock for why (Discussions'
- * Reply cards target their own slot here instead of Moments').
+ * The bottom row of a card, on daisyUI's `card-actions`. `defaults()` registers nothing --
+ * extensions (reactions, discussions) populate it. `$slot` overrides which slot gets resolved,
+ * same convention as `Top`.
  */
 class Footer extends Component
 {

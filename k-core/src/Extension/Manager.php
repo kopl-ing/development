@@ -41,6 +41,12 @@ use Kopling\Core\Ux\Theme\Token;
 use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
 
+/**
+ * Aggregates every installed extension's declarations (permissions, ux entries, models, icons,
+ * themes, portals, settings, ...) from a `RegistrationCache` when warm, otherwise by looping
+ * `extensions()` and filtering by the matching contract. Local ids get prefixed with the
+ * declaring extension's own `id()` so two extensions can't collide on the same name.
+ */
 class Manager
 {
     protected ?Collection $models = null;
@@ -54,30 +60,9 @@ class Manager
     }
 
     /**
-     * `Core` (keyed `'kopling/core'`, its real Composer package name) is always the first
-     * entry, guaranteed present -- it isn't Composer-discovered the way the rest are (it
-     * declares no `"type": "kopling-extension"` package of its own), it's the one thing
-     * `Manager` always loads regardless. Every other entry is a genuinely discovered
-     * extension, keyed by Composer package name, instantiated once, then ordered by
-     * `LoadOrder\Resolver` -- Composer's own `installed.json` order carries no meaning beyond
-     * being the alphabetical tie-break base `Resolver::resolve()` sorts from.
-     *
-     * `$includeDisabled` picks which of two results this returns: `false` (the default, and
-     * what every other aggregator in this class -- `permissions()`, `ux()`, `portals()`,
-     * `models()`, `listeners()`, `adminSettings()`, `commands()` -- and `ServiceProvider::boot()`
-     * call with no argument) filters out anything `EnabledExtensions::isEnabled()` says is
-     * disabled, except `CannotBeDisabled` implementors, which are exempt. `true` is the raw,
-     * unfiltered view -- for the admin extensions-list page and `ListExtensionRegistrations`,
-     * which both need to show disabled extensions too, not just active ones. Filtering after
-     * `Resolver::resolve()` is safe: `Resolver::edges()` already treats a missing package as
-     * "not installed" and degrades gracefully, same rule dangling `Ux::after()`/
-     * `PortalExtension` references already follow.
-     *
-     * Memoized via `once()` (`spatie/once`) rather than a hand-rolled nullable property --
-     * `once()` folds the enclosing call's own argument values into its cache key (not just
-     * file+line), so `extensions(false)` and `extensions(true)` memoize independently from one
-     * `once()` call site, scoped to this `Manager` instance the same way `models()`'s own
-     * "cached on the instance, `Manager` is a singleton" reasoning already works.
+     * `Core` is always first and always present, even though it isn't Composer-discovered.
+     * `$includeDisabled = true` skips the `EnabledExtensions` filter (`CannotBeDisabled`
+     * implementors are always kept either way) -- used by the admin extensions list.
      *
      * @return array<string, AbstractExtension>
      */
@@ -112,13 +97,8 @@ class Manager
     }
 
     /**
-     * Directory-convention paths this package declares, keyed by kind. An extension gets these
-     * registered purely by the directory existing -- no contract to implement, no code to write.
-     *
-     * Deliberately doesn't include routes/css/js: those always need a target Portal to attach
-     * to (which prefix/middleware, which page's `<head>`), so a bare "the directory exists" rule
-     * can't express them the way it can migrations/views/lang -- see `ExtendsPortals`/
-     * `PortalExtension` instead.
+     * Directory-convention paths (migrations/views/lang) an extension gets just by the directory
+     * existing. Routes/css/js aren't included -- those need a target Portal, see `ExtendsPortals`.
      *
      * @return array<string, string>
      */
@@ -153,10 +133,8 @@ class Manager
     }
 
     /**
-     * The namespace an extension's views/translations/etc. get registered under. Includes
-     * the vendor, not just the package name -- two different vendors can both publish an
-     * extension called "example", and dropping the vendor would make their view/translation
-     * namespaces collide (kopling/example and acme/example would both register "example::").
+     * The namespace an extension's views/translations register under -- includes the vendor so
+     * two different vendors' same-named packages ("kopling/example", "acme/example") don't collide.
      */
     public function id(string $package): string
     {
@@ -164,11 +142,8 @@ class Manager
     }
 
     /**
-     * Resolves a user-typed extension reference -- Composer package name ("kopling/example"),
-     * its derived id ("kopling-example"), or short name ("example") -- back to the Composer
-     * package name every other `Manager` method keys by. Null when nothing installed matches.
-     * Shared by every `kopling:extensions:*` command so each accepts the same three reference
-     * forms consistently, rather than each command re-implementing its own matching rules.
+     * Resolves a user-typed reference -- package name, `id()` form, or short name -- back to the
+     * real Composer package key. Null when nothing installed matches.
      */
     public function resolvePackage(string $needle): ?string
     {
@@ -185,13 +160,6 @@ class Manager
     }
 
     /**
-     * Storage requests declared by every extension, grouped by extension id the same way
-     * `id()` namespaces views/translations -- so the admin storage-mapping screen can show
-     * which extension owns each request instead of one anonymous, flattened list. Within
-     * that, `StorageRequest::$id` is itself also prefixed the same way `permissions()`/
-     * `portals()`/`ux()` prefix theirs, so two extensions declaring the same local id (e.g.
-     * both wanting an "avatars" purpose) don't collide.
-     *
      * @return array<string, array<StorageRequest>>
      */
     public function storageDrivers(): array
@@ -223,12 +191,6 @@ class Manager
     }
 
     /**
-     * Every admin-editable setting declared by every extension, grouped by owning extension id
-     * -- same reasoning `storageDrivers()` groups by owner, so Admin's settings page can section
-     * fields by which extension owns them. `Field::$id` is prefixed the same way
-     * `permissions()`/`portals()` prefix theirs, so it doubles as a collision-safe persistence
-     * key (see `Settings`).
-     *
      * @return Collection<string, array<Field>>
      */
     public function adminSettings(): Collection
@@ -259,16 +221,6 @@ class Manager
     }
 
     /**
-     * Every artisan command class declared by every extension. Unlike `permissions()`/
-     * `portals()`/`ux()`, nothing here gets prefixed -- a command is referenced by its own
-     * fully-qualified class name, already namespaced to the extension that declared it, so
-     * there's no local id to collide with another extension's.
-     *
-     * `HasCommands::commands()` returns class-strings, not instantiated objects, so there's
-     * no `Collection::ensure()` type to check against -- each entry is instead verified with
-     * `is_subclass_of(..., Command::class)`, the equivalent guard against a `HasCommands`
-     * implementor returning something that isn't actually an artisan command class.
-     *
      * @return array<class-string>
      */
     public function commands(): array
@@ -299,13 +251,6 @@ class Manager
     }
 
     /**
-     * Every extra validation rule (and custom message) any extension contributes for a model it
-     * doesn't own, keyed by the target model's fully-qualified class name -- e.g. `reactions`
-     * contributing `upvote_emoji`/`downvote_emoji` rules for `Kopling\Tags\Tag`. Two extensions
-     * contributing a rule for the exact same field on the exact same model is last-declared-wins,
-     * same collision convention `models()`'s cast registry already uses -- an edge case unlikely
-     * enough not to warrant its own resolution rule.
-     *
      * @return array<class-string, array{rules: array<string, mixed>, messages: array<string, string>}>
      */
     public function modelValidationRules(): array
@@ -335,13 +280,8 @@ class Manager
     }
 
     /**
-     * The step every `ValidatesModels` consumer otherwise re-derives by hand: merge a
-     * controller's own base rules/messages for `$modelClass` with whatever
-     * `modelValidationRules()` aggregated for it. Returns the merged pair rather than calling
-     * `$request->validate()` itself -- a `FormRequest`'s own `rules()`/`messages()` can't call
-     * `validate()` on itself (that's the mechanism validating *them*), so the caller decides how
-     * to use the result: hand both straight to `$request->validate($rules, $messages)` in a
-     * plain controller, or return `['rules']`/`['messages']` from a `FormRequest`'s own methods.
+     * Merges a controller's own base rules/messages for `$modelClass` with whatever
+     * `modelValidationRules()` aggregated for it.
      *
      * @param  array<string, mixed>  $rules
      * @param  array<string, string>  $messages
@@ -358,11 +298,6 @@ class Manager
     }
 
     /**
-     * Every permission declared by every extension, with `Permission::$id` already prefixed
-     * with the owning extension's `id()` -- an author writes just the local part
-     * ("manage-reactions"), never the prefix, so it can't drift or collide with another
-     * extension's names.
-     *
      * @return array<Permission>
      */
     public function permissions(): array
@@ -391,12 +326,6 @@ class Manager
     }
 
     /**
-     * Every Portal declared by every extension, with `Portal::$id` -- and `$permission`, when
-     * set -- prefixed with the owning extension's `id()`, same authoring rule and collision-
-     * safety reasoning as `permissions()`/`ux()`'s `$condition`. A future first-party
-     * Moderation-portal extension (charter D29's own named proof case) slots into this same
-     * loop for free.
-     *
      * @return Collection<int, Portal>
      */
     public function portals(): Collection
@@ -430,13 +359,8 @@ class Manager
     }
 
     /**
-     * Every `PortalExtension` declared by every extension, grouped by the target Portal's
-     * fully-qualified id -- the routes/css/js attachment counterpart to `portals()`'s identity
-     * declarations. `PortalExtension::$portal` is a foreign reference (same convention as
-     * `ux()`'s `after`/`before`), never prefixed here: targeting a Portal id that isn't actually
-     * registered (a typo, or the declaring extension isn't installed) is a silent no-op, the
-     * same graceful-degradation rule a dangling `ux()` anchor gets -- nothing to attach to, so
-     * nothing happens, never an error.
+     * Grouped by target Portal id. Targeting a Portal id that isn't registered is a silent
+     * no-op, same as a dangling `ux()` `after`/`before` reference.
      *
      * @return Collection<string, Collection<int, PortalExtension>>
      */
@@ -466,15 +390,9 @@ class Manager
     }
 
     /**
-     * Flat, key-addressable registry of every css/js file any `PortalExtension` declared, plus
-     * every installed extension's own `icon/lg.png`/`icon/sm.png` (see `extend.html`'s icon
-     * convention) if present -- keyed by a stable hash of its own already-validated absolute
-     * path rather than anything derived from a request -- `Http\Controllers\
-     * ExtensionAssetController` looks a request's `key` up against this map and serves exactly
-     * the matched path, so a request can never walk this into an arbitrary filesystem read the
-     * way a raw `{package}/{path}`-shaped route parameter would invite. Icons are collected from
-     * `extensions(includeDisabled: true)` -- unlike css/js, a disabled extension's icon still
-     * needs to render (greyed out) on the admin extensions-list page.
+     * Keyed by a hash of its own already-validated path, not anything request-derived --
+     * `ExtensionAssetController` looks a request's `key` up here rather than accepting a raw
+     * path, so a request can never walk this into an arbitrary filesystem read.
      *
      * @return Collection<string, array{path: string, mime: string}>
      */
@@ -517,11 +435,6 @@ class Manager
         return collect($assets);
     }
 
-    /**
-     * The URL a `<link>`/`<script>` tag should point at for a `PortalExtension`'s css/js file,
-     * or null when it didn't declare one -- shared by `views/layouts/partials/head.blade.php`
-     * and `extensionAssets()` so both always agree on the same key.
-     */
     public static function assetUrl(?string $path): ?string
     {
         if ($path === null) {
@@ -531,11 +444,6 @@ class Manager
         return route('kopling-core::assets', ['key' => static::assetKey($path)]);
     }
 
-    /**
-     * The URL an extension's `icon/{$size}.png` should be rendered from, or null if it didn't
-     * ship one at that size -- only `lg` is required per `extend.html`'s icon convention, `sm`
-     * is optional. Mirrors `assetUrl()`, sharing the same key/serving mechanism.
-     */
     public function iconUrl(string $package, string $size = 'lg'): ?string
     {
         $root = $this->path($package);
@@ -555,33 +463,8 @@ class Manager
     }
 
     /**
-     * Registers every model extension declared by every extension -- relations directly against
-     * the target model via `Model::resolveRelationUsing()`, `creating()`/`saving()`/`saved()`
-     * hooks via the target model's own native Eloquent equivalents (no base-class requirement,
-     * unlike casts below), casts into `Database\Model`'s own flat, class-keyed cast registry
-     * (`Database\Model::registerCasts()`, read by its `getCasts()` override) -- a side effect,
-     * not an aggregation like `permissions()`/`portals()`, so there's nothing meaningful to
-     * return beyond what `ListExtensionRegistrations`-style introspection might want (mirrors
-     * `listeners()` otherwise). An `Extend\Model` instance is scoped to exactly one model class
-     * by its own constructor, so there's exactly one place "which model" is declared; where more
-     * than one extension targets the same model, their `relations`/`casts` are combined, not
-     * replaced -- a relation-name collision is last-registered-wins (`resolveRelationUsing()`'s
-     * own rule), a cast-key collision is last-declared-wins among extensions, though core's own
-     * `$casts` always wins regardless of declaration order (see `Database\Model::getCasts()`).
-     * `creating`/`saving`/`saved` hooks never collide -- Eloquent supports multiple listeners per
-     * event natively, so every extension's hook for the same model/event fires, in load order.
-     * `morphAlias()` (if set) is applied via `Relation::morphMap()` (never `enforceMorphMap()` --
-     * see `Extend\Model::morphAlias()`'s own docblock for why), which merges rather than
-     * replaces -- two `Extend\Model` declarations from different extensions can each register
-     * their own alias without either clobbering the other's.
-     *
-     * `Collection::ensure(Extend\Model::class)` guards `ExtendsModels::models()` itself --
-     * every item it returns must actually be a `Kopling\Core\Extend\Model` extender, not some
-     * other value an implementor mistakenly returned.
-     *
-     * Cached on the instance (`Manager` is bound as a singleton) so the `resolveRelationUsing()`/
-     * `creating()`/`saving()`/`saved()`/morph-map/cast-registry side effects only ever run once,
-     * the same reasoning `extensions()` already caches on.
+     * Applies every extension's relations/hooks/casts/morph-map as a side effect (not a pure
+     * aggregation) -- cached on the instance so this only ever runs once per request.
      */
     public function models(): Collection
     {
@@ -647,18 +530,8 @@ class Manager
     }
 
     /**
-     * Every theme declared by every extension, keyed by owning extension id -- so an eventual
-     * theme-picker UI can show which extension a theme came from, the same reasoning
-     * `storageDrivers()` is keyed by owner instead of flattened. Unlike every other collector
-     * here, keys inside each theme's array are never prefixed -- they're `Token::*->value`
-     * strings naming a specific CSS custom property, a fixed catalog Manager itself checks
-     * against, not a name space collision concern between extensions. An unrecognized key, or a
-     * value that doesn't match that token's expected shape (`Token::matches()`), throws
-     * immediately: a `ChangesTheme` implementor's own bug, not a foreign reference that might
-     * legitimately not exist yet (contrast with `ux()`'s `after`/`before`).
-     *
-     * Each theme's tokens are kept separate here, not merged -- picking one active theme among
-     * several installed ones is `Theme::active()`/`Theme::resolve()`'s job, not this method's.
+     * Validates each token against `Token`'s own catalog, throwing on an unrecognized key or a
+     * value that doesn't match (a `ChangesTheme` implementor's own bug, not a dangling reference).
      *
      * @return Collection<string, array<string, string>>
      */
@@ -700,12 +573,6 @@ class Manager
     }
 
     /**
-     * Every installed theme's `colorScheme()`, keyed by the same id `themes()` uses -- kept as
-     * its own collector for the same reason `themeChoices()` is: no reason to pay for token
-     * validation just to read the one enum value `Theme::css()` needs to decide native form-
-     * control/scrollbar chrome. No validation branch needed here the way `themes()` has one for
-     * token values -- `ColorScheme` being a backed enum makes an invalid value unrepresentable.
-     *
      * @return Collection<string, ColorScheme>
      */
     public function themeColorSchemes(): Collection
@@ -728,12 +595,6 @@ class Manager
     }
 
     /**
-     * Every installed theme as `[id => label]` for the theme switcher -- id the same key
-     * `themes()` uses (so a picked id selects that theme's token set), label the extension's
-     * own `name()`. Kept separate from `themes()` so the switcher can list themes without
-     * paying to validate every token, and so a theme with no currently-valid tokens still
-     * shows up as a choice.
-     *
      * @return array<string, string>
      */
     public function themeChoices(): array
@@ -750,13 +611,8 @@ class Manager
     }
 
     /**
-     * Every `EditorNode` any installed extension (Core included) has voted to enable, unioned
-     * (idempotent -- enabling something twice is the same as once) and keyed by its own
-     * `->value` to dedupe. Unlike `permissions()`/`icons()`, nothing here is prefixed: these
-     * aren't independently-namespaced declarations, they're votes into one shared, closed
-     * catalog, same non-prefixing reasoning `themes()` already applies to `Token` keys.
-     * `Collection::ensure(EditorNode::class)` guards `ChangesEditor::editor()` itself, same
-     * role `ensure()` plays for every other collector here.
+     * Every `EditorNode` any extension has voted to enable, deduped by value -- these are votes
+     * into one shared catalog, not independently-namespaced declarations, so nothing is prefixed.
      *
      * @return array<EditorNode>
      */
@@ -784,12 +640,6 @@ class Manager
     }
 
     /**
-     * Every icon declared by every extension (Core included), with `Icon::$id` already
-     * prefixed with the owning extension's `id()` -- an author writes just the local part
-     * ("home"), never the prefix, same collision-safety rule as `permissions()`. Keyed by that
-     * same fully-qualified id (like `portals()`), so `Ux\Icon` can resolve a reference straight
-     * to its declared `Icon` (and its Font Awesome `$default`) with a single `get()`.
-     *
      * @return Collection<string, Icon>
      */
     public function icons(): Collection
@@ -819,10 +669,6 @@ class Manager
     }
 
     /**
-     * Every installed icon pack as `[id => label]`, the same shape `themeChoices()` gives the
-     * theme switcher -- id the same key `iconPackMappings()` uses, label the extension's own
-     * `name()`.
-     *
      * @return array<string, string>
      */
     public function iconPackChoices(): array
@@ -839,14 +685,6 @@ class Manager
     }
 
     /**
-     * Every icon pack's own `Icon::$id => its own icon name` map, keyed by the owning
-     * extension's id -- the `ChangesIcons` counterpart to `icons()`'s declarations. Unlike
-     * `themes()`, never validated against a fixed catalog here: a mapped id that isn't (or
-     * isn't yet) a real declared `Icon` is left for `Ux\Icon` to silently fall back past at
-     * render time, the same tolerant handling `ux()`'s `after`/`before` already give a dangling
-     * reference -- an icon pack should be free to map every id it knows about regardless of
-     * which of them are actually installed on a given site.
-     *
      * @return Collection<string, array<string, string>>
      */
     public function iconPackMappings(): Collection
@@ -869,19 +707,9 @@ class Manager
     }
 
     /**
-     * Every UxEntry declared by every extension (Core included, same as permissions()),
-     * resolved down to what's actually registered once every extension's `Add`/`Replace`/
-     * `Remove` operations have run, in `extensions()` order. `Add` entries get `UxEntry::$id`
-     * -- and `$condition`, when it's a permission-id string, not a closure -- prefixed the
-     * same way `permissions()` prefixes `Permission::$id`; `$slot`/`$after`/`$before` are left
-     * untouched, since they're fully-qualified references the author writes out in full, not
-     * private names Manager owns the prefixing of. `Replace`/`Remove` target another entry's
-     * already fully-qualified id (same convention as `after`/`before`), so they're applied as
-     * given, never prefixed. A `Replace`/`Remove` targeting an entry that isn't registered
-     * (never was, or belongs to an extension processed later, or not installed at all) is a
-     * no-op, same graceful-degradation rule `SlotResolver` applies to a dangling `after`/
-     * `before` -- which also means an extension can only replace/remove something an
-     * earlier-processed extension (or Core) already registered, not one processed after it.
+     * Resolves every extension's `Add`/`Replace`/`Remove` operations, in `extensions()` order --
+     * `Replace`/`Remove` targeting an entry not yet registered (wrong order, or never existed) is
+     * a no-op, so an extension can only replace/remove something an earlier one already added.
      *
      * @return Collection<int, UxEntry>
      */
@@ -912,11 +740,6 @@ class Manager
         return collect(array_values($registry));
     }
 
-    /**
-     * Registers every listener declared by every extension directly against the event
-     * dispatcher -- a side effect, not an aggregation like `ux()`/`permissions()`, so there's
-     * nothing to return.
-     */
     public function listeners(): void
     {
         foreach ($this->extensions() as $package => $extension) {
@@ -940,23 +763,13 @@ class Manager
     {
         $entry->id = $prefix.$entry->id;
 
-        // A condition already containing "::" is a foreign reference to another extension's
-        // (or Core's) already-qualified permission id -- same convention $after/$before/
-        // PortalExtension::$portal already use -- left exactly as written, never prefixed.
         if (is_string($entry->condition) && ! str_contains($entry->condition, '::')) {
             $entry->condition = $prefix.$entry->condition;
         }
 
-        // Two Add entries resolving to the same id can only ever be the *same* extension
-        // reusing an ->as() name across two unrelated ->add() calls (the prefix is always the
-        // owning extension's own id, so two different extensions can never collide here no
-        // matter what local name either picks) -- there is no legitimate reason for this, and
-        // the registry being a plain id-keyed array means it would otherwise silently overwrite
-        // the first entry outright, including its own `slot`, not just its `component`/`data`
-        // -- a whole feature going quietly missing from wherever the first one rendered, with no
-        // error anywhere. `Ux::replace()`/`remove()` are the real mechanism for intentionally
-        // targeting an already-registered entry; a second plain `add()` never is. Same
-        // fail-loudly-on-an-author-mistake convention `commands()` already uses.
+        // Two extensions can never collide here (the prefix is always the owning extension's own
+        // id) -- a collision means the same extension reused an ->as() name across two add()
+        // calls, which would otherwise silently overwrite the first entry's slot/component/data.
         if (isset($registry[$entry->id]) && $registry[$entry->id]->action === UxAction::Add) {
             throw new \LogicException(sprintf(
                 'Two Ux::add() entries both resolve to id "%s" -- give one a distinct ->as() name. '
@@ -969,11 +782,8 @@ class Manager
     }
 
     /**
-     * Mutates the target in place rather than replacing it in the registry, so it keeps its
-     * original position -- swapping what an entry looks like is never the same thing as
-     * re-ordering it. Only `component`/`data` are always overwritten; `slot`/`after`/`before`/
-     * `condition` are only overwritten if this `Replace` entry actually set them (chained after
-     * `Ux::replace()`) -- left `null`, the target's original value stands.
+     * Mutates the target in place to keep its original position. Only `component`/`data` are
+     * always overwritten; `slot`/`after`/`before`/`condition` only if this entry actually set them.
      *
      * @param  array<string, UxEntry>  $registry
      */

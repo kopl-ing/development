@@ -18,16 +18,9 @@ use Kopling\Core\People\Person;
 use Kopling\Core\Portal\Portal;
 
 /**
- * The render-time binding a component tree resolves against -- `$subject` is whatever model
- * the tree is actually about (a `Moment`, later something else), `$actor` is whoever's
- * looking at it (`null` for a guest). Passed down unchanged from a tree's root all the way
- * to its leaves, and carried on every `UxEntry` a slot resolves, so a registered component
- * never needs anything threaded through as a loose, positional array -- it reads
- * `$context->subject`/`$context->actor` directly.
- *
- * `$subject` is deliberately `mixed`, not typed to `Moment` -- there's only one bound-model
- * type in the codebase today, so typing this against a shared interface would be inventing
- * structure ahead of a real second need.
+ * The render-time binding a component tree resolves against -- `$subject` is whatever model the
+ * tree is about, `$actor` is whoever's looking at it (`null` for a guest). Passed down unchanged
+ * from a tree's root to its leaves, carried on every `UxEntry` a slot resolves.
  */
 class Context
 {
@@ -39,22 +32,13 @@ class Context
     ) {
         $this->actor ??= Auth::user();
         $this->request ??= request();
-        // `InjectPortal` middleware already resolves and shares the current request's Portal as
-        // this exact request attribute, for every request -- reading it here means a Context
-        // built with no explicit $portal (Community\UserMenu's own bare `new Context()`, say)
-        // still knows which portal it's rendering on, the same way $actor already self-populates
-        // from Auth::user() instead of every caller having to fetch and pass it through by hand.
+        // InjectPortal middleware shares the current Portal as a request attribute -- reading it
+        // here means a Context built with no explicit $portal still knows which portal it's on.
         $this->portal ??= $this->request?->attributes->get('portal');
     }
 
     /**
-     * The route this render happened under -- `null` whenever `$request` hasn't actually been
-     * matched to one yet (the constructor defaults `$request` from the global `request()` helper,
-     * but a request that hasn't gone through routing, or one built bare for a test, has no route
-     * of its own). Reading this instead of the global `request()` helper directly is what lets
-     * `isRoute()` (and any future route-shaped check) stay a Context method other components can
-     * call and extensions can rely on, rather than every leaf reaching for framework globals on
-     * its own.
+     * `null` whenever `$request` hasn't been matched to a route yet.
      */
     public function getRoute(): ?Route
     {
@@ -62,13 +46,8 @@ class Context
     }
 
     /**
-     * Whether the current route's own `$parameter` is bound to this same subject -- e.g.
-     * `$context->isRoute('moment')` on a discussion page is true for the very `Moment` that
-     * page is about, false for any other moment's card rendered elsewhere (the feed, a rail).
-     * `false` whenever there's no request, no such route parameter, it isn't a bound model, or
-     * this context carries no concrete subject to compare against -- deliberately not calling
-     * `getSubject()` for that last case, since a `Builder`/`null` subject would otherwise run a
-     * query (or throw) just to answer what's really "no, that's not what this is").
+     * Whether the current route's `$parameter` is bound to this same subject. Checks `$subject`
+     * directly rather than `getSubject()`, which would otherwise run a query just to answer no.
      */
     public function isRoute(string $parameter): bool
     {
@@ -81,36 +60,20 @@ class Context
         return $bound instanceof Model && $bound->is($this->subject);
     }
 
-    /**
-     * Whether `$id` (a fully-qualified Portal id, e.g. "kopling-core::community") is the portal
-     * this context is currently rendering on -- e.g. a user-menu entry linking to a portal uses
-     * this to hide itself while already on that same portal, rather than showing a link to
-     * exactly where the viewer already is. `false` whenever there's no portal at all (a route not
-     * grouped under any Portal), same "absence just means no" rule `isRoute()` already follows.
-     */
     public function isPortal(string $id): bool
     {
         return $this->portal?->id === $id;
     }
 
     /**
-     * `$actor` itself stays nullable -- existing callers already null-check it to mean "no one's
-     * signed in" (e.g. reactions' own `$canReact = $actor !== null`), and swapping that null for
-     * a real `Guest` object would silently flip every one of those checks. This is the
-     * `Guest`-substituting read for callers that would rather not null-check at all -- the same
-     * substitution `ServiceProvider`'s own Gate closure already makes for permission checks.
+     * `$actor` itself stays nullable -- existing callers null-check it to mean "no one's signed
+     * in." This is the `Guest`-substituting read for callers that would rather not.
      */
     public function getActor(): Guest|Person
     {
         return $this->actor ?? new Guest();
     }
 
-    /**
-     * Whether `$person` is who's currently looking at this -- a real identity comparison
-     * (`Model::is()`, matching by key/table/connection), not a truthiness check, so it's always
-     * `false` against a `Guest` actor (never persisted, so it can never share a key with a real
-     * `Person`) without needing its own special case here.
-     */
     public function isActor(?Person $person): bool
     {
         return $person !== null && $this->getActor()->is($person);
@@ -138,11 +101,9 @@ class Context
     }
 
     /**
-     * The URL an extension declared this subject's cards should link out to, via
-     * `Extend\Model::linksTo()` -- `null` if nothing was declared, or if a declared `$when`
-     * evaluates false for this request/actor. Where more than one extension declares a link for
-     * the same model, the last-registered one wins, the same rule `Manager::models()` already
-     * applies to cast collisions.
+     * The URL this subject's cards link out to, via `Extend\Model::linksTo()` -- `null` if
+     * nothing was declared, or `$when` evaluates false. Last-registered declaration wins on
+     * collision.
      */
     public function getSubjectUrl(): ?string
     {

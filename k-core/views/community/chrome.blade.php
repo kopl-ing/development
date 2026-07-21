@@ -1,32 +1,16 @@
 @php use Kopling\Core\Ux\Context; @endphp
-{{--
-    The shared navbar/sidebar/main/rail chrome -- see `Chrome`'s own docblock for why this one
-    file now serves Community, Admin, and Style Guide. Only daisyUI semantic classes (bg-base-*,
-    text-base-content, border-base-*) are used here, never a raw color -- keeps this open for the
-    runtime theme-token system (see Kopling\Core\Ux\Theme).
---}}
 <x-k::portal.layout>
     <div class="flex flex-col min-h-screen">
         <header class="navbar bg-base-100 border-b border-base-300 sticky top-0 z-30">
             <div class="flex w-full max-w-7xl mx-auto items-center">
                 <div class="flex-1">
-                    {{-- $logo, when set, replaces $label entirely -- both come from Chrome's own
-                         constructor, already scoped to only substitute Core's admin-configured
-                         community-name/community-logo while $portalId is actually
-                         "kopling-core::community" (see its own docblock). --}}
                     @if ($logo)
                         <img src="{{ $logo }}" alt="{{ $label }}" class="h-8 px-4">
                     @else
                         <span class="text-lg font-semibold px-4">{{ $label }}</span>
                     @endif
                 </div>
-                {{--
-                    `flex` (not just `flex-none`, which only governs how this div behaves as a
-                    flex *item* in its own parent above) is what makes `gap-3` actually apply to
-                    its children -- without it, `gap-3` is silently a no-op and topbar entries
-                    (theme-switcher, the user menu, ...) sit only as far apart as incidental
-                    inline whitespace happens to put them.
-                --}}
+                {{-- `flex` (not just `flex-none`) is what makes `gap-3` apply to its children. --}}
                 <div class="flex-none flex items-center gap-3 px-4">
                     <x-k::portal.slot :name="$topbarSlot" />
                 </div>
@@ -47,18 +31,7 @@
 
                 @if ($railSlot)
                     <aside class="w-72 border-l border-base-300 p-4 hidden xl:block" id="rail">
-                        {{--
-                            `subject` is the current route's bound "moment" parameter when there
-                            is one (e.g. the discussion page, `/m/{moment}`), null on every other
-                            page -- `Context::isRoute()` already exists for exactly this "is this
-                            bound to what the current route is about" check, safely returning
-                            false on a null subject rather than throwing, so anything registered
-                            here can render nothing unless it's actually on a page about one
-                            specific Moment. Moment is Core's own model, so this is Core binding
-                            its own concept, not reaching into a foreign extension's -- harmless
-                            for Admin/Style Guide too, whose own rail slots have nothing
-                            registered that would ever read it.
-                        --}}
+                        {{-- The current route's bound "moment" param, null on every other page. --}}
                         <x-k::portal.slot :name="$railSlot"
                             :context="new Context(subject: request()->route('moment'))" />
                     </aside>
@@ -67,12 +40,8 @@
         </div>
 
         @if ($mobileDock)
-            {{--
-                Own DOM location, deliberately outside the `hidden md:block` sidebar aside above
-                -- `display:none` on an ancestor hides descendants outright regardless of the
-                dock's own `position:fixed`/`md:hidden`, so it can't be nested inside it and
-                still show below md.
-            --}}
+            {{-- Outside the `hidden md:block` sidebar on purpose -- `display:none` on an
+                 ancestor would hide this regardless of its own `md:hidden`. --}}
             <x-k::community.navigation surface="dock" />
         @endif
 

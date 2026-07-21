@@ -7,12 +7,9 @@ namespace Kopling\Core\Extension\LoadOrder;
 use Kopling\Core\Extension\AbstractExtension;
 
 /**
- * Orders `Manager::extensions()`'s raw, discovery-order map into one that respects every
- * `LoadsAfter`/`LoadsBefore`/`InfluencesLoadOrder` constraint. Composer's `installed.json`
- * order (the order the map arrives in) carries no meaning -- it's discarded in favour of
- * alphabetical by package, the deterministic base this sorts from when two extensions have no
- * relation to each other at all. `kopling/core` is pinned first unconditionally, the same
- * guarantee `Manager::extensions()` already made before this existed; it never enters the graph.
+ * Orders `Manager::extensions()`'s raw map to respect every `LoadsAfter`/`LoadsBefore`/
+ * `InfluencesLoadOrder` constraint. Composer's discovery order carries no meaning -- ties resolve
+ * alphabetically. `kopling/core` is pinned first unconditionally, never entering the graph.
  */
 class Resolver
 {
@@ -40,10 +37,8 @@ class Resolver
 
     /**
      * Builds a package => "packages it must load after" adjacency list. `LoadsAfter`/
-     * `LoadsBefore` constraints are collected first, recording which pairs each package already
-     * has an explicit opinion about; `InfluencesLoadOrder` rules are then applied only where the
-     * matched extension has no explicit opinion about the declaring package already --
-     * explicit always wins over inferred (see `LoadsAfter`).
+     * `LoadsBefore` are collected first; `InfluencesLoadOrder` rules then only apply where the
+     * matched extension has no explicit opinion already -- explicit always wins over inferred.
      *
      * @param  array<string, AbstractExtension>  $extensions
      * @return array<string, array<string>>
@@ -104,9 +99,8 @@ class Resolver
     }
 
     /**
-     * Kahn's algorithm, tie-broken alphabetically: `$nodes` already arrives alphabetical (see
-     * `resolve()`), and each pass picks the first still-blocked-free node in `$remaining`,
-     * whose relative order never changes -- so ties resolve alphabetically for free.
+     * Kahn's algorithm, tie-broken alphabetically since `$nodes` arrives alphabetical and each
+     * pass picks the first still-unblocked node.
      *
      * @param  array<string>  $nodes
      * @param  array<string, array<string>>  $after  package => packages it must load after

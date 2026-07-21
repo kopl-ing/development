@@ -9,13 +9,8 @@ use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
 
 /**
- * The fluent builder returned by `Kopling\Core\Extension\Contract\ChangesUx::ux()` --
- * mirrors Laravel's own `Route::get()->name()->middleware()` chaining. `add()`/`replace()`/
- * `remove()` each start a new UxEntry; every other method (`in()`/`after()`/`before()`/
- * `as()`/`when()`) mutates whichever entry is currently selected and returns `$this`, so
- * several entries can be declared in one chained call. `edit()` re-selects an entry already
- * added earlier in this same chain, so you're never stuck only being able to configure
- * whichever one you called `add()` on most recently.
+ * The fluent builder returned by `ChangesUx::ux()`. `add()`/`replace()`/`remove()` each start a
+ * new `UxEntry`; every other method mutates whichever entry is currently selected.
  */
 class Ux
 {
@@ -39,12 +34,7 @@ class Ux
     }
 
     /**
-     * Overwrites an already-registered entry's component/data (and, if also chained here,
-     * whichever of slot/after/before/when it's given too -- anything left unset keeps the
-     * original entry's value). `$id` is the target's already fully-qualified id, same as
-     * `after()`/`before()` -- your own entries' ids included, if you know your own extension's
-     * prefix. A target that doesn't exist (removed, or never registered) is a no-op, same as
-     * a dangling `after()`/`before()`.
+     * `$id` is the target's already fully-qualified id. A missing target is a no-op.
      */
     public function replace(string $id, string $component, array $data = []): static
     {
@@ -57,10 +47,6 @@ class Ux
         return $this;
     }
 
-    /**
-     * Removes an already-registered entry outright. Same targeting rule as `replace()`: `$id`
-     * is the target's fully-qualified id, and a missing target is a no-op.
-     */
     public function remove(string $id): static
     {
         $entry = new UxEntry('');
@@ -73,12 +59,8 @@ class Ux
     }
 
     /**
-     * Re-selects an entry added earlier in this same chain (by whatever id it currently has --
-     * explicit via `as()`, or the default) so it can be configured further, instead of only
-     * ever being able to continue chaining onto whichever `add()`/`replace()`/`remove()` call
-     * came last. Only searches entries declared in this same `Ux` instance -- unlike
-     * `replace()`, this isn't for reaching into another extension's entries, just for not
-     * being stuck mid-chain.
+     * Re-selects an entry added earlier in this same chain so it can be configured further.
+     * Only searches this same `Ux` instance -- unlike `replace()`, not for another extension's.
      *
      * @throws \InvalidArgumentException if no entry with this id was added earlier in this chain
      */
@@ -116,10 +98,7 @@ class Ux
         return $this;
     }
 
-    /**
-     * Pins this entry to the very front of its slot -- see `UxEntry::$first` for why this
-     * exists alongside `after()`/`before()` rather than an anchor id doing the same job.
-     */
+    /** Pins this entry to the very front of its slot -- see `UxEntry::$first`. */
     public function first(): static
     {
         $this->current->first = true;
@@ -127,10 +106,7 @@ class Ux
         return $this;
     }
 
-    /**
-     * Marks this entry as edge-to-edge -- see `UxEntry::$flush` for what that means and why
-     * it only matters in `Card\Body`.
-     */
+    /** Marks this entry edge-to-edge -- see `UxEntry::$flush`. */
     public function flush(): static
     {
         $this->current->flush = true;

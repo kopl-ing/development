@@ -64,6 +64,14 @@ Append-only applies across sessions and days — a decision made previously, lat
 
 Add an entry only when a non-trivial technical decision (per the test above) gets made in this repo, whether or not it's also charter-worthy. When a fix or cleanup surfaces an adjacent, out-of-scope issue, don't unilaterally decide "leave it, noted in decisions.md" and move on — ask what to do with it (fix now, defer, or leave) before writing anything down.
 
+## Comments and docblocks: default to none
+
+Default to no comment. Code ships to production and gets loaded (by tooling, by AI agents reading it, by every future contributor) whether or not anyone asked for the essay — a docblock is not a substitute for self-explanatory naming, and it isn't free just because it "might help later." Write one only when a reader at that exact line would otherwise get it wrong: a real browser/CSS quirk, an ordering dependency, a "don't touch X without also touching Y" warning. One or two sentences, not a design retrospective.
+
+Why a decision was made, alternatives considered, or how a feature evolved belongs in `.docs/planning/decisions.md` (if it clears that file's own bar, see above) or the commit/PR message — never a docblock. A comment that encodes a reasoning chain (e.g. "this works because CSS stacking does X") is also the most expensive kind to get wrong: if the underlying assumption turns out mistaken, both the code and the prose explaining it need fixing, not just the bug. Where a behavior actually matters, a test asserting it beats a paragraph describing it — tests don't rot silently the way comments do.
+
+This applies retroactively too: if you're already touching a file and its existing comments are essay-length, trim them to fit this convention rather than adding to the pile — but don't go out of your way to rewrite comments in files you have no other reason to touch.
+
 ## Tests
 
 `vendor/bin/pest` runs the suite (Pest 4, root `tests/`, config in `tests/Pest.php`). Two layers:

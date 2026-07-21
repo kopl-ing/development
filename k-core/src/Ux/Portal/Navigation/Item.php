@@ -9,29 +9,11 @@ use Illuminate\View\Component;
 use Kopling\Core\Ux\Context;
 
 /**
- * The common case for a side-navigation entry -- just a link. Anything richer (a badge
- * count, custom markup) ships its own component instead and registers that FQCN with
- * Ux::add() -- this one is a convenience, not a requirement.
- *
- * `$data['icon']`, when given, is a semantic icon id declared via `HasIcons::icons()` (e.g.
- * "kopling-core::home"), rendered through `<x-k::icon>` -- see `Kopling\Core\Ux\Icon` for how
- * that resolves to a concrete icon (the active pack's own, or its Font Awesome default).
- *
- * `$data['hideOnPortal']`, when given, is a fully-qualified Portal id (e.g.
- * "kopling-core::community") -- this entry renders nothing while `$context->isPortal()` says
- * that's the portal currently being viewed, so a link to the very portal you're already on
- * doesn't show up pointing at itself (the community/admin/style-guide links in `UserMenu::SLOT`
- * use this). Opt-in and costs nothing for every `Item` that doesn't set it; `$context` is only
- * ever populated by a caller that resolves its slot with one (`UserMenu` does; `Community\
- * Navigation`/the dock don't, so this is simply never checked for those).
- *
- * `$surface` ('menu' or 'dock') isn't part of `$data` -- `$data` is static, author-declared
- * config the registering extension controls, but which markup shape an entry renders as is a
- * render-time layout decision the extension has no business making. Every entry always renders
- * into both surfaces (nothing is ever selected out) -- `Community\Navigation` just resolves the
- * slot twice, once per surface, passing `surface` as a plain Blade attribute alongside `:data`
- * each time. Not named `variant` (implies picking one) or `as` (collides with `Ux::add()
- * ->as()`, an unrelated concept -- an entry's stable id).
+ * The common case for a side-navigation entry -- just a link. Anything richer ships its own
+ * component and registers that FQCN instead. `$data['hideOnPortal']`, a Portal id, hides this
+ * entry while `$context->isPortal()` says that's the portal currently being viewed. `$surface`
+ * ('menu'/'dock') isn't part of `$data` -- it's a render-time layout decision, not something the
+ * registering extension controls.
  */
 class Item extends Component
 {

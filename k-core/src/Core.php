@@ -35,11 +35,7 @@ use Kopling\Core\Ux\Form\TextArea;
 
 /**
  * Core's own declarations, made through the same contracts any extension would implement --
- * `Kopling\Core\Extension\Manager` always includes this as its first entry, not Composer-
- * discovered like the rest (see `Manager::extensions()`). This replaces a previous
- * `CorePermissions` static registry that hand-wrote fully-prefixed ids ("kopling-core::manage-people")
- * as a special case; writing local ids here and letting `Manager` prefix them the same way it
- * prefixes any extension's removes that asymmetry -- one declaration mechanism, not two.
+ * `Manager` always includes this as its first entry, not Composer-discovered like the rest.
  */
 class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor, ChangesUx, ExtendsPortals, HasAdminSettings, HasIcons, HasPermissions, HasPortals
 {
@@ -85,14 +81,8 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
     }
 
     /**
-     * The Community portal's own identity -- all three optional, all read directly via
-     * `Settings::get()` wherever they're actually used (`Community\Chrome` for name/logo,
-     * `layouts/partials/head.blade.php` for the meta description) rather than threaded through
-     * here, the same "declare the field, read it where it's needed" split every other
-     * `HasAdminSettings` field already follows. Community-specific by name (not a generic "site
-     * name"/"site logo"): `Chrome` only ever substitutes these for `$portal->label` when
-     * `$portalId` is actually `kopling-core::community` -- Admin and Style Guide keep showing
-     * their own real portal label regardless of what's configured here.
+     * The Community portal's own identity -- read via `Settings::get()` wherever it's used
+     * (`Community\Chrome`, `layouts/partials/head.blade.php`), not threaded through here.
      *
      * @return array<Field>
      */
@@ -151,13 +141,9 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
     }
 
     /**
-     * v1's default enabled set -- a lean, essential formatting baseline, not an exhaustive tour
-     * of everything TipTap can do: `Strike`/`Underline`/`TaskList`/`HorizontalRule` are
-     * deliberately left off by default so `ChangesEditor` has real room for an extension to
-     * matter, rather than Core exhausting the whole catalog itself and leaving nothing to
-     * extend. Declared through the same `ChangesEditor` contract any extension would use, not
-     * hardcoded elsewhere, same "core's own defaults go through the same contract" rule
-     * `icons()`/`permissions()` already establish.
+     * v1's default enabled set -- a lean baseline, not an exhaustive tour of TipTap. Some nodes
+     * (`Strike`/`Underline`/`TaskList`/`HorizontalRule`) are deliberately left off so
+     * `ChangesEditor` has real room for an extension to matter.
      *
      * @return array<EditorNode>
      */

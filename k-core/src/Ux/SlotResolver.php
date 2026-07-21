@@ -17,9 +17,8 @@ use Illuminate\Support\Facades\Gate;
 class SlotResolver
 {
     /**
-     * `$context`, when given, is set on every surviving entry -- for a slot bound to
-     * something (a `Moment`'s Card header, say), not for a page-level one like
-     * `kopling-core::community.navigation`, which has nothing to bind and passes `null`.
+     * `$context`, when given, is set on every surviving entry -- `null` for page-level slots
+     * with nothing to bind.
      *
      * @param  Collection<int, UxEntry>  $entries
      * @return Collection<int, UxEntry>
@@ -55,10 +54,8 @@ class SlotResolver
             }
         }
 
-        // `first` wins over whatever after()/before() positioning already happened above -- a
-        // stable partition (array_values(array_filter(...)) preserves relative order within
-        // each side), so more than one `first()` entry still keeps its own relative order,
-        // just all pushed ahead of everything else.
+        // `first` wins over after()/before() -- a stable partition, so multiple `first()`
+        // entries keep their relative order, all pushed ahead of everything else.
         $pinned = array_values(array_filter($entries, fn (UxEntry $entry) => $entry->first));
         $rest = array_values(array_filter($entries, fn (UxEntry $entry) => ! $entry->first));
 

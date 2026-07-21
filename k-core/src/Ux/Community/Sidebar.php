@@ -13,19 +13,9 @@ use Kopling\Core\Ux\UxEntry;
 
 /**
  * The Community portal's left-column supplementary content -- arbitrary widget-shaped blocks
- * (a "pulse" of live counts, popular tags, ...), not navigation. Owns
- * `kopling-core::community.sidebar`, the slot `layouts/community.blade.php` already declares;
- * resolves/renders it exactly like `Card\Top` does for its own slot.
- *
- * Navigation links (Home feed, Popular, ...) live in `Navigation`'s own
- * `kopling-core::community.navigation` slot instead, deliberately kept separate: this slot's
- * entries render as free-form blocks (see `kopling-widgets::pulse`/`tags`, each a `<div
- * class="card">`), which would be invalid HTML nested inside `Navigation`'s `<ul class="menu">`
- * -- and a slot that mixed both couldn't be resolved on its own for the mobile dock, which only
- * ever wants nav-shaped entries.
- *
- * No `defaults()` -- nothing in Core registers into this slot itself, only extensions
- * (`kopling-widgets`) do; kept purely as the render/resolve half of the slot contract.
+ * (a "pulse" of live counts, popular tags), not navigation. Kept separate from `Navigation`'s
+ * own slot since these render as free-form `<div class="card">` blocks, invalid nested inside
+ * `Navigation`'s `<ul>`. No `defaults()` -- only extensions register here, Core doesn't.
  */
 class Sidebar extends Component
 {

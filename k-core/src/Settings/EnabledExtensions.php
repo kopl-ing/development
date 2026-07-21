@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Kopling\Core\Settings;
 
 /**
- * Persists which installed extensions are enabled, under a single `extensions-enabled` key (a
- * JSON array of extension ids, `Manager::id($package)` form) in `Settings`. `all()` returning
- * `null` is the bootstrap state -- nothing has ever been toggled, so `isEnabled()` treats
- * everything as enabled, preserving the behavior every extension had before this existed. The
- * very first `enable()`/`disable()` call seeds the list from the caller-supplied `$allIds`
- * (every currently discovered extension id) before applying the one change, so disabling one
- * extension for the first time doesn't silently disable every other one too.
+ * Persists which installed extensions are enabled, as a JSON array under one `Settings` key.
+ * `all()` returning `null` is the bootstrap state -- nothing has ever been toggled, so
+ * `isEnabled()` treats everything as enabled. The first `enable()`/`disable()` call seeds the
+ * list from the caller-supplied `$allIds` before applying the one change.
  */
 class EnabledExtensions
 {

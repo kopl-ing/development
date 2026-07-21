@@ -14,36 +14,10 @@ use Kopling\Core\Ux\SlotResolver;
 use Kopling\Core\Ux\UxEntry;
 
 /**
- * The Community portal's primary nav links -- Home feed, Popular, and whatever an extension
- * (Following, Bookmarks, ...) registers alongside them. Split out of `Sidebar` (which now only
- * holds arbitrary supplementary content -- widgets -- not navigation) so a slot exists that's
- * guaranteed to contain nothing but nav-shaped entries: the mobile dock rendering below needs
- * that guarantee, since it can't sensibly render a "popular tags" widget as a bottom-nav button.
- *
- * Rendered twice per page by `community/chrome.blade.php` -- once as `$surface = 'menu'` (the
- * desktop sidebar list) and once as `$surface = 'dock'` (the mobile bottom nav, hidden above
- * `md`) -- each a separate `SlotResolver::resolve()` call, same cost pattern already used by
- * `Slot` for topbar/rail/composer. Every entry always renders into both surfaces -- there's no
- * per-entry opt-out -- `$surface` just decides which markup shape this render pass uses.
- * Passed straight through to each entry's own component as an extra Blade attribute (`Item`
- * picks it up; anything else that doesn't declare a `$surface` prop just ignores it via Blade's
- * attribute bag) -- so which markup an entry renders as is a decision made here, at the render
- * call site, never by whatever registered it.
- *
- * `defaults()` only registers Home feed -- Popular has no real sort/ranking behind it yet
- * (see `IndexController`, which just does `Moment::latest()`), so it isn't registered as a
- * placeholder link to nowhere, same reasoning as `Card\Footer::defaults()` staying empty
- * until reactions are real.
- *
- * `$data['slot']` overrides which slot gets resolved -- `self::SLOT` (Community's own nav
- * links) when omitted. This is what lets Admin/Style Guide reuse this exact component (self-
- * wrapping `<ul class="menu">`, itself one entry inside `Community\Chrome`'s generic sidebar
- * slot) for their own, differently-named navigation slots instead of each hand-rolling the same
- * `<ul>`+`<li>` shape -- same "$slot override, defaults preserve current behavior" trick
- * `Card\Top`/`Body`/`Footer` already use. Passed via `$data` (not a direct constructor param,
- * unlike `Top`'s own `?string $slot`) because, unlike those, this is itself registered *as* a
- * `Ux::add()` entry -- reached through `<x-dynamic-component :data="...">`, which only ever
- * supplies `$data`/`$context`, never arbitrary extra constructor arguments.
+ * The Community portal's primary nav links. Rendered twice per page -- `$surface = 'menu'` (desktop
+ * sidebar) and `'dock'` (mobile bottom nav) -- passed through to each entry's own component as an
+ * extra Blade attribute. `$data['slot']` overrides which slot gets resolved (`self::SLOT` when
+ * omitted), letting Admin/Style Guide reuse this same component for their own nav slots.
  */
 class Navigation extends Component
 {
