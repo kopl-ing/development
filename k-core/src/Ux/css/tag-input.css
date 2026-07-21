@@ -9,6 +9,10 @@
     --tags-border-color: var(--color-base-300, #d1d5db);
     --tags-hover-border-color: var(--color-base-300, #d1d5db);
     --tags-focus-border-color: var(--color-primary, #2b4a9b);
+    /* Tagify's own default, `--input-color: inherit`, left the typed query text unreadable in
+       every theme -- daisyUI reuses the same variable name on `.input`/`.select`/etc. for an
+       unrelated purpose, so "inherit" never actually resolved to real body text color here. */
+    --input-color: var(--color-base-content, #111);
     --placeholder-color: var(--color-base-content, #6b7280);
     --placeholder-color-focus: var(--color-base-content, #6b7280);
     --tag-bg: var(--color-primary, #2b4a9b);
@@ -18,10 +22,24 @@
     --tag-remove-btn-bg--hover: transparent;
     --tag-border-radius: 999px;
     --tag-pad: 0.3em 0.65em;
+    border-radius: var(--radius-field, 0.5rem);
+}
+
+/* Tagify appends the dropdown as a direct child of <body>, not nested inside `.tagify` -- so
+   its own theming variables have to live somewhere the dropdown actually inherits from
+   wherever it lands, not on `.tagify` itself. Tagify's own default stylesheet already declares
+   these same three at `:root` for the same reason. Font-size is pinned too, since the dropdown
+   also stops inheriting whatever compact scale its original container (e.g. daisyUI's
+   `.fieldset`, 0.75rem) had -- Tagify's own dropdown padding is in `em`, so that would
+   otherwise scale up with the ambient `<body>` font-size instead. */
+:root {
     --tagify-dd-bg-color: var(--color-base-100, #fff);
     --tagify-dd-text-color: var(--color-base-content, #111);
     --tagify-dd-color-primary: var(--color-primary, #2b4a9b);
-    border-radius: var(--radius-field, 0.5rem);
+}
+
+.tagify__dropdown {
+    font-size: 0.875rem;
 }
 
 /* A small colored dot before a pill/suggestion's label -- only ever rendered when a caller's

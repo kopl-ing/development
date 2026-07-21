@@ -4,23 +4,29 @@ declare(strict_types=1);
 
 namespace Kopling\Composer;
 
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Card\Avatar;
+use Kopling\Core\Ux\Compose\Modes;
 
-/**
- * A "share a moment" composer at the top of the feed -- the compose-first entry the charter
- * calls for (a person + their short moment, title optional). Registers into the feed's own
- * `content-top` slot (not the portal chrome), so it shows above the feed and nowhere else.
- * Registered unconditionally -- "signed in or not" isn't a granular capability, so it's not a
- * `Permission`; the view itself wraps its markup in `@auth`, a guest sees nothing here (the
- * topbar's sign-in link is what they see instead). Posting prepends the new moment through
- * core's own card, live, via htmx.
- */
-class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasIcons
 {
+    /**
+     * The compose card's own Top/Body/Footer slot family -- same `?string $slot` reuse
+     * Discussions' Reply cards established, never Core's own `Card\Top::SLOT`/etc., so a
+     * Moment-only registration (reactions, poll, teaser) never bleeds into the compose form.
+     */
+    public const TOP_SLOT = 'kopling-composer::compose.top';
+
+    public const BODY_SLOT = 'kopling-composer::compose.body';
+
+    public const FOOTER_SLOT = 'kopling-composer::compose.footer';
+
     public static function name(): string
     {
         return 'Composer';
@@ -36,7 +42,37 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
         return Ux::make()
             ->add('kopling-composer::composer')
             ->in('kopling-core::community.content-top')
-            ->as('composer');
+            ->as('composer')
+            ->add('kopling-composer::title-field')
+            ->in(self::TOP_SLOT)
+            ->as('title')
+            ->add(Avatar::class)
+            ->in(self::TOP_SLOT)
+            ->as('avatar')
+            ->after('title')
+            ->add(Modes::class)
+            ->in(self::BODY_SLOT)
+            ->as('modes')
+            ->add('kopling-composer::footer-actions')
+            ->in(self::FOOTER_SLOT)
+            ->as('actions')
+            ->add('kopling-composer::mode-text', [
+                'icon' => 'kopling-composer::pen',
+                'label' => __('kopling-composer::messages.mode_text'),
+            ])
+            ->in(Modes::SLOT)
+            ->as('text')
+            ->first();
+    }
+
+    /**
+     * @return array<Icon>
+     */
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'pen', label: 'Write', default: 'fas-pen'),
+        ];
     }
 
     /**

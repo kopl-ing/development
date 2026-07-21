@@ -6,6 +6,7 @@ namespace Kopling\Discussions\Controllers;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
@@ -35,9 +36,12 @@ class DiscussionController
      * Post a reply, then return just the new reply so htmx can append it to the thread
      * (hx-swap="beforeend"). Guests abort 401 -> core's RedirectUnauthenticated. `body_html` is
      * rendered server-side from the validated `body` document here, at write time -- never
-     * trusted directly from the client (see `DocumentRenderer`'s own docblock).
+     * trusted directly from the client (see `DocumentRenderer`'s own docblock). Same
+     * `HX-Request` branch `ComposerController::store()` establishes -- a plain POST (no htmx
+     * request header) redirects back to the discussion page instead of rendering a bare
+     * fragment as the entire response.
      */
-    public function reply(StoreReplyRequest $request, Moment $moment, Manager $manager): View
+    public function reply(StoreReplyRequest $request, Moment $moment, Manager $manager): View|RedirectResponse
     {
         $person = Auth::user();
 
@@ -52,6 +56,10 @@ class DiscussionController
         ]);
 
         $reply->setRelation('person', $person);
+
+        if (! $request->header('HX-Request')) {
+            return redirect()->route('kopling-core::community/discussions.show', $moment);
+        }
 
         return view('kopling-discussions::partials.reply', ['reply' => $reply]);
     }

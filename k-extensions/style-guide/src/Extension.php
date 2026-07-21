@@ -162,6 +162,10 @@ class Extension extends AbstractExtension implements HasPortals, ExtendsPortals,
             ->add('kopling-style-guide::nav-anchor', ['href' => '#card', 'label' => __('kopling-style-guide::messages.card')])
             ->in('kopling-style-guide::style-guide.navigation')
             ->as('card')
-            ->after('editor');
+            ->after('editor')
+            ->add('kopling-style-guide::nav-anchor', ['href' => '#compose', 'label' => __('kopling-style-guide::messages.compose')])
+            ->in('kopling-style-guide::style-guide.navigation')
+            ->as('compose')
+            ->after('card');
     }
 }

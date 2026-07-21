@@ -2,7 +2,11 @@
     <div class="flex flex-col gap-1">
         <x-k::modal :label="__('kopling-pin::pin.edit_pin')" class="w-full justify-start">
             <x-slot:trigger>{{ __('kopling-pin::pin.edit_pin') }}</x-slot:trigger>
-            <form method="POST" action="{{ route('kopling-core::community/pin.store', $moment) }}" class="flex flex-col gap-4">
+            <form method="POST" action="{{ route('kopling-core::community/pin.store', $moment) }}"
+                  hx-post="{{ route('kopling-core::community/pin.store', $moment) }}"
+                  hx-target="#moment-{{ $moment->id }}" hx-swap="outerHTML"
+                  hx-on::after-request="if (event.detail.successful) $el.closest('dialog').close()"
+                  class="flex flex-col gap-4">
                 @csrf
                 <x-k::form.select :data="[
                     'name' => 'reason',
@@ -31,7 +35,9 @@
                 <button type="submit" class="btn btn-primary self-start">{{ __('kopling-pin::pin.save') }}</button>
             </form>
         </x-k::modal>
-        <form method="POST" action="{{ route('kopling-core::community/pin.destroy', $moment) }}">
+        <form method="POST" action="{{ route('kopling-core::community/pin.destroy', $moment) }}"
+              hx-post="{{ route('kopling-core::community/pin.destroy', $moment) }}"
+              hx-target="#moment-{{ $moment->id }}" hx-swap="outerHTML">
             @csrf
             <button type="submit" class="btn btn-ghost btn-sm w-full justify-start text-error">{{ __('kopling-pin::pin.unpin') }}</button>
         </form>

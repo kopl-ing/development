@@ -2,4 +2,6 @@
      mark catalog, at write time -- never client-supplied HTML sanitized on the way out. This
      is the one place in this view auto-escaping is deliberately off; DocumentRenderer's own
      correctness is what keeps it safe, see its docblock. --}}
-<div class="kop-content">{!! $bodyHtml !!}</div>
+@if ($bodyHtml)
+    <div class="kop-content">{!! $bodyHtml !!}</div>
+@endif

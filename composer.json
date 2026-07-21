@@ -29,6 +29,7 @@
         "kopling/discussions": "@dev",
         "kopling/example": "@dev",
         "kopling/pin": "@dev",
+        "kopling/poll": "@dev",
         "kopling/reactions": "@dev",
         "kopling/reply-dock": "@dev",
         "kopling/style-guide": "@dev",
@@ -65,6 +66,7 @@
             "@php artisan kopling:extensions:discover --ansi"
         ],
         "demo": [
+            "@php artisan kopling:extensions:disable kopling/example --ansi",
             "@php artisan kopling:demo:seed-admin --ansi",
             "@php artisan kopling:demo:seed-fake-data --ansi",
             "@php artisan kopling:reactions:seed-demo --ansi",

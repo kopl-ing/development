@@ -1,61 +1,47 @@
-{{-- Compose-first: a calm one-line box that grows on focus into title + body, both required
-     (the `moments` table's own `title` column is `NOT NULL` -- validation matches that, rather
-     than the schema staying looser than what the form actually enforces).
-     Posting hx-prepends the new moment onto #moments-feed and collapses back. Inline Alpine +
-     htmx only — no bundled JS of this component's own (the editor's own JS is core's editor.js/
-     editor-tiptap.js, mounted via the editor component below, see its own docblock for why it
-     isn't an Alpine.data() component either). The [x-cloak] rule ships as css/app.css, linked onto
-     Community pages via Extension::extendsPortals(). Registered unconditionally into the slot
-     (see Extension::ux()) -- @auth is what hides this from a guest, not a Permission.
-
-     The editor mounts on a contenteditable region, not a native <textarea>, so "open on focus"
-     uses @focusin (bubbles) rather than @focus (doesn't), and "reset on cancel/post" needs the
-     editor's own imperative clear() alongside $refs.form.reset() -- form.reset() only touches
-     native form controls, which the editor's own contenteditable region isn't. --}}
+@php
+    use Kopling\Composer\Extension;
+    use Kopling\Core\Content\Moment;
+    use Kopling\Core\Extension\Manager;
+    use Kopling\Core\Ux\Context;
+    use Kopling\Core\Ux\SlotResolver;
+@endphp
 @auth
-    @php $me = auth()->user(); @endphp
+    @php
+        $context = new Context(subject: Moment::draft());
+        $fieldsEntries = SlotResolver::resolve('kopling-composer::compose.fields', app(Manager::class)->ux());
+    @endphp
     <div x-data="{
             open: false,
-            clearEditor() {
+            active: null,
+            defaultMode: null,
+            dirty: {},
+            reset() {
                 this.$refs.editor.querySelector('[data-tiptap-editor]')?.kopEditor?.clear();
+                this.dirty = {};
+                this.active = this.defaultMode;
             },
          }"
          @focusin="open = true"
-         @htmx:after:request="if (($event.detail?.ctx?.response?.status ?? 500) < 400) { open = false; clearEditor(); $refs.form.reset() }"
+         @htmx:after:request="if (($event.detail?.ctx?.response?.status ?? 500) < 400) { open = false; reset(); $refs.form.reset() }"
          class="card bg-base-100 hair border border-base-300 rounded-box mb-4 shadow-sm">
         <form x-ref="form"
               hx-post="{{ route('kopling-core::community/compose.store') }}"
               hx-target="#moments-feed"
               hx-swap="afterbegin"
-              class="card-body gap-3 p-4">
+              class="divide-y divide-base-content/10">
             @csrf
-            <div class="flex items-start gap-3">
-                <div class="w-9 h-9 shrink-0 rounded-full text-white grid place-items-center text-sm font-bold" style="background:{{ $me->avatarColor() }}">
-                    {{ strtoupper(mb_substr($me->name ?? '?', 0, 1)) }}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <input type="text" name="title" maxlength="150" required x-show="open" x-cloak
-                           placeholder="{{ __('kopling-composer::messages.title_placeholder') }}"
-                           class="input input-sm w-full font-semibold px-0 mb-1 border-0 focus:outline-none bg-transparent">
-                    <div x-ref="editor">
-                        <x-k::editor name="body" placeholder="{{ __('kopling-composer::messages.body_placeholder') }}" />
-                    </div>
-                </div>
-            </div>
+            <input type="hidden" name="compose_mode" :value="active">
 
-            {{-- No :context -- there's no Moment yet during compose, always create-mode, same
-                 "omit :context entirely rather than pass a null subject" rule tags' own admin
-                 form follows (Context::getSubject() throws on a null subject). Empty by default
-                 (Card\Footer-style) until an extension (tags' own tag picker) fills it. --}}
-            <x-k::portal.slot name="kopling-composer::compose.fields" />
+            <x-k::card.top :context="$context" :slot="Extension::TOP_SLOT" />
+            <x-k::card.body :context="$context" :slot="Extension::BODY_SLOT" />
 
-            <div x-show="open" x-cloak class="flex items-center justify-end gap-2 pt-1">
-                <button type="button" @click="open = false; clearEditor(); $refs.form.reset()"
-                        class="btn btn-ghost btn-sm">{{ __('kopling-composer::messages.cancel') }}</button>
-                <button type="submit" class="btn btn-primary btn-sm">
-                    {{ __('kopling-composer::messages.post') }}
-                </button>
-            </div>
+            @if ($fieldsEntries->isNotEmpty())
+                <div class="px-4 py-3 sm:px-6">
+                    <x-k::portal.slot name="kopling-composer::compose.fields" />
+                </div>
+            @endif
+
+            <x-k::card.footer :context="$context" :slot="Extension::FOOTER_SLOT" />
         </form>
     </div>
 @endauth

@@ -103,6 +103,15 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
     alongside the slot name) is a larger change touching every extension's `ux()` method and
     isn't designed yet.
 
+### Content model / Moments
+- A Moment can't currently be "feature-only" (an image, a poll, a product — with no title/body
+  at all). Attaching a new content kind *alongside* a Moment's title+body is already fully
+  extension-buildable today (teaser's own pattern: own model + `ChangesUx` into `Card\Body`/
+  `Badges`/`Footer`) — only the textless case is blocked, by `moments.title`/`body` being
+  `NOT NULL`, `StoreMomentRequest` hardcoding both `required` with no way for an extension to
+  relax that, and `Card\Content`/`card.body.blade.php` rendering unconditionally rather than
+  collapsing when empty. See decisions.md, 2026-07-21.
+
 ### Theming
 - No high-contrast support. `ChangesTheme::colorScheme()` (added 2026-07-15) only covers the CSS
   `color-scheme` property (`light`/`dark`, native form-control/scrollbar chrome) for `theme-delft`/

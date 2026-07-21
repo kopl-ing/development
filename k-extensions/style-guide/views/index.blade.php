@@ -15,4 +15,5 @@
     @include('kopling-style-guide::sections.actions')
     @include('kopling-style-guide::sections.editor')
     @include('kopling-style-guide::sections.card')
+    @include('kopling-style-guide::sections.compose')
 @endsection

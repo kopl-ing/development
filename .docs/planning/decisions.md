@@ -340,8 +340,7 @@ among multiple installed themes not yet built.
 active unconditionally. Fine today — installed already implies wanted. `CannotBeDisabled` exists
 specifically anticipating a future toggle; the toggle itself is out of scope.
 
-**Status:** Not implemented, intentionally — tracked here so it resurfaces once a real need (a
-second theme extension, an installed-but-dormant extension) shows up.
+**Status:** Superseded 2026-07-21 — a real enable/disable toggle exists now. See below.
 
 ---
 
@@ -945,5 +944,51 @@ render correctly today only because that also matches registration order. Flagge
 here.
 
 **Status:** Decided & implemented.
+
+---
+
+## 2026-07-21 — Moment "feature-only" content (image/poll/product with no title+body) is not yet supported; additive attachment (teaser's pattern) already is
+
+**Finding:** Attaching a new kind of content *alongside* a Moment's title+body — image gallery,
+poll, product card — is already fully supported with zero core changes, via the same recipe
+Discussions' teaser uses: own model/table (`moment_id` FK or polymorphic), `ChangesUx`
+registration into `Card\Body`/`Badges`/`Footer`, own composer field via
+`kopling-composer::compose.fields`. A Moment that *is only* the feature — no title, no body — is
+not supported, and can't be built by an extension alone.
+
+**Why not:** three separate core-owned constraints all assume title+body unconditionally:
+`moments.title`/`body` are `NOT NULL`; `StoreMomentRequest::rules()` hardcodes both `required`
+(`ValidatesModels` only lets an extension add rules, never relax an existing required one);
+`Card\Content`/`card.body.blade.php` render `body_html` and every slot entry's wrapping padded
+div unconditionally, so an empty `Content` entry still shows as a blank section rather than
+disappearing.
+
+**Not a conflict with the 2026-07-10 "no wholesale component replacement" decision** — this
+doesn't ask to swap Card's renderer, only to make its stock `content` entry optional
+per-instance, the same "Card stays fixed, only its contents flex" shape.
+
+**Status:** Not implemented, deliberately flagged. Three known touch points if/when a real
+feature-only extension needs it: nullable `title`/`body`, a way for `StoreMomentRequest` to know
+an attached feature satisfies the "has content" contract, and `Content`/`card.body.blade.php`
+collapsing when a slot entry renders nothing.
+
+---
+
+## 2026-07-21 — Extension enable/disable toggle exists now, superseding the 2026-07-10 "flagged for later" entry
+
+**Decision found already implemented, undocumented:** `EnabledExtensions` (a `Settings`-backed
+list) plus `kopling:extensions:enable`/`disable` CLI commands and an admin settings toggle now
+gate which discovered extensions actually load — the 2026-07-10 entry's "no disable toggle
+exists" is no longer true. `all() === null` (bootstrap state, nothing ever toggled) means
+everyone's enabled; once the list exists, anything not on it is treated as disabled.
+
+**Real consequence, hit while building `poll`:** a brand-new extension added to an install where
+the list already exists is *not* auto-enabled — it silently doesn't load until
+`kopling:extensions:enable` is run. `kopling/example` is disabled on this install right now for
+the same reason. Worth checking `kopling:extensions:list`/the admin toggle before assuming a
+newly-installed extension is inert due to a real bug.
+
+**Status:** Decided & implemented (found this session, not built this session) — CLAUDE.md/
+decisions.md just never caught up to it.
 
 ---

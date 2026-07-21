@@ -9,4 +9,5 @@ return [
     'actions' => 'Actions & overlays',
     'editor' => 'Editor',
     'card' => 'Card composition',
+    'compose' => 'Compose modes',
 ];

@@ -6,4 +6,4 @@
     Body/Footer extensibility (and any extension's own additions to them) as one rendered at
     page load. Never duplicate this markup elsewhere.
 --}}
-<x-k::card.card :context="new Context(subject: $moment, portal: $portal)"/>
+<x-k::card.card :context="new Context(subject: $moment, portal: $portal)" id="moment-{{ $moment->id }}"/>

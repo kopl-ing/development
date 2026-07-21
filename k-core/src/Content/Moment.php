@@ -24,4 +24,16 @@ class Moment extends Model
     {
         return $this->belongsTo(Person::class);
     }
+
+    /**
+     * An unsaved Moment standing in for "the thing being composed" -- lets the composer reuse
+     * Card\Avatar/Author unchanged (both read the `person` relation, which `setRelation()`
+     * satisfies without a real `person_id`), rather than needing composer-specific leaves. Never
+     * pass this to anything that calls `Context::getSubjectUrl()` (Title, the full `Card`
+     * wrapper) -- `linksTo()`'s route needs a real `getRouteKey()`, which this doesn't have.
+     */
+    public static function draft(): self
+    {
+        return tap(new self(), fn (self $moment) => $moment->setRelation('person', auth()->user()));
+    }
 }

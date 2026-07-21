@@ -17,24 +17,23 @@ class ComposerController
     /**
      * Post a moment, then return just the new moment rendered through core's own card so htmx
      * can prepend it to the feed (hx-swap="afterbegin") — the same card component the feed and
-     * the poller use, so an extension's card additions appear on it too. Title is required --
-     * `StoreMomentRequest` already guarantees a non-empty, trimmed string by the time this runs
-     * (matching `moments.title`'s own `NOT NULL` column). Without htmx (no-JS) it redirects
-     * back to the feed instead. `body_html` is rendered server-side from the validated `body`
-     * document here, at write time -- never trusted directly from the client (see
-     * `DocumentRenderer`'s own docblock).
+     * the poller use, so an extension's card additions appear on it too. Title is always
+     * required; `body` isn't -- a feature-only moment (a poll, say) can leave it out entirely.
+     * Without htmx (no-JS) it redirects back to the feed instead. `body_html` is rendered
+     * server-side from the validated `body` document here, at write time -- never trusted
+     * directly from the client (see `DocumentRenderer`'s own docblock).
      */
     public function store(StoreMomentRequest $request, Manager $manager): View|RedirectResponse
     {
         $person = Auth::user();
-        $body = (string) $request->validated('body');
+        $body = $request->validated('body');
 
         /** @var Moment $moment */
         $moment = Moment::create([
             'person_id' => $person->id,
             'title' => $request->validated('title'),
             'body' => $body,
-            'body_html' => DocumentRenderer::render($body, $manager->editorNodes()),
+            'body_html' => $body !== null ? DocumentRenderer::render($body, $manager->editorNodes()) : null,
         ]);
 
         $moment->setRelation('person', $person);

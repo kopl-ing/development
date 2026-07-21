@@ -1,5 +1,7 @@
 <fieldset class="fieldset">
-    <legend class="fieldset-legend">{{ $label }}</legend>
+    @if ($label)
+        <legend class="fieldset-legend">{{ $label }}</legend>
+    @endif
     {{--
         Mount point for emoji-picker.js (see its own docblock) -- vanilla JS, not an
         Alpine.data() component, same ordering reasoning editor.js already documents. The
@@ -9,7 +11,7 @@
         beyond the four data-* hooks below.
     --}}
     <div class="kop-emoji-picker" data-kop-emoji-picker>
-        <button type="button" class="btn" data-emoji-trigger aria-haspopup="true" aria-label="{{ $label }}">
+        <button type="button" class="btn" data-emoji-trigger aria-haspopup="true" aria-label="{{ $label ?: __('kopling-core::ux.pick_emoji') }}">
             <span data-emoji-display class="kop-emoji-picker__display">{{ $value ?: '＋' }}</span>
         </button>
         <button type="button" class="btn btn-ghost btn-xs" data-emoji-clear

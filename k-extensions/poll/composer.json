@@ -1,0 +1,19 @@
+{
+    "name": "kopling/poll",
+    "description": "Attach a poll to a moment -- single or multiple choice, optional group targeting, optional closing time.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Poll\\": "src/"
+        }
+    }
+}
