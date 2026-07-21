@@ -149,7 +149,7 @@ class Context
         $subject = $this->getSubject();
 
         $link = resolve(Manager::class)->models()
-            ->filter(fn (ExtendModel $model) => $model->model === $subject->getMorphClass() && $model->link !== null)
+            ->filter(fn (ExtendModel $model) => $model->model === get_class($subject) && $model->link !== null)
             ->last()
             ?->link;
 
@@ -165,7 +165,7 @@ class Context
 
         $parameters = is_callable($link['parameters'])
             ? ($link['parameters'])($subject)
-            : ($link['parameters'] ?: [$subject->getKey()]);
+            : ($link['parameters'] ?: [$subject->getRouteKey()]);
 
         return route($link['route'], $parameters);
     }

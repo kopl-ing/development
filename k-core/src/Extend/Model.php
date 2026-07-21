@@ -133,7 +133,7 @@ class Model
      * Declares the named route this model's cards should link out to -- read by
      * `Ux\Context::getSubjectUrl()` so a card's default title rendering (`Ux\Card\Content`) can
      * wrap itself in an `<a>` without the declaring extension having to override any template.
-     * `$parameters` defaults to `[$subject->getKey()]`, or takes a `callable(Model): array` for
+     * `$parameters` defaults to `[$subject->getRouteKey()]`, or takes a `callable(Model): array` for
      * routes needing more than the key. `$when` mirrors `Relation::eagerLoad()`'s
      * `bool|callable(Portal, Request, Person): bool` contract -- same evaluation rule, so there's
      * only one shape to learn for "cascades into templates, conditionally, per request."

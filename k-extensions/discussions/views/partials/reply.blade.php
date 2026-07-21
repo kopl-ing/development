@@ -26,6 +26,6 @@
     :badges-slot="Reply::BADGES_SLOT"
     :body-slot="Reply::BODY_SLOT"
     :footer-slot="Reply::FOOTER_SLOT"
-    class="bg-base-300"
+    class="bg-base-300/20 card-dash"
     data-reply="{{ $reply->id }}"
 />

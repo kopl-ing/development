@@ -134,7 +134,7 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
     public function models(): array
     {
         return [
-            (new Model(Moment::class))
+            new Model(Moment::class)
                 ->relation((new Relation)->hasMany('replies', Reply::class)->eagerLoad())
                 ->linksTo('kopling-core::community/discussions.show'),
         ];
