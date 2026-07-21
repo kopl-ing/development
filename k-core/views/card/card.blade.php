@@ -24,9 +24,13 @@
     caret's `group-hover:text-primary` both still win over this reset on hover, same as any
     Tailwind utility beats an inherited value.
 
-    The trailing caret only ever signals "this opens something" -- `pointer-events-none` so a
-    click that happens to land exactly on it still falls through to the stretched-link overlay
-    beneath rather than hitting an inert `<svg>`.
+    The trailing caret only ever signals "this opens something" -- `left-full ml-4` sits it just
+    outside `.card`'s own right edge rather than inset within it (neither `.card` nor `.aura`
+    clip overflow, so this is free to render past the box it's positioned against). It's
+    `pointer-events-none` regardless, since it now sits past where the stretched-link overlay's
+    own `inset-0` reaches -- there's nothing under it to fall through to at that position, so
+    without this it'd just be a dead, non-clickable gap next to the card rather than something
+    that helps a click land on the actual link.
 
     `.card` itself keeps a bare, uncontested `bg-base-100` -- `$classes` (whatever `RenderingCard`
     listeners contributed, e.g. Pin's `outline-{color} bg-{color}/5`) renders on a separate
@@ -49,14 +53,14 @@
     when it lived there directly. Without repeating that reservation here, `outline-info` on a
     plain, otherwise-bare `<div>` would set a color nothing ever renders.
 --}}
-<div @class(['aura aura-glow block w-full text-transparent transition-colors duration-300 hover:text-primary' => $url])>
+<div @class(['aura aura-glow aura-xs block w-full text-transparent transition-colors duration-300 hover:text-primary' => $url])>
     <div {{ $attributes->merge(['class' => 'card bg-base-100 text-base-content'.($url ? ' group cursor-pointer' : '')]) }}>
         <div class="pointer-events-none absolute inset-0 z-0 rounded-[inherit] outline-2 outline-offset-2 outline-transparent {{ $classes }}"></div>
         @if ($url)
             <a href="{{ $url }}" class="absolute inset-0 z-0" aria-label="{{ __('kopling-core::community.open') }}"></a>
             <x-k::icon
                 name="kopling-core::open"
-                class="pointer-events-none absolute right-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-base-content/40 transition-colors text-primary hidden group-hover:block"
+                class="pointer-events-none absolute left-full top-1/2 z-10 ml-2 h-4 w-4 -translate-y-1/2 text-base-content/40 transition-colors text-primary hidden group-hover:block"
             />
         @endif
         <x-k::card.badges :context="$context" :slot="$badgesSlot" />
