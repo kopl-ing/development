@@ -6,6 +6,12 @@
 @import "@yaireo/tagify/dist/tagify.css";
 
 .tagify {
+    /* Tagify's own default is `display: inline-flex` -- shrink-to-fit, sized only by its
+       current content. With no tags selected yet, that content is just the placeholder text,
+       so the whole widget (and the dropdown, which Tagify sizes to match it) ends up only as
+       wide as e.g. "Search…" -- nowhere near enough for a real tag name, which then wraps
+       across multiple lines inside the dropdown's own `max-height` clip. */
+    width: 100%;
     --tags-border-color: var(--color-base-300, #d1d5db);
     --tags-hover-border-color: var(--color-base-300, #d1d5db);
     --tags-focus-border-color: var(--color-primary, #2b4a9b);
@@ -40,15 +46,4 @@
 
 .tagify__dropdown {
     font-size: 0.875rem;
-}
-
-/* A small colored dot before a pill/suggestion's label -- only ever rendered when a caller's
-   item data carries a `color` (see tag-input-tagify.js's own custom `tag`/`dropdownItem`
-   templates); absent for every other TagInput use. */
-.kop-tag-swatch {
-    display: inline-block;
-    width: 0.55em;
-    height: 0.55em;
-    border-radius: 999px;
-    flex-shrink: 0;
 }

@@ -8,6 +8,15 @@ import tailwindcss from '@tailwindcss/vite';
 // (npm run dev / npm run build -> public/build, consumed by @vite()); the release-time
 // build that k-core actually ships is vite.core-dist.config.js.
 export default defineConfig({
+    // Native filesystem events (inotify) have repeatedly failed to fire for edits to k-core's
+    // own JS/CSS source in this WSL2 environment -- the dev server keeps serving a stale
+    // transform of a changed file until restarted. Polling instead of relying on native events
+    // is the standard fix for this class of problem (WSL2/network filesystems/some containers).
+    server: {
+        watch: {
+            usePolling: true,
+        },
+    },
     plugins: [
         laravel({
             input: [

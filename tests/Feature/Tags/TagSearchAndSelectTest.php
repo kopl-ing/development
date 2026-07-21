@@ -20,11 +20,15 @@ it('GET /_tags/search includes color and a rendered icon svg per result', functi
         ->assertOk()
         ->json();
 
+    // The icon is never tinted to the tag's own color -- it's always shown on a background of
+    // that exact color (the badge chip/pill), so it inherits `currentColor` (white) from there
+    // instead. Tinting it to match would render it invisible against its own backdrop -- see
+    // tags.blade.php's own card badge, which never passes a color to IconRenderer either.
     expect($json)->toHaveCount(1)
         ->and($json[0]['label'])->toBe('Design')
         ->and($json[0]['color'])->toBe('#E8590C')
         ->and($json[0]['icon'])->toContain('<svg')
-        ->and($json[0]['icon'])->toContain('style="color:#E8590C"');
+        ->and($json[0]['icon'])->not->toContain('style="color:');
 });
 
 it('GET /_tags/search returns a null icon for a tag with no icon set', function () {

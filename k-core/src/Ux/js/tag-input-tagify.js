@@ -34,21 +34,42 @@ function toWhitelistItem(item) {
 // yairEO/tagify, src/parts/templates.js) -- only insertion is one optional swatch/icon pair
 // right before the label -- so Tagify's own remove/edit/ARIA/dedupe behaviour (all of which
 // read the rest of this markup) keeps working unchanged.
+//
+// Both templates keep every bit of *visible* content flush against its neighbours, on one
+// line, with zero whitespace in between -- copying Tagify's own default templates exactly in
+// this respect. `.tagify__dropdown__item` is `white-space: pre-wrap` (not a flex container), so
+// a multi-line template literal's own indentation/newlines render as real, visible whitespace
+// inside the box -- that's what previously broke the dropdown (oversized items, misaligned
+// text). `.tagify__tag > div` is a flex container, which normally absorbs stray whitespace-only
+// text nodes, but the same flush-content discipline is applied there too rather than relying on
+// that.
+//
+// Same colored-badge look `tags` itself already uses for a moment's own badges (see
+// k-extensions/tags/views/components/tags.blade.php): background/border set to the tag's own
+// color, text forced white, icon inheriting that via `currentColor` rather than being tinted to
+// match its own backdrop (which would render it invisible).
+function colorStyle(color) {
+    return color ? `background-color:${color};border-color:${color};color:#fff;` : '';
+}
+
 const templates = {
     tag(tagData) {
         const _s = this.settings;
+
+        // Recolors Tagify's own pill through its own CSS custom properties (`--tag-bg`/
+        // `--tag-text-color`, already read by its stylesheet for the pill's background/text)
+        // instead of nesting a second badge shape inside it -- keeps Tagify's native pill shape,
+        // hover animation, and remove button untouched, just tinted per tag.
+        const style = tagData.color ? `--tag-bg:${tagData.color};--tag-text-color:#fff;` : '';
 
         return `<tag title="${tagData.title || tagData.value}"
             contenteditable='false'
             tabIndex="${_s.a11y.focusableTags ? 0 : -1}"
             class="${_s.classNames.tag} ${tagData.class || ''}"
+            style="${style}"
             ${this.getAttributes(tagData)}>
             <x title='' tabIndex="${_s.a11y.focusableTags ? 0 : -1}" class="${_s.classNames.tagX}" role='button' aria-label='remove tag'></x>
-            <div>
-                ${tagData.color ? `<span class="kop-tag-swatch" style="background-color:${tagData.color}"></span>` : ''}
-                ${tagData.icon || ''}
-                <span ${_s.mode === 'select' && _s.userInput ? "contenteditable='true'" : ''} autocapitalize="false" autocorrect="off" spellcheck='false' class="${_s.classNames.tagText}">${tagData[_s.tagTextProp] || tagData.value}</span>
-            </div>
+            <div>${tagData.icon || ''}<span ${_s.mode === 'select' && _s.userInput ? "contenteditable='true'" : ''} autocapitalize="false" autocorrect="off" spellcheck='false' class="${_s.classNames.tagText}">${tagData[_s.tagTextProp] || tagData.value}</span></div>
         </tag>`;
     },
     dropdownItem(item) {
@@ -57,11 +78,7 @@ const templates = {
         return `<div ${this.getAttributes(item)}
             class="${classNames.dropdownItem} ${this.isTagDuplicate(item.value) ? classNames.dropdownItemSelected : ''} ${item.class || ''}"
             tabindex="0"
-            role="option">
-            ${item.color ? `<span class="kop-tag-swatch" style="background-color:${item.color}"></span>` : ''}
-            ${item.icon || ''}
-            ${item.mappedValue || item.value}
-        </div>`;
+            role="option"><span class="badge badge-sm gap-1" style="${colorStyle(item.color)}">${item.icon || ''}${item.mappedValue || item.value}</span></div>`;
     },
 };
 

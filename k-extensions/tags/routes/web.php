@@ -43,6 +43,6 @@ Route::middleware('auth')->get('/_tags/search', function () {
         'id' => $tag->id,
         'label' => $tag->name,
         'color' => $tag->color,
-        'icon' => $tag->icon ? IconRenderer::svg($tag->icon, '0.9em', $tag->color) : null,
+        'icon' => $tag->icon ? IconRenderer::svg($tag->icon, '0.9em') : null,
     ])->values());
 })->name('tags.search');

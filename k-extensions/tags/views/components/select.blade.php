@@ -37,7 +37,7 @@
         'id' => $tag->id,
         'label' => $tag->name,
         'color' => $tag->color,
-        'icon' => $tag->icon ? IconRenderer::svg($tag->icon, '0.9em', $tag->color) : null,
+        'icon' => $tag->icon ? IconRenderer::svg($tag->icon, '0.9em') : null,
     ])->values()->all(),
     'min' => $data['min'] ?? null,
     'max' => $data['max'] ?? null,
