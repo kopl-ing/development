@@ -15,7 +15,7 @@
     $contributors = $moment && $stats && $stats['count'] > 0 ? Reply::recentContributors($moment) : collect();
 @endphp
 @if ($moment && $stats)
-    <div class="flex items-center gap-2 text-xs opacity-70 py-2 px-6 italic">
+    <div class="flex items-center gap-2 -my-4 text-xs opacity-70 italic">
         {{-- Never shown for a moment with no replies -- an empty avatar row would look barren,
              the opposite of the "warm, alive" signal this exists to give. --}}
         @if ($contributors->isNotEmpty())

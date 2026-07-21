@@ -64,7 +64,6 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->add('kopling-discussions::teaser')
             ->in('kopling-core::card.body')
             ->as('teaser')
-            ->flush()
             ->after('kopling-core::content')
             ->add('kopling-discussions::engage')
             ->in('kopling-core::card.footer')
