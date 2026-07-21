@@ -41,13 +41,16 @@ use Kopling\Core\Ux\Context;
  * `$url` is `$context->getSubjectUrl()` -- the same `Extend\Model::linksTo()` lookup `Title`
  * and Discussions' own `engage` link already call independently -- resolved once here so the
  * view can render the whole-card stretched-link overlay, the aura-glow wrapper, and the trailing
- * caret icon (all in `card.blade.php`) only when the subject actually has somewhere to go. `group`
- * is the one hover-related class added here, at the `.card` level, since `Title`'s own
- * `group-hover:text-primary` needs a `group` ancestor to react to -- the aura glow and caret
- * icon react to plain `:hover` instead (see `card.blade.php`'s own comment for why that doesn't
- * need `group` at all). A subject with no `linksTo()` registration (a Reply card, or a Moment
- * with Discussions uninstalled) gets none of this, automatically -- there's no separate "is this
- * card clickable" flag to keep in sync with the real link.
+ * caret icon (all in `card.blade.php`) only when the subject actually has somewhere to go. A
+ * subject with no `linksTo()` registration (a Reply card, or a Moment with Discussions
+ * uninstalled) gets none of this, automatically -- there's no separate "is this card clickable"
+ * flag to keep in sync with the real link.
+ *
+ * `$classes` is only ever `RenderingCard`'s own accumulated contributions now -- see that
+ * event's docblock for why `card.blade.php` renders them on a dedicated decoration layer
+ * instead of merging them into `.card`'s own class list. `group`/`cursor-pointer` (needed on
+ * `.card` itself so `Title`'s `group-hover:text-primary` has something to react to) are added
+ * directly in the view instead, conditioned on `$url` the same way everything else here is.
  */
 class Card extends Component
 {
@@ -66,11 +69,7 @@ class Card extends Component
         event($event);
 
         $this->url = $context->getSubjectUrl();
-
-        $this->classes = implode(' ', array_filter([
-            implode(' ', $event->classes),
-            $this->url ? 'group cursor-pointer' : null,
-        ]));
+        $this->classes = implode(' ', $event->classes);
     }
 
     public function render(): View

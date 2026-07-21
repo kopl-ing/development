@@ -27,9 +27,31 @@
     The trailing caret only ever signals "this opens something" -- `pointer-events-none` so a
     click that happens to land exactly on it still falls through to the stretched-link overlay
     beneath rather than hitting an inert `<svg>`.
+
+    `.card` itself keeps a bare, uncontested `bg-base-100` -- `$classes` (whatever `RenderingCard`
+    listeners contributed, e.g. Pin's `outline-{color} bg-{color}/5`) renders on a separate
+    `inset-0` decoration `<div>` instead of `.card`'s own class list. A `background-color`
+    contributed there now genuinely *layers* over `.card`'s guaranteed-opaque backdrop rather
+    than replacing it outright (two classes can't both win a single element's `background-color`
+    -- whichever lands later in Tailwind's generated stylesheet does, full stop, not a blend).
+    That's what used to let a `bg-{color}/5` pinned-Moment tint quietly rely on "whatever's
+    behind is just the plain page background" -- harmless until the `aura` glow above started
+    sitting directly behind `.card`, at which point the same tint let that glow bleed straight
+    through the card face instead of staying a thin ring around it. The decoration div sits
+    behind the real content (Badges/the Top-Body-Footer wrapper) but in front of `.card`'s own
+    now-always-opaque background, so it composites correctly regardless of what any extension's
+    listener adds -- see `RenderingCard`'s own docblock.
+
+    `outline-2 outline-offset-2 outline-transparent` on that same div replicates daisyUI's own
+    `.card` base rule (`outline: 2px solid #0000; outline-offset: 2px`) -- an `outline-{color}`
+    contribution (Pin's own) only ever sets `outline-color`, relying on *something* having already
+    reserved the width/style/offset, same as it always relied on `.card`'s own base rule for that
+    when it lived there directly. Without repeating that reservation here, `outline-info` on a
+    plain, otherwise-bare `<div>` would set a color nothing ever renders.
 --}}
 <div @class(['aura aura-glow block w-full text-transparent transition-colors duration-300 hover:text-primary' => $url])>
-    <div {{ $attributes->merge(['class' => "card bg-base-100 text-base-content $classes"]) }}>
+    <div {{ $attributes->merge(['class' => 'card bg-base-100 text-base-content'.($url ? ' group cursor-pointer' : '')]) }}>
+        <div class="pointer-events-none absolute inset-0 z-0 rounded-[inherit] outline-2 outline-offset-2 outline-transparent {{ $classes }}"></div>
         @if ($url)
             <a href="{{ $url }}" class="absolute inset-0 z-0" aria-label="{{ __('kopling-core::community.open') }}"></a>
             <x-k::icon
