@@ -12,9 +12,13 @@
     second line, which is what let a trailing entry (discussions' own `engage`/`quote-op`, both
     `ml-auto`) reliably pin to the row's end rather than drift depending on how much came before
     it wrapped or not.
+
+    `py-2 sm:py-4` -- same reasoning as `Body`'s own per-entry padding: this box's own vertical
+    padding used to be a flat `py-4` regardless of width, one more section paying full desktop-
+    scale padding on a narrow screen where every stacked section's padding compounds.
 --}}
 @if ($entries->isNotEmpty())
-    <div class="card-actions flex-nowrap items-center overflow-x-auto px-4 py-4 sm:px-6">
+    <div class="card-actions flex-nowrap items-center overflow-x-auto px-4 py-2 sm:px-6 sm:py-4">
         @foreach ($entries as $entry)
             <x-dynamic-component :component="$entry->component" :data="$entry->data" :context="$entry->context" />
         @endforeach

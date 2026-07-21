@@ -13,7 +13,10 @@ use Kopling\Core\Ux\Context;
  * default entries (see `Top::defaults()`) and given `flex-1` in its own view so it grows to
  * fill the header row, pushing whichever entries follow it (avatar, author, timestamp,
  * control) to the row's right edge without any of those generic, reused-elsewhere leaves
- * needing a layout opinion baked into them.
+ * needing a layout opinion baked into them. Below `sm:`, `basis-full` (paired with `Top`'s own
+ * `flex-wrap`) instead drops it onto its own line -- a real headline and a byline's worth of
+ * avatar/author/timestamp/control don't fit one row at that width without either wrapping
+ * unpredictably or everything shrinking past readability.
  */
 class Title extends Component
 {
