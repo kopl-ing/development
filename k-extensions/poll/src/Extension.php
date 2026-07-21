@@ -37,7 +37,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     public function icons(): array
     {
         return [
-            new Icon(id: 'poll', label: 'Poll', default: 'fas-square-poll-vertical'),
+            new Icon(id: 'poll', label: 'Poll', default: 'fas-square-poll-horizontal'),
         ];
     }
 
