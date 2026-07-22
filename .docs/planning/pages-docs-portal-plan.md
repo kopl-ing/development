@@ -13,19 +13,27 @@ back up.
 
 ## Sequencing
 
-1. **Storage: `drives` + `storage_mappings` tables, `Resolver`** — foundational, blocks Docs
-   entirely, useful independently of this effort. **Backend done as of 2026-07-22** (migrations,
-   models, `Resolver`, tests all green) — only the admin UI sub-step (Drives CRUD +
-   storage-mappings page in `kopling/admin`) remains open in section 1 below.
-2. **Portal path override** — independent of storage, blocks Pages ever owning `/`. Not started.
-3. `kopling/pages` — depends on 2 (for homepage eligibility) only. Not started.
-4. `kopling/docs` — depends on 1 (storage-backed content, backend piece already in place). Not
-   started.
+1. **Storage: `drives` + `storage_mappings` tables, `Resolver`, admin UI** — foundational, blocks
+   Docs entirely, useful independently of this effort. **Fully done as of 2026-07-22.**
+2. **Portal path override** — independent of storage, blocks Pages ever owning `/`. **Fully done
+   as of 2026-07-22.**
+3. `kopling/pages` — depends on 2 (done). **Mechanism done as of 2026-07-22**; content
+   migration still open.
+4. `kopling/docs` — depends on 1 (done). **Mechanism done as of 2026-07-22**; seed content
+   still open.
 
-Steps 3 and 4 don't depend on each other and can happen in either order once their own
-prerequisite lands. **Next up:** either the storage admin UI (finishes section 1 fully), or move
-straight to section 2 (portal path override) since Docs' own build-out doesn't strictly need the
-admin UI to exist yet — a `Drive`/`StorageMapping` row can be seeded directly for development.
+**All four mechanism steps are done.** What's left across the whole plan: Pages' seed content
+(rewrite of `index.html`), Docs' seed content (split of `charter.html`/`extend.html`), the
+storage/portals admin UI's own known limitations noted in their sections above, and the open
+questions below (what happens to the `kopling-landing` repo, decision-log dual-source risk
+during transition).
+
+**Known environment gap, unrelated to this plan:** `public/build/manifest.json` doesn't exist in
+this dev checkout (`npm run build` never run), so any Feature test rendering a full page via the
+shared layout's `@vite()` call fails. Pre-existing on `main` before this plan started (confirmed
+via `git stash` comparison and via `SettingsControllerTest`'s own equivalent test failing
+identically). Not something to "fix" as part of this plan — just don't mistake one of these for a
+real regression when running the suite.
 
 ---
 
@@ -105,93 +113,177 @@ contract/instance the resolver itself returns.
     fakeManager([...]))` swap pattern. Full suite run before/after: same 61 pre-existing failures
     on `main` (missing Vite build manifest + one unrelated flaky widget test, confirmed via
     `git stash` — not caused by this work), 247 → 255 passing with these added, 0 new failures.
-- [ ] Admin UI (can land after the above is solid and tested — not blocking Docs functionally,
-  only blocking an admin's ability to configure it without tinkering directly in DB)
+- [x] Admin UI
   - Drives CRUD — `k-extensions/admin`, same shape as `PeopleController`/`GroupsController`
   - Storage-mappings list — one row per `Manager::storageDrivers()` entry, `Select` (eligible
     drives only — hard-filtered by `supports_public`/`supports_signed`/`writable` against the
     request's declared `StorageAccess`/`StoragePermission`) + `Input` (prefix)
+  - **Done:**
+    - `k-extensions/admin/src/Controllers/DrivesController.php` — index/store/update/destroy;
+      `settings` JSON textarea validated server-side (rejects invalid JSON via
+      `ValidationException`); `destroy()` catches the `QueryException` from
+      `storage_mappings.drive_id`'s `restrictOnDelete()` into a normal form error
+      (`drive_in_use`) instead of a raw 500.
+    - `k-extensions/admin/src/Controllers/StorageMappingsController.php` — index computes
+      `declared vs mapped` both directions (per-request eligible-drives list, plus an
+      `orphaned` list: mapped `request_id`s no installed extension declares anymore); store
+      does `updateOrCreate` keyed on `request_id`; destroy takes `request_id` from the POST
+      body rather than a route-bound model (a `StorageMapping`'s PK contains `::`, not worth
+      fighting route-segment encoding for).
+    - Views: `views/drives/index.blade.php` (list + `<x-k::modal>` create/edit forms, using
+      `<x-k::form.input>`/`.select`/`.text-area`/`.toggle` throughout — the settings page's own
+      convention, not `GroupsController`'s plainer inline-input style, since Drive has enough
+      fields to want the structured components) and `views/storage/index.blade.php`
+      (one row per declared request + eligible-drive `<select>`, plus an "Orphaned mappings"
+      section for stale rows).
+    - Routes added to `k-extensions/admin/routes/web.php` under the existing
+      `can:kopling-admin::manage-settings` group — same gate as Settings, no new permission
+      (Drives/storage-mapping management is site configuration, same capability class).
+    - Nav entries (`drives`, `storage`, both `when('manage-settings')`) added to
+      `Extension::ux()`, ordered after `settings`.
+    - Lang strings added to `k-extensions/admin/lang/en/messages.php`.
+    - Tests: `tests/Feature/Admin/DrivesControllerTest.php` (8 tests),
+      `tests/Feature/Admin/StorageMappingsControllerTest.php` (5 tests, exercised against
+      `kopling/example`'s real already-declared `avatars` `StorageRequest` rather than a
+      fixture — no isolation concern at this layer, and it's a real end-to-end check).
+      3 of the 13 fail on a full-page `->get()` render — **pre-existing environment gap, not a
+      regression**: `public/build/manifest.json` doesn't exist in this dev checkout (no
+      `npm run build` run), and `tests/Feature/Admin/SettingsControllerTest.php`'s own
+      equivalent list-page test fails identically on `main`, confirmed by running it standalone.
+      Full-suite before/after: 61→64 failed (all 3 new failures this same pre-existing pattern),
+      255→265 passed, 0 unexplained regressions.
 
-## 2. Portal path override
+## 2. Portal path override — done, 2026-07-22
 
-- [ ] `Portal::$path` — drop `readonly` (mirrors `$id`, which `Manager::portals()` already
+- [x] `Portal::$path` — drop `readonly` (mirrors `$id`, which `Manager::portals()` already
   mutates for prefixing) — `k-core/src/Portal/Portal.php`
-- [ ] `Portal::$defaultPath` — new readonly property, the declared value, kept alongside the
+- [x] `Portal::$defaultPath` — new readonly property, the declared value, kept alongside the
   now-mutable `$path` so admin UI can show "default vs override" without Manager having
   overwritten the only copy
-- [ ] Settings key convention: `core.portal_path.{portal-id}` — override applied as a **final
+  - **Done:** `toArray()`/`fromArray()` updated to round-trip `defaultPath` too (falls back to
+    `path` for old cache data missing the key, so a stale cache doesn't hard-break).
+- [x] Settings key convention: `core.portal_path.{portal-id}` — override applied as a **final
   map step after `RegistrationCache` retrieval** in `Manager::portals()`, on both the cached and
   live branches — never baked into the cache itself, since the cache is a Composer-boundary
   snapshot and the override is live-editable admin data
-- [ ] `admin/portals` — new `PortalsController` + view, same list-with-input-per-row shape as
+  - **Done:** `Manager::applyPortalPathOverrides()`, always resolves `Settings::get("core.portal_path.{id}", $portal->defaultPath)` — resolving from `defaultPath`, never the portal's
+    current `path`, is what makes this safe to run unconditionally even against a `Portal`
+    reconstructed from a stale `RegistrationCache` entry (`CacheRegistrations` calls
+    `Manager::portals()` too, so whatever it bakes into the cache as `path` gets immediately
+    re-overwritten by this same step on every subsequent read regardless). Verified directly in
+    `tests/Feature/Portal/PortalPathOverrideTest.php`'s "stale cache" test — a hand-built
+    `RegistrationCache` entry with an intentionally-stale `path` still resolves to the current
+    Settings override.
+  - Added `Settings::forget(string $key)` (`k-core/src/Settings/Settings.php`) — the KV store
+    only had `get`/`set` before; a reset-to-default action needs to remove the row outright, not
+    `set()` it to the default value (which would leave an inert row behind).
+- [x] `admin/portals` — new `PortalsController` + view, same list-with-input-per-row shape as
   the storage-mappings page above; validates path uniqueness across every portal's *current
   effective* path before writing the Setting (fail loud at save time, never guess at resolve
   time)
+  - **Done:** `k-extensions/admin/src/Controllers/PortalsController.php` (index/update/reset —
+    `id`/`path` travel in the POST body, same reasoning as `StorageMappingsController`: a
+    Portal id already contains `::`). `views/portals/index.blade.php` — default path shown
+    read-only, current path in an editable input, an "Overridden" badge + reset button when it
+    differs from the default. Nav entry added, gated `manage-settings`, after `storage`.
+    Tests: `tests/Unit/Extension/ManagerPortalTest.php` (+1, `defaultPath` wiring in a bare
+    `fakeManager()`), `tests/Feature/Portal/PortalPathOverrideTest.php` (3, including the stale-
+    cache case above), `tests/Feature/Admin/PortalsControllerTest.php` (5). Full suite before/
+    after: 327→336 passed, same 3 pre-existing failures (card/logo/avatar-widget, unrelated),
+    0 regressions.
 
-## 3. `kopling/pages`
+## 3. `kopling/pages` — mechanism done, 2026-07-22; content migration still open
 
 New extension, admin-authored pages CMS (replaces the earlier "static `kopling/landing`
 extension" idea — rejected because hardcoded marketing copy isn't reusable to other
 communities the way an admin-editable builder is).
 
-- [ ] `pages` table — `id` uuid, `path`/slug, `title`, `meta_description`, `published` bool,
-  `show_in_nav` bool, `nav_order` int, `is_index` bool (this portal's own root page when no
-  slug given — **separate concept** from step 2's portal-level homepage override: that decides
-  *which portal* owns `/`, this decides *which page within Pages' own portal* renders at
-  Pages' own root)
-- [ ] `page_sections` table — `id` uuid, `page_id` FK, `kind` (start with exactly two:
-  `rich-text`, `hero` — resist a generic block-type registry until a real page needs a third
-  kind), `order` int, `content` json (ProseMirror JSON for `rich-text`), `content_html` text
-  nullable (rendered cache), kind-specific fields as a `data` json column (hero's
-  subtitle/CTA-label/CTA-url)
-  - `rich-text` sections reuse `DocumentRenderer::render()`/`::validate()` and the
-    `ValidDocument` rule exactly as `Moment::$body`/`$body_html` does — no second sanitization
-    codepath for admin-authored content
-  - admin editing UI mounts the same `NotionEditor` component `composer` already uses
-- [ ] `Portal(id: 'pages', path: 'pages', canBeHomepage-equivalent via step 2's override,
-  permission: null)` — public, no gate
-- [ ] Layout: own thin topbar+footer wrapping `<x-k::portal.layout>` directly, **not**
-  `Community\Chrome` (chrome is in-app shell; a marketing/static page isn't) — reuses Core's
-  shared `UserMenu`/login-register topbar slot so signed-out visitors get real login/register
-  CTAs for free
-  - nav is **not** Ux-slot-driven — it queries `Page::where('published', true)->where('show_in_nav', true)->orderBy('nav_order')->get()` directly; this is admin-managed DB content, a
-    different data source than extension-declared `Ux::add()` entries, don't conflate the two
+**Built:** `k-extensions/pages` (registered in root `composer.json`). `Page`/`PageSection`
+Eloquent models, `SectionKind` enum (`rich-text`/`hero`). Public Portal
+`kopling-pages::pages` (`path: 'pages'`, ungated) with its own thin
+`views/layouts/pages.blade.php` (topbar+footer wrapping `<x-k::portal.layout>` directly, not
+`Community\Chrome`) — nav queries `Page::where('published', true)->where('show_in_nav', true)`
+directly, not Ux-slot-driven. `PageController::index()`/`show()` render a page's sections in
+order; a hero section renders the *page's own* `title` as its heading (no separate hero title
+field), a rich-text section renders `content_html`. Admin CRUD (`PagesController`,
+`PageSectionsController`) attached into the **existing** Admin portal via `ExtendsPortals`
+targeting `kopling-admin::admin` — same "attach into a portal you don't own" shape Tags/
+Reactions/Poll already use for their own admin screens, not a bolted-on admin page inside
+Pages' own public portal. Gated behind a new `manage-pages` permission (separate from Admin's
+own `access-admin`/`manage-settings`). Rich-text sections reuse `DocumentRenderer`/
+`ValidDocument`/`<x-k::editor>` exactly as `Moment::$body`/`$body_html` do — no second
+sanitization codepath. Section reordering is a simple order-swap with the adjacent neighbor
+(`PageSectionsController::move()`), not drag-and-drop. `{page}/sections/{section}` routes use
+`Route::scopeBindings()` so a section id from a different page 404s instead of silently
+succeeding. Setting a page `is_index` auto-unsets it on every other page (no blocking
+validation — friendlier for a single-admin toggle). 25 new tests across
+`tests/Feature/Pages/PublicPageTest.php`, `tests/Feature/Admin/PagesControllerTest.php`,
+`tests/Feature/Admin/PageSectionsControllerTest.php`. Full suite: 336→356 passed, same 3
+pre-existing unrelated failures, 0 regressions.
+
+**Known gap, not solved here:** Pages' topbar renders `UserMenu` correctly for a signed-in
+person, but there's currently no way for a **guest** to see login/register links on this
+portal — `auth-email-password` hardcodes its `login-link`/`register-link` registration to
+`kopling-core::community.topbar` specifically, and there's no portal-scoped slot
+generalization for "any public portal wants an auth widget" yet (same underlying gap
+roadmap.md's "Ux / extensibility" section already flags). Solving it generally is bigger than
+this extension's own scope — noted, not fixed.
+
+**Still open:**
 - [ ] Content migration: rewrite `../kopling-landing/public/index.html`'s sections
-  (whatis/principles/stack/extend/governance/founder/support) as seed Pages content, not ported
-  verbatim
+  (whatis/principles/stack/extend/governance/founder/support) as seed Pages content (a
+  homepage-index Page with a hero section + rich-text sections), not ported verbatim — real
+  writing work, not mechanism work; do this through the admin UI itself once it's the thing
+  being exercised for real, rather than a seeding script.
+- [ ] The topbar guest-auth gap noted above, if it turns out to matter before Pages goes live
+  as an actual homepage (currently only a problem once `homepage_portal`-equivalent override
+  actually points root at Pages — see section 2).
+- [ ] `icon/` directory (optional, per `extend.html` §10 — not required, just not done yet).
 
-## 4. `kopling/docs`
+## 4. `kopling/docs` — mechanism done, 2026-07-22; seed content still open
 
-- [ ] Depends on step 1 being fully landed (`Resolver`, at minimum the local driver working end
-  to end) — Docs declares `RequestsStorageDriver`: one `StorageRequest(id: 'content', access:
-  Private, retention: Persistent, permission: ReadOnly)`
-- [ ] `docs_pages` index table — `slug`, `title`, `section`, `order`, `locale`, `storage_path`
-  (relative path on the resolved disk), `content_hash` (change detection), `content_html`
-  (rendered cache), timestamps
-- [ ] `spatie/yaml-front-matter` (+ check whether `tiptap-php` already vendors a CommonMark
-  version before adding `league/commonmark` fresh) — wrapped behind a `PageRegistry`/`DocPage`
-  class; routes/controllers never call CommonMark directly, same "mainstream tool inside,
-  sovereign contract outside" discipline as the editor facade
-- [ ] `kopling:docs:sync` command — `Resolver::resolve('kopling-docs::content')`, walks
-  `allFiles()`, parses front matter, upserts `docs_pages`. Exits with a clear message if
-  unmapped (never a silently-empty tree) — same explicit-refresh convention as
-  `kopling:extensions:cache`/`RegistrationCache`, no per-request filesystem walk in production
-- [ ] Single route `docs/{slug}`, resolved through the DB index, not one route per page
-- [ ] Portal reuses `<x-k::community.chrome>` (style-guide already proves this works for a
-  non-community, non-composer surface: `:composer-slot="null" :mobile-dock="false"`)
-- [ ] Sidebar is a **new** component (`Kopling\Docs\Ux\Sidebar` or similar), not
-  `Community\Navigation`/`Item` — that pair renders a flat Ux-registered list, and the docs nav
-  is an auto-built section→pages tree from the file scan, a different data shape, placed into
-  Chrome's generic `docs.sidebar-panel` slot exactly once, same "one entry into a generic slot"
-  pattern Admin/Style Guide already use
-- [ ] Search: none for v1 (consistent with search being deferred elsewhere in the settled stack)
-- [ ] Content migration:
-  - `charter.html` §1–11 → one doc-tree section grouping per charter section
-  - `charter.html` §12 Decision Log → **one file per entry** under a `decision-log/` subpath —
-    the append-only convention becomes "add a file," a real improvement over editing a growing
-    HTML page
-  - `extend.html` §1–11 → the "Extending Kopling" section, keeping the existing policy that
-    `k-extensions/example` is the reference implementation this content is corrected against
+**Built:** `k-extensions/docs` (registered in root `composer.json`; added
+`spatie/yaml-front-matter` as a direct dependency, `league/commonmark` was already vendored
+transitively and is now also required directly rather than relied on implicitly).
+
+- `DocPage` model, table `docs_pages` (note: `$table` set explicitly — Eloquent's default
+  convention from the class name would have been `doc_pages`, which doesn't match the plan's
+  own `docs_pages` naming; caught by a "no such table" failure in the first test run).
+- `Extension implements RequestsStorageDriver`: `StorageRequest(id: 'content', access: Private,
+  retention: Persistent, permission: ReadOnly)`.
+- `PageRegistry` — the one class that touches CommonMark/YamlFrontMatter directly.
+  `sync()` resolves the drive via `Resolver`, walks `allFiles()` filtered to `*.md`, skips a
+  file whose `sha1` hasn't changed since last sync, and **removes** any `DocPage` whose file no
+  longer exists on the drive (an empty drive correctly clears the whole index, not a no-op).
+  `tree()` reads `docs_pages` grouped by `section`, ordered.
+- `kopling:docs:sync` command — fails loud with a clear "map a drive" message when
+  `kopling-docs::content` isn't mapped yet (propagates `Resolver`'s own exception), never a
+  silently-empty index.
+- Route `GET /{slug}` with `->where('slug', '.*')` (front-matter-derived slugs are hierarchical,
+  e.g. `extending/portals` — a plain segment wouldn't match the slash) plus `GET /` showing
+  whichever page sorts first in the tree (no separate "index" flag the way Pages has `is_index`
+  — the tree's own order already gives a deterministic default).
+- Layout reuses `<x-k::community.chrome>` exactly like Style Guide's own layout does.
+- `Kopling\Docs\Ux\Sidebar` — a new leaf component (not `Community\Navigation`/`Item`, which
+  render a flat Ux-registered list) rendering the section→pages tree into Chrome's generic
+  `docs.sidebar-panel` slot.
+- No search (v1 scope, matches the plan).
+- 15 new tests: `tests/Feature/Docs/PageRegistryTest.php` (front matter parsing, Markdown
+  rendering, hierarchical/overridden slugs, change-detection skip, re-render on change, deletion
+  cleanup, tree grouping), `PublicDocsTest.php`, `SyncDocsCommandTest.php`. Full suite: 356→371
+  passed, same 3 pre-existing unrelated failures.
+- Fixed a pre-existing test coupled to "only `kopling/example` declares a storage request" —
+  `tests/Feature/Admin/StorageMappingsControllerTest.php`'s eligible-drives test wasn't scoped
+  to its own row, so Docs' new (correctly unrestricted) `content` request made a previously-
+  excluded fixture drive legitimately show up elsewhere on the same page. Scoped the assertion
+  to the `avatars` row specifically rather than the whole page.
+
+**Still open:**
+- [ ] Seed content: split `charter.html` §1–11 into one doc-tree section grouping per charter
+  section; `charter.html` §12 Decision Log into **one file per entry** under a
+  `decision-log/` subpath (the append-only convention becomes "add a file"); `extend.html`
+  §1–11 into the "Extending Kopling" section. Real writing work, not mechanism work — same
+  treatment as Pages' own open content-migration item.
 
 ---
 

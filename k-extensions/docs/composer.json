@@ -1,0 +1,21 @@
+{
+    "name": "kopling/docs",
+    "description": "A multi-page docs site extension -- Markdown + YAML front matter files on a Storage-resolved drive, indexed into the DB and rendered through Core's own Portal/Chrome UI.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+        "league/commonmark": "^2.8",
+        "spatie/yaml-front-matter": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Docs\\": "src/"
+        }
+    }
+}

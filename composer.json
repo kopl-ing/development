@@ -27,6 +27,7 @@
         "kopling/core": "@dev",
         "kopling/demo": "@dev",
         "kopling/discussions": "@dev",
+        "kopling/docs": "@dev",
         "kopling/example": "@dev",
         "kopling/pages": "@dev",
         "kopling/pin": "@dev",
