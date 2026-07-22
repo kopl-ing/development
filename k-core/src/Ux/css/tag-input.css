@@ -47,3 +47,22 @@
 .tagify__dropdown {
     font-size: 0.875rem;
 }
+
+/* `tag-input-tagify.js`'s own `templates.tag()` puts a tag's icon and its text span as bare
+   siblings inside `.tagify__tag > div` (Tagify's own default template shape, deliberately kept
+   structurally unchanged -- see that file's own docblock), unlike `templates.dropdownItem()`,
+   which wraps the same icon+text pair in a daisyUI `badge` (built-in centering + `gap-1`).
+   Tagify's own stylesheet already makes `.tagify__tag > div` a flex container (for the
+   remove-button/text layout) but never sets `align-items` on it, so it falls back to flex's own
+   default (`stretch`) -- the icon's own box stretches taller than its glyph, reading as pushed
+   up against the top of the pill instead of centered on the text next to it, with no gap either.
+   `align-items: center` + `gap` bring it in line with the dropdown's own badge without touching
+   the template markup Tagify's remove/edit/ARIA behaviour depends on. */
+.tagify__tag > div {
+    align-items: center;
+    gap: 0.25em;
+}
+
+.tagify__tag > div > svg {
+    flex-shrink: 0;
+}
