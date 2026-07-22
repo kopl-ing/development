@@ -27,7 +27,7 @@ function coreUxComponentClasses(): \Illuminate\Support\Collection
     // literal tag to grep for.
     $leafOnly = [
         \Kopling\Core\Ux\Card\Author::class,
-        \Kopling\Core\Ux\Card\Avatar::class,
+        \Kopling\Core\Ux\Person\Avatar::class,
         \Kopling\Core\Ux\Card\Content::class,
         \Kopling\Core\Ux\Card\Title::class,
         \Kopling\Core\Ux\Card\Timestamp::class,

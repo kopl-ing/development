@@ -20,7 +20,7 @@
 
         <div class="flex flex-col gap-3">
             <h2 class="text-lg font-semibold">
-                {{ trans_choice('kopling-discussions::messages.replies', $replies->count(), ['count' => $replies->count()]) }}
+                {{ trans_choice('kopling-discussions::messages.replies', $replies->total(), ['count' => $replies->total()]) }}
             </h2>
 
             <div id="replies-{{ $moment->id }}" class="flex flex-col gap-3">
@@ -28,6 +28,8 @@
                     @include('kopling-discussions::partials.reply', ['reply' => $reply])
                 @endforeach
             </div>
+
+            <x-k::page.pagination :context="$context" />
 
             {{-- A slot, not hardcoded markup -- lets a superseding extension (reply-dock) call
                  `Ux::remove('kopling-discussions::default-composer')` and own the one reply

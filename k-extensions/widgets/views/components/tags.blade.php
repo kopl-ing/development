@@ -1,6 +1,5 @@
 @php
     use Illuminate\Support\Facades\Cache;
-    use Illuminate\Support\Str;
     use Kopling\Core\People\Person;
     use Kopling\Core\Ux\Form\IconSearch\IconRenderer;
 
@@ -110,18 +109,11 @@
                             <span class="shrink-0 text-xs opacity-60">{{ \Illuminate\Support\Carbon::parse($tag['last_activity'])->diffForHumans() }}</span>
                         </a>
                         <div class="flex items-center gap-1.5 pl-1">
-                            <span class="avatar-group -space-x-2">
-                                @foreach ($tag['contributors'] as $person)
-                                    <div class="avatar avatar-placeholder" title="{{ $person['name'] }}">
-                                        <div class="w-6 text-white" style="background:{{ Person::colorFor($person['id']) }}">
-                                            <span class="text-[10px]">{{ Str::of($person['name'])->explode(' ')->take(2)->map(fn (string $word) => Str::upper(Str::substr($word, 0, 1)))->implode('') }}</span>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </span>
-                            @if ($tag['more_contributors'] > 0)
-                                <span class="text-xs opacity-50">+{{ $tag['more_contributors'] }}</span>
-                            @endif
+                            <x-k::person.avatar-group
+                                :avatars="collect($tag['contributors'])->map(fn ($person) => ['name' => $person['name'], 'color' => Person::colorFor($person['id'])])->all()"
+                                spacing="-space-x-2"
+                                :overflow="$tag['more_contributors']"
+                            />
                         </div>
                     </div>
                 @endforeach

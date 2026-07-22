@@ -35,6 +35,8 @@ class Model
 
     public ?string $morphAlias = null;
 
+    public ?int $perPage = null;
+
     public function __construct(public readonly string $model)
     {
     }
@@ -54,6 +56,18 @@ class Model
     public function cast(string $attribute, string $type): self
     {
         $this->casts[$attribute] = $type;
+
+        return $this;
+    }
+
+    /**
+     * Overrides this model's own `protected $perPage` -- read back by `Database\Model::
+     * getPerPage()`, which prefers this over the model's own declared default. Last-registered
+     * declaration wins on collision, same as `Ux\Context::getSubjectUrl()`'s own `linksTo()`.
+     */
+    public function perPage(int $perPage): self
+    {
+        $this->perPage = $perPage;
 
         return $this;
     }

@@ -114,3 +114,11 @@ it('isPortal() is false for a different portal id than the one actually resolved
 it('isPortal() is false when the current request was never matched to any portal at all', function () {
     expect((new Context())->isPortal('kopling-core::community'))->toBeFalse();
 });
+
+it('getSubjectPaginator() memoizes -- a second call reuses the same paginator instead of re-querying', function () {
+    Gadget::create();
+
+    $context = new Context(subject: Gadget::query());
+
+    expect($context->getSubjectPaginator())->toBe($context->getSubjectPaginator());
+});

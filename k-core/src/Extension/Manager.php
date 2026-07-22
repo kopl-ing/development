@@ -485,8 +485,9 @@ class Manager
         $declared->ensure(ExtendModel::class);
 
         $casts = [];
+        $perPages = [];
 
-        $declared->each(function (ExtendModel $model) use (&$casts) {
+        $declared->each(function (ExtendModel $model) use (&$casts, &$perPages) {
             if (! class_exists($model->model)) {
                 return;
             }
@@ -520,9 +521,14 @@ class Manager
             }
 
             $casts[$model->model] = array_merge($casts[$model->model] ?? [], $model->casts);
+
+            if ($model->perPage !== null) {
+                $perPages[$model->model] = $model->perPage;
+            }
         });
 
         DatabaseModel::registerCasts($casts);
+        DatabaseModel::registerPerPage($perPages);
 
         $this->models = $declared;
 

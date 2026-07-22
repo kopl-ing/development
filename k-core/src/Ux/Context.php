@@ -24,6 +24,8 @@ use Kopling\Core\Portal\Portal;
  */
 class Context
 {
+    protected ?LengthAwarePaginator $paginator = null;
+
     public function __construct(
         protected Builder|Model|null $subject = null,
         public ?Portal             $portal = null,
@@ -95,9 +97,14 @@ class Context
         return $this->getSubjectQuery()->get();
     }
 
+    /**
+     * Memoized per-instance -- a page that both loops over the paginated items and renders
+     * `<x-k::page.pagination :context="$context" />` off the same `$context` (the moment feed,
+     * say) would otherwise run the identical count+select query twice.
+     */
     public function getSubjectPaginator(): LengthAwarePaginator
     {
-        return $this->getSubjectQuery()->paginate();
+        return $this->paginator ??= $this->getSubjectQuery()->paginate();
     }
 
     /**

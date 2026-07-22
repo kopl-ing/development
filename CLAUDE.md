@@ -16,6 +16,14 @@ The monorepo is subsplit into readonly repositories using the .github/workflows/
 
 `k-core/src/Ux/` holds Kopling's re-usable, themeable UX components — the `<x-k::*>` Blade component library described in the charter — and the theming logic behind them (the daisyUI theme, CSS variables, brand tokens). Everything in this domain lives together under `Ux/`, organized by kind: `Ux/views/` (Blade templates), `Ux/css/` (Tailwind/daisyUI source), `Ux/js/` (htmx/Alpine source) — not scattered into a generic top-level `resources/`. There is no separate component-registry document yet: the charter (`public/charter.html`, Decision Log and Open Questions) is the design-system registry for now — what components exist, their contracts, and open decisions about them are tracked there until there's enough of them to justify a dedicated reference doc.
 
+## Prefer daisyUI components over hand-rolled UI
+
+Before building custom markup/CSS for a piece of UI, check whether a daisyUI component (https://daisyui.com/components/) already covers it — its component classes, modifiers, and utility hooks (masks, sizes, `-group` wrappers, state modifiers) first, bespoke CSS only for what daisyUI genuinely has no equivalent for. This applies inside `k-core/src/Ux/` and to extension-local CSS (`k-extensions/*/css/app.css`) alike — a one-off `.kop-*` class is for filling a real gap, not a substitute for a daisyUI class that already does the job.
+
+## Directory structure: ask before restructuring
+
+Component/package trees (`Ux/`, an extension's `src/`, `views/`) should stay balanced — not so flat that one directory accumulates many unrelated files, not so deep that individual components each get their own directory for no reason. When it's not obvious which existing directory a new component belongs to (or whether it warrants a new one), ask rather than assume — this is a judgment call worth getting right once rather than drifting.
+
 ## The root Laravel installation holds no code
 
 The root installation (`bootstrap/`, root `composer.json`, `.env`) must never contain application code — no `app/`, no `routes/`, no application-level `resources/views`. All Kopling code lives in `k-core` (core) and `k-extensions/*` (extensions). Rationale and alternatives considered: `.docs/planning/decisions.md` ("Root Laravel installation holds no application code").

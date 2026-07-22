@@ -22,7 +22,7 @@ use Kopling\Core\Ux\Editor\NotionEditor;
  * doesn't exist yet), but the swap mechanism itself needs no rework to support one later.
  *
  * `$context` defaults to `null`: a compose form has no bound `Moment`/`Reply` yet (nothing to
- * bind), consistent with `Card\Content`/`Card\Avatar`'s own `?Context $context = null` default,
+ * bind), consistent with `Card\Content`/`Person\Avatar`'s own `?Context $context = null` default,
  * not a special case invented for this component.
  */
 class Editor extends Component

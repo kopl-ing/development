@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Ux\Context;
 use Kopling\Core\Ux\Editor\DocumentRenderer;
 use Kopling\Discussions\Reply;
 use Kopling\Discussions\Requests\StoreReplyRequest;
@@ -26,9 +27,12 @@ class DiscussionController
     {
         $this->authorize('kopling-discussions::view');
 
+        $context = new Context(subject: Reply::forMoment($moment));
+
         return view('kopling-discussions::show', [
             'moment' => $moment,
-            'replies' => Reply::forMoment($moment),
+            'context' => $context,
+            'replies' => $context->getSubjectPaginator(),
         ]);
     }
 

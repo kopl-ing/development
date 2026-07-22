@@ -13,6 +13,8 @@ class Moment extends Model
 {
     use HasUuids;
 
+    protected $perPage = 20;
+
     protected $fillable = [
         'person_id',
         'title',
@@ -27,7 +29,7 @@ class Moment extends Model
 
     /**
      * An unsaved Moment standing in for "the thing being composed" -- lets the composer reuse
-     * Card\Avatar/Author unchanged (both read the `person` relation, which `setRelation()`
+     * Person\Avatar/Card\Author unchanged (both read the `person` relation, which `setRelation()`
      * satisfies without a real `person_id`), rather than needing composer-specific leaves. Never
      * pass this to anything that calls `Context::getSubjectUrl()` (Title, the full `Card`
      * wrapper) -- `linksTo()`'s route needs a real `getRouteKey()`, which this doesn't have.

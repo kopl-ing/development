@@ -122,6 +122,8 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
             new Icon(id: 'theme-switch', label: 'Theme switch', default: 'fas-palette'),
             new Icon(id: 'post-actions', label: 'Post actions', default: 'fas-ellipsis-vertical'),
             new Icon(id: 'open', label: 'Open', default: 'fas-chevron-right'),
+            new Icon(id: 'pagination-previous', label: 'Previous page', default: 'fas-chevron-left'),
+            new Icon(id: 'pagination-next', label: 'Next page', default: 'fas-chevron-right'),
         ];
     }
 

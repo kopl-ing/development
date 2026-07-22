@@ -11,8 +11,8 @@ use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Portal\PortalExtension;
-use Kopling\Core\Ux\Card\Avatar;
 use Kopling\Core\Ux\Compose\Modes;
+use Kopling\Core\Ux\Person\Avatar;
 
 class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasIcons
 {

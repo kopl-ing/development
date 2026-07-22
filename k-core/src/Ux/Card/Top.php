@@ -10,6 +10,7 @@ use Illuminate\View\Component;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Ux\Context;
+use Kopling\Core\Ux\Person\Avatar;
 use Kopling\Core\Ux\SlotResolver;
 use Kopling\Core\Ux\UxEntry;
 

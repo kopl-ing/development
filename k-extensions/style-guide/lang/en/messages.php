@@ -8,6 +8,8 @@ return [
     'forms' => 'Form components',
     'actions' => 'Actions & overlays',
     'editor' => 'Editor',
+    'person' => 'Avatars',
     'card' => 'Card composition',
     'compose' => 'Compose modes',
+    'page' => 'Pagination',
 ];

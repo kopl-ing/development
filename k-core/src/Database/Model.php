@@ -21,10 +21,33 @@ class Model extends \Illuminate\Database\Eloquent\Model
     public static array $extendedCasts = [];
 
     /**
+     * @var array<class-string, int>
+     */
+    public static array $extendedPerPage = [];
+
+    /**
      * @param  array<class-string, array<string, string>>  $casts
      */
     public static function registerCasts(array $casts): void
     {
         static::$extendedCasts = $casts;
+    }
+
+    /**
+     * @param  array<class-string, int>  $perPage
+     */
+    public static function registerPerPage(array $perPage): void
+    {
+        static::$extendedPerPage = $perPage;
+    }
+
+    /**
+     * An `Extend\Model::perPage()` override wins over this model's own declared `$perPage` --
+     * the opposite precedence `getCasts()` gives core, since this one exists specifically so an
+     * extension can tune a core model's page size, not just fill a gap.
+     */
+    public function getPerPage(): int
+    {
+        return static::$extendedPerPage[static::class] ?? $this->perPage;
     }
 }

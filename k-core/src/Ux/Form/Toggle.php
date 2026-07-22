@@ -20,7 +20,7 @@ use Illuminate\View\Component;
  * Unpacks `$data` into named view variables in `render()` rather than reading `$data[...]`
  * straight from the Blade view -- a property literally named `data` never reaches the view via
  * Blade's usual public-property auto-exposure (`<x-dynamic-component>` reserves that name for
- * its own compiled internals), the same reason `Card\Avatar`/`Card\Author` already do this.
+ * its own compiled internals), the same reason `Person\Avatar`/`Card\Author` already do this.
  */
 class Toggle extends Component
 {

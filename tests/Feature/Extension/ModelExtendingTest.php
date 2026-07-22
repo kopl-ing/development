@@ -75,3 +75,19 @@ it('keeps each target model\'s registered casts isolated from the other, despite
         ->and(Widget::make()->getCasts())->toHaveKey('notes')
         ->and(Widget::make()->getCasts())->not->toHaveKey('metadata');
 });
+
+it('lets a registered perPage() override win over the model\'s own declared default', function () {
+    migrateModelExtenderFixtures();
+
+    fakeManager([
+        'tests-fixtures/model-extender' => [
+            'namespace' => 'Tests\\Fixtures\\Extensions\\ModelExtender\\',
+            'path' => __DIR__,
+        ],
+    ])->models();
+
+    expect(Gadget::make()->getPerPage())->toBe(5)
+        // Widget never gets a perPage() declaration -- still falls back to Eloquent's own
+        // built-in default, proving the override is opt-in per model, not a blanket change.
+        ->and(Widget::make()->getPerPage())->toBe(15);
+});

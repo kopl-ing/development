@@ -11,4 +11,7 @@ return [
     'select_min' => 'Select at least :min.',
     'select_max' => 'Select up to :max.',
     'search_placeholder' => 'Search…',
+    'pagination_navigation' => 'Pagination',
+    'previous' => 'Previous',
+    'next' => 'Next',
 ];

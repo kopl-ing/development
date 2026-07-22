@@ -41,14 +41,12 @@
         @foreach ($items as $reaction)
             @php
                 $name = $reaction->person?->name ?? __('kopling-reactions::messages.someone');
-                $parts = preg_split('/\s+/', trim($name)) ?: [''];
-                $initials = strtoupper(mb_substr($parts[0], 0, 1).(count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
                 $color = Person::colorFor((string) ($reaction->person?->id ?? $name));
                 $mine = $actor && $actor->id === $reaction->person_id;
             @endphp
-            {{-- avatar circle · emoji · word (name on hover), matching the demo. Explicit
-                 .kop-rchip classes (css/app.css) -- utility classes used only in an extension
-                 view aren't in core's compiled stylesheet. --}}
+            {{-- emoji · word (name on hover), matching the demo. Explicit .kop-rchip classes
+                 (css/app.css) -- utility classes used only in an extension view aren't in core's
+                 compiled stylesheet; the avatar itself is core's shared `<x-k::person.avatar>`. --}}
             @if ($mine)
                 <button type="button"
                         hx-post="{{ route('kopling-core::community/reactions.toggle', ['type' => $reactable->getMorphClass(), 'id' => $reactable->id]) }}"
@@ -58,13 +56,13 @@
                         class="kop-rchip kop-rchip--mine shrink-0"
                         title="{{ __('kopling-reactions::messages.remove_reaction') }}"
                         aria-label="{{ __('kopling-reactions::messages.remove_reaction') }}">
-                    <span class="kop-rchip__avatar" style="background:{{ $color }}">{{ $initials }}</span>
+                    <x-k::person.avatar :name="$name" :color="$color" size="w-6" class="text-[10px]" />
                     <span class="kop-rchip__emoji" aria-hidden="true">{{ $reaction->emoji }}</span>
                     <span class="kop-rchip__word">{{ $reaction->word }}</span>
                 </button>
             @else
                 <span class="kop-rchip shrink-0" title="{{ $name }}">
-                    <span class="kop-rchip__avatar" style="background:{{ $color }}">{{ $initials }}</span>
+                    <x-k::person.avatar :name="$name" :color="$color" size="w-6" class="text-[10px]" />
                     <span class="kop-rchip__emoji" aria-hidden="true">{{ $reaction->emoji }}</span>
                     <span class="kop-rchip__word">{{ $reaction->word }}</span>
                 </span>

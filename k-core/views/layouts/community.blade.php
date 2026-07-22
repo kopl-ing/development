@@ -24,6 +24,7 @@ $since = optional($moments->first())->created_at?->toIso8601String() ?? now()->t
         @endforeach
     </div>
 
+    <x-k::page.pagination :context="$context" />
 
     <x-k::portal.slot name="kopling-core::community.content-bottom" />
 </x-k::community.chrome>

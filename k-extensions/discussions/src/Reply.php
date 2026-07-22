@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Discussions;
 
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection as SupportCollection;
@@ -20,6 +20,8 @@ use Kopling\Core\Ux\Editor\PlainTextExtractor;
 class Reply extends Model
 {
     use HasUuids;
+
+    protected $perPage = 10;
 
     protected $fillable = [
         'moment_id',
@@ -60,17 +62,16 @@ class Reply extends Model
     }
 
     /**
-     * A moment's replies oldest-first (reading order), authors eager-loaded.
-     *
-     * @return Collection<int, static>
+     * A moment's replies oldest-first (reading order), authors eager-loaded -- a query, not a
+     * resolved collection, so `DiscussionController::show()` can hand it straight to a `Context`
+     * for `getSubjectPaginator()` instead of loading the whole thread at once.
      */
-    public static function forMoment(Moment $moment): Collection
+    public static function forMoment(Moment $moment): Builder
     {
         return static::query()
             ->with('person')
             ->where('moment_id', $moment->id)
-            ->oldest()
-            ->get();
+            ->oldest();
     }
 
     /**

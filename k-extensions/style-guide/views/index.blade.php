@@ -14,6 +14,8 @@
     @include('kopling-style-guide::sections.forms')
     @include('kopling-style-guide::sections.actions')
     @include('kopling-style-guide::sections.editor')
+    @include('kopling-style-guide::sections.person')
     @include('kopling-style-guide::sections.card')
     @include('kopling-style-guide::sections.compose')
+    @include('kopling-style-guide::sections.page')
 @endsection

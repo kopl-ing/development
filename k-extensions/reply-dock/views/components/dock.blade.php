@@ -145,7 +145,11 @@
                   class="kop-dock__panel">
                 @csrf
                 <div class="kop-dock__composer">
-                    <span class="kop-dock__avatar">{{ strtoupper(mb_substr($me->name ?? '?', 0, 1)) }}</span>
+                    <x-k::person.avatar
+                        :name="$me->name"
+                        color="linear-gradient(135deg, var(--color-primary, #2b4a9b), var(--color-secondary, #16295e))"
+                        size="w-9"
+                    />
                     <div class="kop-dock__field">
                         {{-- Quoting a reply inserts a real blockquote directly into the editor
                              below (see toggleQuote()) rather than staging it in a removable chip

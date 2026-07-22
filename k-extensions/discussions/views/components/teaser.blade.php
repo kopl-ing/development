@@ -1,5 +1,4 @@
 @php
-    use Illuminate\Support\Str;
     use Kopling\Discussions\Reply;
 @endphp
 @props(['data' => [], 'context' => null])
@@ -19,15 +18,10 @@
         {{-- Never shown for a moment with no replies -- an empty avatar row would look barren,
              the opposite of the "warm, alive" signal this exists to give. --}}
         @if ($contributors->isNotEmpty())
-            <span class="avatar-group -space-x-3 -my-4">
-                @foreach ($contributors as $person)
-                    <div class="avatar avatar-placeholder not-italic">
-                        <div class="w-6 text-white" style="background:{{ $person->avatarColor() }}">
-                            <span class="text-xs">{{ Str::of($person->name)->explode(' ')->take(2)->map(fn (string $word) => Str::upper(Str::substr($word, 0, 1)))->implode('') }}</span>
-                        </div>
-                    </div>
-                @endforeach
-            </span>
+            <x-k::person.avatar-group
+                :avatars="$contributors->map(fn ($person) => ['name' => $person->name, 'color' => $person->avatarColor()])->all()"
+                class="-my-4"
+            />
         @endif
         <span>
             @if ($stats['count'] === 0)
