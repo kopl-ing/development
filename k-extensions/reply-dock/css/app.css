@@ -44,40 +44,8 @@
     flex: 0 0 auto;
 }
 
-/* the scrubber track */
-.kop-dock__scrub {
-    position: relative;
-    width: 132px;
-    height: 16px;
-    flex: 0 0 auto;
-    cursor: pointer;
-    touch-action: none;
-}
-.kop-dock__scrub-track,
-.kop-dock__scrub-fill {
-    position: absolute;
-    left: 0; top: 50%;
-    height: 10px;
-    transform: translateY(-50%);
-    border-radius: 999px;
-}
-.kop-dock__scrub-track { right: 0; background: color-mix(in oklab, var(--color-base-content, #1f2937) 26%, transparent); }
-.kop-dock__scrub-fill {
-    width: 0;
-    background: linear-gradient(135deg, var(--color-primary, #2b4a9b), var(--color-secondary, #16295e));
-    transition: width .1s ease-out;
-}
-.kop-dock__scrub-thumb {
-    position: absolute;
-    top: 50%;
-    width: 14px; height: 14px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: var(--color-primary, #2b4a9b);
-    border: 2px solid #fff;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, .4);
-    transition: left .1s ease-out;
-}
+/* the scrubber: daisyUI's `range` (native input) handles track/fill/thumb + drag/keyboard -- only sizing is ours */
+.kop-dock__scrub { width: 132px; flex: 0 0 auto; }
 
 /* right-side tools */
 .kop-dock__tools { margin-inline-start: auto; display: flex; align-items: center; gap: 6px; }

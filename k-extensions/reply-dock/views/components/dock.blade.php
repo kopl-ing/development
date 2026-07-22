@@ -73,20 +73,6 @@
                 this.progress = h > 0 ? Math.min(1, Math.max(0, window.scrollY / h)) : 0;
                 this.current = Math.min(this.count, Math.max(1, Math.round(this.progress * (this.count - 1)) + 1));
             },
-            scrub(e) {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const to = (x) => {
-                    const f = Math.min(1, Math.max(0, (x - rect.left) / rect.width));
-                    this.progress = f;
-                    window.scrollTo(0, f * (document.documentElement.scrollHeight - window.innerHeight));
-                };
-                this.scrubbing = true;
-                to(e.clientX);
-                const move = (ev) => to(ev.clientX);
-                const up = () => { this.scrubbing = false; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); this.onScroll(); };
-                window.addEventListener('pointermove', move);
-                window.addEventListener('pointerup', up);
-            },
             openComposer() { this.open = true; this.$nextTick(() => { this.editorEl()?.querySelector('.ProseMirror')?.focus(); this.syncPad(); }); },
             // The mount point rendered by the editor component inside x-ref=editor --
             // editor-tiptap.js exposes its imperative API as `.kopEditor` directly on this
@@ -132,11 +118,11 @@
             <div class="kop-dock__bar" x-show="!open" x-cloak>
                 <span class="kop-dock__count"><span x-text="current"></span>/<span x-text="count"></span></span>
 
-                <div class="kop-dock__scrub" @pointerdown.prevent="scrub($event)" title="{{ __('kopling-reply-dock::messages.scrub') }}">
-                    <div class="kop-dock__scrub-track"></div>
-                    <div class="kop-dock__scrub-fill" :style="`width:${progress * 100}%`"></div>
-                    <div class="kop-dock__scrub-thumb" :style="`left:${progress * 100}%`"></div>
-                </div>
+                <input type="range" class="range range-primary range-xs kop-dock__scrub" min="0" max="1" step="any"
+                       x-model.number="progress"
+                       title="{{ __('kopling-reply-dock::messages.scrub') }}"
+                       @input="scrubbing = true; window.scrollTo(0, progress * (document.documentElement.scrollHeight - window.innerHeight))"
+                       @change="scrubbing = false; onScroll()">
 
                 <div class="kop-dock__tools">
                     @foreach ($toolEntries as $entry)
