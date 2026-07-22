@@ -8,5 +8,9 @@ use Kopling\Discussions\Controllers\DiscussionController;
 // no need to declare middleware here the way a bare directory-convention route file would.
 Route::get('/m/{moment}', [DiscussionController::class, 'show'])
     ->name('discussions.show');
-Route::post('/m/{moment}/reply', [DiscussionController::class, 'reply'])
+
+// `_xhr/{extension-id}/...` -- an htmx-only action target, never a page on its own (unlike
+// `discussions.show` above, a real page); see decisions.md, "XHR/htmx-action endpoints get a
+// dedicated, extension-scoped path prefix".
+Route::post('/_xhr/kopling-discussions/m/{moment}/reply', [DiscussionController::class, 'reply'])
     ->name('discussions.reply');

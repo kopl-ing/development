@@ -30,7 +30,10 @@ Route::get('/tag/{slug}', function (string $slug) {
 // what a picker should ever show at once; called again with an empty `q` on focus, so an empty
 // query still returns *something* (alphabetically first 5) rather than nothing. `auth`-gated
 // since only a signed-in person ever sees the compose form this feeds.
-Route::middleware('auth')->get('/_tags/search', function () {
+//
+// `_xhr/{extension-id}/...` -- JSON-only endpoint, never a page render; see decisions.md,
+// "XHR endpoints get a dedicated, extension-scoped path prefix".
+Route::middleware('auth')->get('/_xhr/kopling-tags/search', function () {
     $query = trim((string) request()->query('q', ''));
 
     $tags = Tag::query()

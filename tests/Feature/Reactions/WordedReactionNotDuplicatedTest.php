@@ -20,7 +20,7 @@ it('renders a solo worded reaction as only its chip -- no rail pill for that emo
     $reactor = Person::create(['name' => 'Bob', 'email' => 'bob-worded-dup@example.test', 'password' => 'secret']);
 
     $response = $this->actingAs($reactor)
-        ->post("/_reactions/moment/{$moment->id}/word", ['emoji' => '❤️', 'word' => 'big if true'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/word", ['emoji' => '❤️', 'word' => 'big if true'])
         ->assertOk();
 
     $html = $response->getContent();
@@ -39,9 +39,9 @@ it('still shows a plain rail badge for a wordless reaction, alongside an unrelat
     $wordless = Person::create(['name' => 'Cleo', 'email' => 'cleo-worded-dup2@example.test', 'password' => 'secret']);
     $worded = Person::create(['name' => 'Bob', 'email' => 'bob-worded-dup2@example.test', 'password' => 'secret']);
 
-    $this->actingAs($wordless)->post("/_reactions/moment/{$moment->id}", ['emoji' => '❤️'])->assertOk();
+    $this->actingAs($wordless)->post("/_xhr/kopling-reactions/moment/{$moment->id}", ['emoji' => '❤️'])->assertOk();
     $response = $this->actingAs($worded)
-        ->post("/_reactions/moment/{$moment->id}/word", ['emoji' => '❤️', 'word' => 'so true'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/word", ['emoji' => '❤️', 'word' => 'so true'])
         ->assertOk();
 
     $html = $response->getContent();

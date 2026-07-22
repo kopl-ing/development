@@ -992,3 +992,40 @@ newly-installed extension is inert due to a real bug.
 decisions.md just never caught up to it.
 
 ---
+
+## 2026-07-22 — XHR/htmx-action endpoints get a dedicated `_xhr/{extension-id}/...` path prefix
+
+**Decision:** any route that is purely an AJAX action target — a person never navigates to it
+directly, links to it, or bookmarks it as a page, whether it returns JSON or an HTML fragment —
+lives under `_xhr/{extension-id}/...` inside its owning Portal. `{extension-id}` is the same
+fully-prefixed id already used everywhere else in this codebase (`kopling-tags`, `kopling-core`
+— see extending-patterns.md Section 13), not a bare package-folder name. The one exception is
+`hx-boost` on a link to a *real* page (e.g. pagination) — that must stay on the page's own
+natural resource path, since it's the same URL a full navigation would hit, just boosted;
+moving it under `_xhr` would either duplicate the route or break bookmarkability/direct-linking.
+The dividing line is "is this URL ever a real page," not "does it return JSON" — an htmx
+`hx-post` form target that only ever renders a swapped-in fragment (with a plain-POST fallback
+redirect for progressive enhancement) is exactly as much an action-only endpoint as a JSON
+search call, and belongs under `_xhr` the same way.
+
+**Why:** three JSON-lookup endpoints already existed in three different shapes —
+`kopling-tags`' `/_tags/search`, style-guide's `/tag-input-search`, core's `/icon-search` — and
+three more extensions (`pin`, `poll`, `reactions`) had already independently invented their own
+near-identical `/_pin/...`, `/_poll/...`, `/_reactions/...` convention, predating this decision
+and easily mistaken for it despite meaning something narrower. All of it is exactly the "wild
+growth of random ajax paths" this heads off. `_xhr` leads (not the extension-id) so every
+action-only endpoint across a Portal clusters together in `route:list` output and a network-tab
+scan, immediately separable from real pages; the extension-id segment after it stops two
+extensions' generically-named endpoints (both landing on `search`, say) from colliding, same as
+every other id in this codebase.
+
+**Status:** Decided & retrofitted across every existing htmx/AJAX action endpoint: core's
+`icon-search`, `moments.latest`, `moments.load`; admin's `settings.toggle`; composer's
+`compose.store`; discussions' `discussions.reply` (not `discussions.show` — a real page);
+pin's `pin.store`/`pin.destroy`; poll's `poll.vote`; reactions' `reactions.toggle`/
+`reactions.vote`/`reactions.word`; tags' `tags.search`; style-guide's `tag-input-search`.
+`theme.set` (a plain, non-htmx `<form>` submission) and `page/pagination.blade.php`'s
+`hx-boost`ed page links are the two things deliberately left alone, per the exception above.
+Documented in `.docs/planning/extending-patterns.md` (Section 6).
+
+---

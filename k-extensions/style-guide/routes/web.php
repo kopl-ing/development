@@ -11,7 +11,10 @@ Route::get('/', fn () => view('kopling-style-guide::index'))->name('index');
 
 // A tiny static search endpoint so the TagInput showcase below is genuinely interactive rather
 // than a dead mock -- not a real search feature, just fixture data for the component to query.
-Route::get('/tag-input-search', fn () => response()->json([
+//
+// `_xhr/{extension-id}/...` -- JSON-only endpoint, never a page render; see decisions.md,
+// "XHR endpoints get a dedicated, extension-scoped path prefix".
+Route::get('/_xhr/kopling-style-guide/search', fn () => response()->json([
     ['id' => '1', 'label' => 'Design'],
     ['id' => '2', 'label' => 'Engineering'],
     ['id' => '3', 'label' => 'Community'],

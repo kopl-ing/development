@@ -27,7 +27,7 @@ it('denies a guest entirely', function () {
     $author = Person::create(['name' => 'Bob', 'email' => 'bob@example.test', 'password' => 'secret']);
     $moment = momentBy($author);
 
-    $this->post("/_pin/{$moment->id}", ['reason' => 'announcement'])->assertRedirect();
+    $this->post("/_xhr/kopling-pin/{$moment->id}", ['reason' => 'announcement'])->assertRedirect();
 
     $this->assertGuest();
     expect(Pin::where('moment_id', $moment->id)->exists())->toBeFalse();
@@ -38,7 +38,7 @@ it('denies a person without pin-moments', function () {
     $moment = momentBy($author);
 
     $this->actingAs($author)
-        ->post("/_pin/{$moment->id}", ['reason' => 'announcement'])
+        ->post("/_xhr/kopling-pin/{$moment->id}", ['reason' => 'announcement'])
         ->assertForbidden();
 });
 
@@ -48,7 +48,7 @@ it('pins a moment, creating a pins row', function () {
     $moment = momentBy($author);
 
     $this->actingAs($operator)
-        ->post("/_pin/{$moment->id}", ['reason' => 'announcement'])
+        ->post("/_xhr/kopling-pin/{$moment->id}", ['reason' => 'announcement'])
         ->assertRedirect();
 
     expect(Pin::where('moment_id', $moment->id)->where('reason', 'announcement')->exists())->toBeTrue();
@@ -59,8 +59,8 @@ it('re-pinning updates the same row rather than creating a second one', function
     $author = Person::create(['name' => 'Bob', 'email' => 'bob@example.test', 'password' => 'secret']);
     $moment = momentBy($author);
 
-    $this->actingAs($operator)->post("/_pin/{$moment->id}", ['reason' => 'announcement']);
-    $this->actingAs($operator)->post("/_pin/{$moment->id}", ['reason' => 'important']);
+    $this->actingAs($operator)->post("/_xhr/kopling-pin/{$moment->id}", ['reason' => 'announcement']);
+    $this->actingAs($operator)->post("/_xhr/kopling-pin/{$moment->id}", ['reason' => 'important']);
 
     expect(Pin::where('moment_id', $moment->id)->count())->toBe(1)
         ->and(Pin::where('moment_id', $moment->id)->first()->reason)->toBe('important');
@@ -71,8 +71,8 @@ it('unpins a moment, deleting its pin row', function () {
     $author = Person::create(['name' => 'Bob', 'email' => 'bob@example.test', 'password' => 'secret']);
     $moment = momentBy($author);
 
-    $this->actingAs($operator)->post("/_pin/{$moment->id}", ['reason' => 'announcement']);
-    $this->actingAs($operator)->post("/_pin/{$moment->id}/unpin")->assertRedirect();
+    $this->actingAs($operator)->post("/_xhr/kopling-pin/{$moment->id}", ['reason' => 'announcement']);
+    $this->actingAs($operator)->post("/_xhr/kopling-pin/{$moment->id}/unpin")->assertRedirect();
 
     expect(Pin::where('moment_id', $moment->id)->exists())->toBeFalse();
 });
@@ -83,7 +83,7 @@ it('a Groups-targeted pin is only visible to a person in one of those groups', f
     $moment = momentBy($author);
     $targetGroup = Group::create(['name' => 'VIPs']);
 
-    $this->actingAs($operator)->post("/_pin/{$moment->id}", [
+    $this->actingAs($operator)->post("/_xhr/kopling-pin/{$moment->id}", [
         'reason' => 'announcement',
         'groups' => [$targetGroup->id],
     ]);
@@ -102,7 +102,7 @@ it('an expired pin is excluded from visibleFor()', function () {
     $author = Person::create(['name' => 'Bob', 'email' => 'bob@example.test', 'password' => 'secret']);
     $moment = momentBy($author);
 
-    $this->actingAs($operator)->post("/_pin/{$moment->id}", [
+    $this->actingAs($operator)->post("/_xhr/kopling-pin/{$moment->id}", [
         'reason' => 'announcement',
         'ends_at' => now()->subDay()->format('Y-m-d\TH:i'),
     ]);

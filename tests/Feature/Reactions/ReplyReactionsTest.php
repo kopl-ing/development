@@ -34,7 +34,7 @@ it('lets a signed-in person react to a reply via the generic toggle route, store
     $reactor = Person::create(['name' => 'Cleo', 'email' => 'cleo-reply-reactions@example.test', 'password' => 'secret']);
 
     $this->actingAs($reactor)
-        ->post("/_reactions/reply/{$reply->id}", ['emoji' => '🎉'])
+        ->post("/_xhr/kopling-reactions/reply/{$reply->id}", ['emoji' => '🎉'])
         ->assertOk();
 
     expect(Reaction::where('reactable_type', 'reply')->where('reactable_id', $reply->id)->where('person_id', $reactor->id)->where('emoji', '🎉')->exists())->toBeTrue();
@@ -44,7 +44,7 @@ it('renders the rail on the reply\'s own card, showing an applied reaction', fun
     [$author, $moment, $reply] = createMomentWithReplyForReactions();
     $reactor = Person::create(['name' => 'Cleo', 'email' => 'cleo-reply-reactions-2@example.test', 'password' => 'secret']);
 
-    $this->actingAs($reactor)->post("/_reactions/reply/{$reply->id}", ['emoji' => '🎉'])->assertOk();
+    $this->actingAs($reactor)->post("/_xhr/kopling-reactions/reply/{$reply->id}", ['emoji' => '🎉'])->assertOk();
 
     $html = $this->actingAs($author)
         ->get(route('kopling-core::community/discussions.show', $moment->id))
@@ -60,7 +60,7 @@ it('adds a worded reaction to a reply through the generic word route', function 
     $reactor = Person::create(['name' => 'Cleo', 'email' => 'cleo-reply-reactions-3@example.test', 'password' => 'secret']);
 
     $response = $this->actingAs($reactor)
-        ->post("/_reactions/reply/{$reply->id}/word", ['emoji' => '👍', 'word' => 'so true'])
+        ->post("/_xhr/kopling-reactions/reply/{$reply->id}/word", ['emoji' => '👍', 'word' => 'so true'])
         ->assertOk();
 
     expect($response->getContent())->toContain('so true');
@@ -72,7 +72,7 @@ it('404s the generic route for a type that is not a registered morph-map alias',
     $reactor = Person::create(['name' => 'Cleo', 'email' => 'cleo-reply-reactions-4@example.test', 'password' => 'secret']);
 
     $this->actingAs($reactor)
-        ->post("/_reactions/bogus-type/{$reply->id}", ['emoji' => '🎉'])
+        ->post("/_xhr/kopling-reactions/bogus-type/{$reply->id}", ['emoji' => '🎉'])
         ->assertNotFound();
 });
 

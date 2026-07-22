@@ -21,7 +21,7 @@ it('denies a guest entirely', function () {
     $author = authorForVoteTest();
     $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
 
-    $this->post("/_reactions/moment/{$moment->id}/vote", ['emoji' => '👍'])->assertRedirect();
+    $this->post("/_xhr/kopling-reactions/moment/{$moment->id}/vote", ['emoji' => '👍'])->assertRedirect();
     $this->assertGuest();
 });
 
@@ -33,7 +33,7 @@ it('accepts an emoji configured on the moment tag as an upvote', function () {
     $moment->tags()->attach($tag->id);
 
     $this->actingAs($voter)
-        ->post("/_reactions/moment/{$moment->id}/vote", ['emoji' => '👍'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/vote", ['emoji' => '👍'])
         ->assertOk();
 
     expect(Reaction::where('reactable_type', 'moment')->where('reactable_id', $moment->id)->where('person_id', $voter->id)->where('emoji', '👍')->exists())->toBeTrue();
@@ -47,7 +47,7 @@ it('rejects an emoji not configured for that moment', function () {
     $moment->tags()->attach($tag->id);
 
     $this->actingAs($voter)
-        ->post("/_reactions/moment/{$moment->id}/vote", ['emoji' => '😂'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/vote", ['emoji' => '😂'])
         ->assertStatus(422);
 });
 
@@ -57,7 +57,7 @@ it('rejects any vote when the moment carries no tag with voting configured', fun
     $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
 
     $this->actingAs($voter)
-        ->post("/_reactions/moment/{$moment->id}/vote", ['emoji' => '👍'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/vote", ['emoji' => '👍'])
         ->assertStatus(422);
 });
 
@@ -68,8 +68,8 @@ it('toggles the vote off on a second identical submission', function () {
     $tag = Tag::forceCreate(['name' => 'Requests', 'slug' => 'requests-vote-3', 'upvote_emoji' => '👍']);
     $moment->tags()->attach($tag->id);
 
-    $this->actingAs($voter)->post("/_reactions/moment/{$moment->id}/vote", ['emoji' => '👍']);
-    $this->actingAs($voter)->post("/_reactions/moment/{$moment->id}/vote", ['emoji' => '👍']);
+    $this->actingAs($voter)->post("/_xhr/kopling-reactions/moment/{$moment->id}/vote", ['emoji' => '👍']);
+    $this->actingAs($voter)->post("/_xhr/kopling-reactions/moment/{$moment->id}/vote", ['emoji' => '👍']);
 
     expect(Reaction::where('reactable_type', 'moment')->where('reactable_id', $moment->id)->where('person_id', $voter->id)->exists())->toBeFalse();
 });

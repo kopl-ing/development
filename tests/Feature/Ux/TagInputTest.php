@@ -6,7 +6,7 @@ it('renders the mount point wired to the search url, with initial values encoded
     $data = [
         'name' => 'tags',
         'label' => 'Tags',
-        'searchUrl' => '/_tags/search',
+        'searchUrl' => '/_xhr/kopling-tags/search',
         'value' => [
             ['id' => 'abc', 'label' => 'Bug Report'],
             ['id' => 'def', 'label' => 'Feature Request'],
@@ -19,7 +19,7 @@ it('renders the mount point wired to the search url, with initial values encoded
     $decoded = json_decode(html_entity_decode($match[1] ?? ''), true);
 
     expect($html)->toContain('data-tag-input')
-        ->and($html)->toContain('data-search-url="/_tags/search"')
+        ->and($html)->toContain('data-search-url="/_xhr/kopling-tags/search"')
         ->and($html)->toContain('data-name="tags"')
         ->and($html)->toContain('data-tag-input-field')
         ->and($html)->toContain('data-tag-input-hidden')
@@ -30,7 +30,7 @@ it('renders the mount point wired to the search url, with initial values encoded
 });
 
 it('renders an empty initial value array when nothing is selected yet', function () {
-    $data = ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_tags/search'];
+    $data = ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_xhr/kopling-tags/search'];
 
     $html = (string) $this->blade('<x-k::form.tag-input :data="$data" />', ['data' => $data]);
 
@@ -39,10 +39,10 @@ it('renders an empty initial value array when nothing is selected yet', function
 
 it('only renders data-max when a max is actually given', function () {
     $withMax = (string) $this->blade('<x-k::form.tag-input :data="$data" />', [
-        'data' => ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_tags/search', 'max' => 3],
+        'data' => ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_xhr/kopling-tags/search', 'max' => 3],
     ]);
     $withoutMax = (string) $this->blade('<x-k::form.tag-input :data="$data" />', [
-        'data' => ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_tags/search'],
+        'data' => ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_xhr/kopling-tags/search'],
     ]);
 
     expect($withMax)->toContain('data-max="3"')
@@ -50,7 +50,7 @@ it('only renders data-max when a max is actually given', function () {
 });
 
 it('shows a min/max hint when given', function () {
-    $data = ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_tags/search', 'min' => 1, 'max' => 3];
+    $data = ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_xhr/kopling-tags/search', 'min' => 1, 'max' => 3];
 
     $html = (string) $this->blade('<x-k::form.tag-input :data="$data" />', ['data' => $data]);
 
@@ -58,7 +58,7 @@ it('shows a min/max hint when given', function () {
 });
 
 it('falls back to the generic search placeholder when none is given', function () {
-    $data = ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_tags/search'];
+    $data = ['name' => 'tags', 'label' => 'Tags', 'searchUrl' => '/_xhr/kopling-tags/search'];
 
     $html = (string) $this->blade('<x-k::form.tag-input :data="$data" />', ['data' => $data]);
 

@@ -10,13 +10,13 @@ function personForTagSearch(): Person
     return Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
 }
 
-it('GET /_tags/search includes color and a rendered icon svg per result', function () {
+it('GET /_xhr/kopling-tags/search includes color and a rendered icon svg per result', function () {
     $person = personForTagSearch();
 
     Tag::create(['name' => 'Design', 'slug' => 'design-search-test', 'color' => '#E8590C', 'icon' => 'palette']);
 
     $json = $this->actingAs($person)
-        ->get('/_tags/search?q=Design')
+        ->get('/_xhr/kopling-tags/search?q=Design')
         ->assertOk()
         ->json();
 
@@ -31,12 +31,12 @@ it('GET /_tags/search includes color and a rendered icon svg per result', functi
         ->and($json[0]['icon'])->not->toContain('style="color:');
 });
 
-it('GET /_tags/search returns a null icon for a tag with no icon set', function () {
+it('GET /_xhr/kopling-tags/search returns a null icon for a tag with no icon set', function () {
     $person = personForTagSearch();
 
     Tag::create(['name' => 'Plain', 'slug' => 'plain-search-test']);
 
-    $json = $this->actingAs($person)->get('/_tags/search?q=Plain')->assertOk()->json();
+    $json = $this->actingAs($person)->get('/_xhr/kopling-tags/search?q=Plain')->assertOk()->json();
 
     expect($json[0]['icon'])->toBeNull()
         ->and($json[0]['color'])->toBeNull();

@@ -22,8 +22,8 @@ function debounce(fn, delay) {
 }
 
 // `color`/`icon` ride through unchanged when a caller's search/initial-value response includes
-// them (tags' own `/_tags/search` and `views/components/select.blade.php` do; nothing else does
-// yet) -- `undefined` otherwise, which the custom templates below already treat as "render
+// them (tags' own `/_xhr/kopling-tags/search` and `views/components/select.blade.php` do; nothing
+// else does yet) -- `undefined` otherwise, which the custom templates below already treat as "render
 // nothing extra". This keeps TagInput itself domain-agnostic: it renders whatever optional
 // fields a caller's data happens to carry, without knowing or caring what a "tag" is.
 function toWhitelistItem(item) {

@@ -21,7 +21,9 @@ Route::middleware('auth')->group(function () {
     // morph-map alias (Reaction::resolveReactable() 404s on anything else, never trusting a raw
     // class name from user input -- see that method's own docblock). The "auth" middleware
     // guarantees an actor, so Auth::user() is never null past here.
-    Route::post('/_reactions/{type}/{id}', function (string $type, string $id) {
+    // `_xhr/{extension-id}/...` -- htmx-only action targets, never a page on their own; see
+    // decisions.md, "XHR/htmx-action endpoints get a dedicated, extension-scoped path prefix".
+    Route::post('/_xhr/kopling-reactions/{type}/{id}', function (string $type, string $id) {
         $actor = Auth::user();
         $reactable = Reaction::resolveReactable($type, $id);
 
@@ -54,7 +56,7 @@ Route::middleware('auth')->group(function () {
     // storage concept, just a gated subset of the same emoji-reaction mechanism. The `/moment/`
     // segment (rather than a bare `/_reactions/{moment}/vote`) keeps this from ever structurally
     // colliding with the generic toggle route above, which is also shaped `_reactions/{x}/{y}`.
-    Route::post('/_reactions/moment/{moment}/vote', function (Moment $moment) {
+    Route::post('/_xhr/kopling-reactions/moment/{moment}/vote', function (Moment $moment) {
         $actor = Auth::user();
 
         $emoji = (string) request()->input('emoji', '');
@@ -85,7 +87,7 @@ Route::middleware('auth')->group(function () {
     // plain toggle. The word is optional so this one endpoint serves both the modal's "emoji
     // only" and "emoji + word" cases (an empty word stores null -- the strip only lists worded
     // ones).
-    Route::post('/_reactions/{type}/{id}/word', function (string $type, string $id) {
+    Route::post('/_xhr/kopling-reactions/{type}/{id}/word', function (string $type, string $id) {
         $actor = Auth::user();
         $reactable = Reaction::resolveReactable($type, $id);
 

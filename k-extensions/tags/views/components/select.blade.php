@@ -7,7 +7,7 @@
     A reusable tag picker -- a searchable, server-backed multi-select of every installed tag.
     Built on core's `<x-k::form.tag-input>` (Tagify-backed pills, search, selection state) --
     this view only supplies the domain: what a tag is, and where to search for one
-    (`routes/web.php`'s own `/_tags/search`, capped at 5, returning `{id, label, color, icon}`
+    (`routes/web.php`'s own `/_xhr/kopling-tags/search`, capped at 5, returning `{id, label, color, icon}`
     JSON -- `color`/`icon` are read by `tag-input-tagify.js`'s own custom pill/dropdown
     templates, a generic capability of that component, not something this view has to wire up).
 

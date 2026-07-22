@@ -254,6 +254,31 @@ Routes ride the target Portal's own route group, inheriting its URL prefix, rout
 prefix, and middleware for free. CSS/JS are plain files (no build step) linked onto the page
 via a `<link>`/`<script>` tag whenever the current request resolves to that Portal.
 
+**XHR/htmx-action routes** — any route that's purely an AJAX action target, never a page a
+person navigates to, links to, or bookmarks directly — a JSON search/autocomplete/lookup call
+just as much as an `hx-post` form target that only ever swaps in a fragment — gets a dedicated
+path shape so these don't grow wild in whatever free-form paths each extension happens to pick:
+`_xhr/{extension-id}/...`, where `{extension-id}` is the same fully-prefixed id used everywhere
+else (Section 13):
+
+```php
+// Inside routes/web.php, attached via ExtendsPortals like any other route.
+Route::get('_xhr/kopling-example/search', SearchController::class)->name('search');
+Route::post('_xhr/kopling-example/{thing}/react', ReactController::class)->name('react');
+```
+
+`_xhr` leads (not the extension-id) so every action-only endpoint attached to a Portal clusters
+together in `route:list` output — immediately separable from real, navigable pages. The one
+exception is `hx-boost` on a link to a real page (e.g. `page/pagination.blade.php`) — that's the
+same URL a full navigation would hit, just boosted, so it has to stay on its own natural
+resource path; moving it under `_xhr` would duplicate the route or break bookmarkability. The
+test is "is this URL ever a real page," not "does it return JSON" — see
+`.docs/planning/decisions.md`, 2026-07-22, for the full reasoning.
+
+See it in: `k-extensions/reactions/routes/web.php` (`_xhr/kopling-reactions/{type}/{id}`),
+`k-extensions/poll/routes/web.php` (`_xhr/kopling-poll/{poll}/vote`),
+`k-core/routes/community.php` (`_xhr/kopling-core/icon-search`, `_xhr/kopling-core/moments/latest`).
+
 Putting your *own* UI into a Portal you don't own (a link in Admin's side navigation, say) is
 `ChangesUx` (Section 5), not this — most extensions place a few things into an existing
 Portal and never register one of their own.

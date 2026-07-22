@@ -20,7 +20,7 @@ it('lets the reacting person remove their own worded reaction by clicking their 
     $reactor = Person::create(['name' => 'Bob', 'email' => 'bob-remove-worded@example.test', 'password' => 'secret']);
 
     $this->actingAs($reactor)
-        ->post("/_reactions/moment/{$moment->id}/word", ['emoji' => '👍', 'word' => 'so true'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/word", ['emoji' => '👍', 'word' => 'so true'])
         ->assertOk();
 
     expect(Reaction::where('reactable_type', 'moment')->where('reactable_id', $moment->id)->exists())->toBeTrue();
@@ -28,7 +28,7 @@ it('lets the reacting person remove their own worded reaction by clicking their 
     // The chip itself is the button -- clicking it posts to the *toggle* route (not a dedicated
     // endpoint) -- this is that exact request.
     $response = $this->actingAs($reactor)
-        ->post("/_reactions/moment/{$moment->id}", ['emoji' => '👍'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}", ['emoji' => '👍'])
         ->assertOk();
 
     expect(Reaction::where('reactable_type', 'moment')->where('reactable_id', $moment->id)->exists())->toBeFalse();
@@ -42,7 +42,7 @@ it('renders someone else\'s worded reaction chip as a plain, non-clickable span'
     $viewer = Person::create(['name' => 'Cleo', 'email' => 'cleo-remove-worded2@example.test', 'password' => 'secret']);
 
     $this->actingAs($reactor)
-        ->post("/_reactions/moment/{$moment->id}/word", ['emoji' => '👍', 'word' => 'so true'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/word", ['emoji' => '👍', 'word' => 'so true'])
         ->assertOk();
 
     $html = $this->actingAs($viewer)->get('/')->assertOk()->getContent();
@@ -57,7 +57,7 @@ it('renders the viewer\'s own worded reaction chip as the clickable button varia
     $reactor = Person::create(['name' => 'Bob', 'email' => 'bob-remove-worded3@example.test', 'password' => 'secret']);
 
     $this->actingAs($reactor)
-        ->post("/_reactions/moment/{$moment->id}/word", ['emoji' => '👍', 'word' => 'so true'])
+        ->post("/_xhr/kopling-reactions/moment/{$moment->id}/word", ['emoji' => '👍', 'word' => 'so true'])
         ->assertOk();
 
     $html = $this->actingAs($reactor)->get('/')->assertOk()->getContent();

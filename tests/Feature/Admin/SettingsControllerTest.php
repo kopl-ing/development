@@ -78,7 +78,7 @@ it('flips a normal extension\'s enabled state and clears the registration cache'
     app(RegistrationCache::class)->write(['permissions' => []]);
 
     $response = $this->actingAs(personWithManageSettings())
-        ->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+        ->post('/admin/_xhr/kopling-admin/settings/tests-fixtures-admin-settings-declarer/toggle');
 
     $response->assertOk();
 
@@ -90,10 +90,10 @@ it('toggles a disabled extension back to enabled on a second call', function () 
     swapAdminSettings();
     $person = personWithManageSettings();
 
-    $this->actingAs($person)->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+    $this->actingAs($person)->post('/admin/_xhr/kopling-admin/settings/tests-fixtures-admin-settings-declarer/toggle');
     expect(EnabledExtensions::isEnabled('tests-fixtures-admin-settings-declarer'))->toBeFalse();
 
-    $this->actingAs($person)->post('/admin/settings/tests-fixtures-admin-settings-declarer/toggle');
+    $this->actingAs($person)->post('/admin/_xhr/kopling-admin/settings/tests-fixtures-admin-settings-declarer/toggle');
     expect(EnabledExtensions::isEnabled('tests-fixtures-admin-settings-declarer'))->toBeTrue();
 });
 
@@ -101,7 +101,7 @@ it('refuses to toggle a CannotBeDisabled extension, server-side, regardless of t
     swapAdminSettings();
 
     $this->actingAs(personWithManageSettings())
-        ->post('/admin/settings/kopling-admin/toggle')
+        ->post('/admin/_xhr/kopling-admin/settings/kopling-admin/toggle')
         ->assertForbidden();
 
     expect(EnabledExtensions::isEnabled('kopling-admin'))->toBeTrue();
@@ -111,6 +111,6 @@ it('404s toggling an id that does not match any installed extension', function (
     swapAdminSettings();
 
     $this->actingAs(personWithManageSettings())
-        ->post('/admin/settings/not-a-real-extension/toggle')
+        ->post('/admin/_xhr/kopling-admin/settings/not-a-real-extension/toggle')
         ->assertNotFound();
 });

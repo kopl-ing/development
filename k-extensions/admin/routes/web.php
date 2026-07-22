@@ -18,7 +18,9 @@ use Kopling\Admin\Controllers\StorageMappingsController;
 Route::middleware('can:kopling-admin::manage-settings')->group(function () {
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');
     Route::post('settings', [SettingsController::class, 'store'])->name('settings.store');
-    Route::post('settings/{id}/toggle', [SettingsController::class, 'toggle'])->name('settings.toggle');
+    // `_xhr/{extension-id}/...` -- an htmx-only action target, never a page on its own; see
+    // decisions.md, "XHR/htmx-action endpoints get a dedicated, extension-scoped path prefix".
+    Route::post('_xhr/kopling-admin/settings/{id}/toggle', [SettingsController::class, 'toggle'])->name('settings.toggle');
 
     Route::get('drives', [DrivesController::class, 'index'])->name('drives');
     Route::post('drives', [DrivesController::class, 'store'])->name('drives.store');

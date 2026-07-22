@@ -18,16 +18,16 @@ class SeedDemoTagsCommand extends Command
     public function handle(): int
     {
         $palette = [
-            ['Announcements', '#2b4a9b'],
-            ['Guides', '#0d9488'],
-            ['Off-topic', '#7c3aed'],
-            ['Help', '#e8590c'],
-            ['Showcase', '#db2777'],
+            ['Announcements', '#2b4a9b', 'bullhorn'],
+            ['Guides', '#0d9488', 'compass'],
+            ['Off-topic', '#7c3aed', 'mug-saucer'],
+            ['Help', '#e8590c', 'hand-holding-medical'],
+            ['Showcase', '#db2777', 'store'],
         ];
 
         $tags = collect($palette)->map(fn (array $def) => Tag::firstOrCreate(
             ['slug' => Str::slug($def[0])],
-            ['name' => $def[0], 'color' => $def[1]],
+            ['name' => $def[0], 'color' => $def[1], 'icon' => $def[2]],
         ));
 
         Moment::query()->get()->each(function (Moment $moment) use ($tags) {
