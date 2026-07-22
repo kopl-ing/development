@@ -192,33 +192,49 @@ contract/instance the resolver itself returns.
     after: 327→336 passed, same 3 pre-existing failures (card/logo/avatar-widget, unrelated),
     0 regressions.
 
-## 3. `kopling/pages` — mechanism done, 2026-07-22; content migration still open
+## 3. `kopling/pages` — mechanism done, 2026-07-22; reworked same day to admin-defined section
+templates; content migration still open
 
 New extension, admin-authored pages CMS (replaces the earlier "static `kopling/landing`
 extension" idea — rejected because hardcoded marketing copy isn't reusable to other
 communities the way an admin-editable builder is).
 
-**Built:** `k-extensions/pages` (registered in root `composer.json`). `Page`/`PageSection`
-Eloquent models, `SectionKind` enum (`rich-text`/`hero`). Public Portal
-`kopling-pages::pages` (`path: 'pages'`, ungated) with its own thin
-`views/layouts/pages.blade.php` (topbar+footer wrapping `<x-k::portal.layout>` directly, not
-`Community\Chrome`) — nav queries `Page::where('published', true)->where('show_in_nav', true)`
-directly, not Ux-slot-driven. `PageController::index()`/`show()` render a page's sections in
-order; a hero section renders the *page's own* `title` as its heading (no separate hero title
-field), a rich-text section renders `content_html`. Admin CRUD (`PagesController`,
-`PageSectionsController`) attached into the **existing** Admin portal via `ExtendsPortals`
-targeting `kopling-admin::admin` — same "attach into a portal you don't own" shape Tags/
-Reactions/Poll already use for their own admin screens, not a bolted-on admin page inside
-Pages' own public portal. Gated behind a new `manage-pages` permission (separate from Admin's
-own `access-admin`/`manage-settings`). Rich-text sections reuse `DocumentRenderer`/
-`ValidDocument`/`<x-k::editor>` exactly as `Moment::$body`/`$body_html` do — no second
-sanitization codepath. Section reordering is a simple order-swap with the adjacent neighbor
-(`PageSectionsController::move()`), not drag-and-drop. `{page}/sections/{section}` routes use
-`Route::scopeBindings()` so a section id from a different page 404s instead of silently
-succeeding. Setting a page `is_index` auto-unsets it on every other page (no blocking
-validation — friendlier for a single-admin toggle). 25 new tests across
-`tests/Feature/Pages/PublicPageTest.php`, `tests/Feature/Admin/PagesControllerTest.php`,
-`tests/Feature/Admin/PageSectionsControllerTest.php`. Full suite: 336→356 passed, same 3
+**Reworked, 2026-07-22:** the original fixed `SectionKind` enum (`rich-text`/`hero`) was
+replaced same-day, before any content migration used it — an admin never needed a third kind
+before it became clear the whole closed-set approach didn't fit: no per-section-kind view could
+keep up with real layout needs, and Laravel's own translation helpers only work naturally
+inside real Blade, not a fixed set of hardcoded views. Sections are now built from
+admin-authored `PageSectionTemplate` rows: a `name`, a `blade_source` (full Blade, compiled via
+`Blade::render()` at display time — `{{ __('...') }}` works exactly as it would in a normal
+`.blade.php` file) and a `slots` list (`{name, type, label}`, `SlotType` closed to
+`string`/`wysiwyg` for v1) describing what `$name` variables the source expects and what input
+widget to collect each as. `PageSection.data` stores one value per declared slot, keyed by slot
+name — a `wysiwyg` slot's value is `{json, html}` (`html` pre-rendered through
+`DocumentRenderer` at write time, same as before; only `html` is ever exposed to the compiled
+template, never the raw document). `SectionRenderer::render()` does the compile.
+Full Blade compilation means authoring a template is writing server-executing PHP, not markup
+— gated behind its own new `manage-page-templates` permission
+(`PageSectionTemplatesController`), deliberately separate from `manage-pages`: someone trusted
+to write/publish page content isn't automatically trusted to write server-executing templates.
+Sections no longer render "the page's own title as an implicit heading" for a hero-shaped
+first section — that heuristic was tied to a specific fixed kind that no longer exists;
+`show.blade.php` now always renders the page's own `<h1>`, unconditionally.
+
+**Still built as before:** Public Portal `kopling-pages::pages` (`path: 'pages'`, ungated) with
+its own thin `views/layouts/pages.blade.php` (topbar+footer wrapping `<x-k::portal.layout>`
+directly, not `Community\Chrome`) — nav queries
+`Page::where('published', true)->where('show_in_nav', true)` directly, not Ux-slot-driven.
+Admin CRUD (`PagesController`, `PageSectionsController`, `PageSectionTemplatesController`)
+attached into the **existing** Admin portal via `ExtendsPortals` targeting
+`kopling-admin::admin` — same "attach into a portal you don't own" shape Tags/Reactions/Poll
+already use for their own admin screens. Section reordering is a simple order-swap with the
+adjacent neighbor (`PageSectionsController::move()`), not drag-and-drop.
+`{page}/sections/{section}` routes use `Route::scopeBindings()` so a section id from a
+different page 404s instead of silently succeeding. Setting a page `is_index` auto-unsets it
+on every other page (no blocking validation — friendlier for a single-admin toggle). 29 tests
+across `tests/Feature/Pages/PublicPageTest.php`, `tests/Feature/Admin/PagesControllerTest.php`,
+`tests/Feature/Admin/PageSectionsControllerTest.php`,
+`tests/Feature/Admin/PageSectionTemplatesControllerTest.php`. Full suite: 386 passed, same 3
 pre-existing unrelated failures, 0 regressions.
 
 **Known gap, not solved here:** Pages' topbar renders `UserMenu` correctly for a signed-in
@@ -231,10 +247,12 @@ this extension's own scope — noted, not fixed.
 
 **Still open:**
 - [ ] Content migration: rewrite `../kopling-landing/public/index.html`'s sections
-  (whatis/principles/stack/extend/governance/founder/support) as seed Pages content (a
-  homepage-index Page with a hero section + rich-text sections), not ported verbatim — real
-  writing work, not mechanism work; do this through the admin UI itself once it's the thing
-  being exercised for real, rather than a seeding script.
+  (whatis/principles/stack/extend/governance/founder/support) as seed Pages content — now two
+  steps instead of one: author the actual `PageSectionTemplate`s needed (a hero-shaped one, a
+  full-width rich-text one, whatever the real layout calls for) through the admin UI, then build
+  the homepage-index Page from them. Not ported verbatim — real writing/design work, not
+  mechanism work; do this through the admin UI itself once it's the thing being exercised for
+  real, rather than a seeding script.
 - [ ] The topbar guest-auth gap noted above, if it turns out to matter before Pages goes live
   as an actual homepage (currently only a problem once `homepage_portal`-equivalent override
   actually points root at Pages — see section 2).
@@ -279,20 +297,28 @@ transitively and is now also required directly rather than relied on implicitly)
   to the `avatars` row specifically rather than the whole page.
 
 **Still open:**
-- [ ] Seed content: split `charter.html` §1–11 into one doc-tree section grouping per charter
-  section; `charter.html` §12 Decision Log into **one file per entry** under a
-  `decision-log/` subpath (the append-only convention becomes "add a file"); `extend.html`
-  §1–11 into the "Extending Kopling" section. Real writing work, not mechanism work — same
-  treatment as Pages' own open content-migration item.
+- [ ] Seed content — **blocked on the charter rewrite** (see "Decided" section above): the
+  charter gets reviewed and rewritten in its entirety before this happens, so don't treat
+  charter.html's *current* §1–11 text as something to mechanically split into doc-tree sections.
+  Once the rewrite exists: the Decision Log (§12) still becomes **one file per entry** under a
+  `decision-log/` subpath (the append-only convention becomes "add a file", independent of
+  whatever else changes in the rewrite). `extend.html`'s §1–11 split into the "Extending Kopling"
+  section is unaffected by the charter rewrite and can happen independently — that page's own
+  policy (corrected against `k-extensions/example`) doesn't change.
 
 ---
 
-## Open questions (not decided, don't assume)
+## Decided, 2026-07-22
 
-- Does `kopling-landing` (the repo) become pure seed-content history once the live extensions
-  replace it, or stay static indefinitely? This repo's own `CLAUDE.md` currently points at its
-  `index.html`/`charter.html`/`extend.html` as canonical — cutover needs those pointers updated
-  too, as a deliberate, separate step.
-- Decision Log during the transition: keep authoring new entries in `charter.html` until
-  cutover, or move to the new per-file Markdown format immediately (risks a temporary dual
-  source of truth)?
+- `kopling-landing` (the repo) will be **archived**, not kept static indefinitely — resolves the
+  open question below. Before Docs' seed-content migration happens, the charter gets reviewed
+  and rewritten **in its entirety** (not a mechanical HTML→Markdown split of the current text) —
+  so the "charter.html §1–11 → one doc-tree section per charter section" migration step above is
+  stale as a literal instruction; treat the *current* charter as input to a rewrite, not as
+  content to port as-is. `extend.html`'s split still stands as previously scoped (that page's
+  own policy — corrected against `k-extensions/example`, not standalone prose — doesn't change).
+  This repo's own root `CLAUDE.md`, which currently points at `kopling-landing`'s
+  `index.html`/`charter.html`/`extend.html` as canonical, will need its pointers updated once
+  cutover actually happens — not yet, no action taken.
+- No action needed on any of this right now — recorded so a future session doesn't have to
+  re-ask.

@@ -70,7 +70,7 @@ it('setting a page as index unsets it on every other page', function () {
 
 it('deletes a page and cascades its sections', function () {
     $page = Page::create(['path' => 'a', 'title' => 'A']);
-    $page->sections()->create(['kind' => 'hero', 'order' => 1, 'data' => []]);
+    $page->sections()->create(['template_id' => pageSectionTemplate()->id, 'order' => 1, 'data' => []]);
 
     $this->actingAs(personWithManagePages())
         ->post("/admin/pages/{$page->id}/delete")

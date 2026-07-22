@@ -14,10 +14,8 @@ class PageSection extends Model
 
     protected $fillable = [
         'page_id',
-        'kind',
+        'template_id',
         'order',
-        'content',
-        'content_html',
         'data',
     ];
 
@@ -32,5 +30,10 @@ class PageSection extends Model
     public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(PageSectionTemplate::class, 'template_id');
     }
 }

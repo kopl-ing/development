@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Kopling\Pages\Page;
+use Kopling\Pages\PageSectionTemplate;
 
 class PagesController
 {
@@ -37,7 +38,8 @@ class PagesController
     {
         return view('kopling-pages::admin.pages.edit', [
             'page' => $page,
-            'sections' => $page->sections,
+            'sections' => $page->sections()->with('template')->get(),
+            'templates' => PageSectionTemplate::orderBy('name')->get(),
         ]);
     }
 

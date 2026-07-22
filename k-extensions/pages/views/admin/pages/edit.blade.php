@@ -21,28 +21,29 @@
         <div class="flex flex-col gap-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold">{{ __('kopling-pages::messages.sections') }}</h2>
-                <div class="flex gap-2">
-                    <x-k::modal id="section-create-rich-text" label="{{ __('kopling-pages::messages.kind_rich_text') }}">
-                        <x-slot:trigger>{{ __('kopling-pages::messages.add_section') }}: {{ __('kopling-pages::messages.kind_rich_text') }}</x-slot:trigger>
-                        <form method="POST" action="{{ route('kopling-admin::admin/pages.sections.store', $page) }}" class="flex flex-col gap-4">
-                            @csrf
-                            <input type="hidden" name="kind" value="rich-text">
-                            <x-k::editor name="content" placeholder="{{ __('kopling-pages::messages.content') }}" />
-                            <button type="submit" class="btn btn-primary">{{ __('kopling-pages::messages.add_section') }}</button>
-                        </form>
-                    </x-k::modal>
-                    <x-k::modal id="section-create-hero" label="{{ __('kopling-pages::messages.kind_hero') }}">
-                        <x-slot:trigger>{{ __('kopling-pages::messages.add_section') }}: {{ __('kopling-pages::messages.kind_hero') }}</x-slot:trigger>
-                        <form method="POST" action="{{ route('kopling-admin::admin/pages.sections.store', $page) }}" class="flex flex-col gap-4">
-                            @csrf
-                            <input type="hidden" name="kind" value="hero">
-                            <x-k::form.input :data="['name' => 'subtitle', 'label' => __('kopling-pages::messages.hero_subtitle')]" />
-                            <x-k::form.input :data="['name' => 'cta_label', 'label' => __('kopling-pages::messages.hero_cta_label')]" />
-                            <x-k::form.input :data="['name' => 'cta_url', 'label' => __('kopling-pages::messages.hero_cta_url')]" />
-                            <button type="submit" class="btn btn-primary">{{ __('kopling-pages::messages.add_section') }}</button>
-                        </form>
-                    </x-k::modal>
-                </div>
+                @if ($templates->isEmpty())
+                    <p class="text-sm opacity-60">{{ __('kopling-pages::messages.no_templates_yet') }}</p>
+                @else
+                    <div class="flex gap-2 flex-wrap justify-end">
+                        @foreach ($templates as $template)
+                            <x-k::modal id="section-create-{{ $template->id }}" label="{{ $template->name }}">
+                                <x-slot:trigger>{{ __('kopling-pages::messages.add_section') }}: {{ $template->name }}</x-slot:trigger>
+                                <form method="POST" action="{{ route('kopling-admin::admin/pages.sections.store', $page) }}" class="flex flex-col gap-4">
+                                    @csrf
+                                    <input type="hidden" name="template_id" value="{{ $template->id }}">
+                                    @foreach ($template->slots as $slot)
+                                        @if ($slot['type'] === 'wysiwyg')
+                                            <x-k::editor :name="$slot['name']" placeholder="{{ $slot['label'] }}" />
+                                        @else
+                                            <x-k::form.input :data="['name' => $slot['name'], 'label' => $slot['label']]" />
+                                        @endif
+                                    @endforeach
+                                    <button type="submit" class="btn btn-primary">{{ __('kopling-pages::messages.add_section') }}</button>
+                                </form>
+                            </x-k::modal>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
             @if ($sections->isEmpty())
@@ -51,14 +52,7 @@
                 <div class="flex flex-col gap-3">
                     @foreach ($sections as $section)
                         <div class="card bg-base-100 border border-base-300 p-4 flex flex-row items-center justify-between gap-4">
-                            <div>
-                                <span class="badge badge-ghost badge-sm">
-                                    {{ $section->kind === 'rich-text' ? __('kopling-pages::messages.kind_rich_text') : __('kopling-pages::messages.kind_hero') }}
-                                </span>
-                                @if ($section->kind === 'hero')
-                                    <span class="ml-2 text-sm opacity-70">{{ $section->data['subtitle'] ?? '' }}</span>
-                                @endif
-                            </div>
+                            <span class="badge badge-ghost badge-sm">{{ $section->template->name }}</span>
                             <div class="flex gap-2">
                                 <form method="POST" action="{{ route('kopling-admin::admin/pages.sections.move', [$page, $section]) }}">
                                     @csrf
@@ -75,13 +69,13 @@
                                     <x-slot:trigger>{{ __('kopling-admin::messages.edit') }}</x-slot:trigger>
                                     <form method="POST" action="{{ route('kopling-admin::admin/pages.sections.update', [$page, $section]) }}" class="flex flex-col gap-4">
                                         @csrf
-                                        @if ($section->kind === 'rich-text')
-                                            <x-k::editor name="content" :value="$section->content" placeholder="{{ __('kopling-pages::messages.content') }}" />
-                                        @else
-                                            <x-k::form.input :data="['name' => 'subtitle', 'label' => __('kopling-pages::messages.hero_subtitle'), 'value' => $section->data['subtitle'] ?? '']" />
-                                            <x-k::form.input :data="['name' => 'cta_label', 'label' => __('kopling-pages::messages.hero_cta_label'), 'value' => $section->data['cta_label'] ?? '']" />
-                                            <x-k::form.input :data="['name' => 'cta_url', 'label' => __('kopling-pages::messages.hero_cta_url'), 'value' => $section->data['cta_url'] ?? '']" />
-                                        @endif
+                                        @foreach ($section->template->slots as $slot)
+                                            @if ($slot['type'] === 'wysiwyg')
+                                                <x-k::editor :name="$slot['name']" :value="$section->data[$slot['name']]['json'] ?? null" placeholder="{{ $slot['label'] }}" />
+                                            @else
+                                                <x-k::form.input :data="['name' => $slot['name'], 'label' => $slot['label'], 'value' => $section->data[$slot['name']] ?? '']" />
+                                            @endif
+                                        @endforeach
                                         <button type="submit" class="btn btn-primary">{{ __('kopling-admin::messages.save') }}</button>
                                     </form>
                                 </x-k::modal>

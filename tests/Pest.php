@@ -91,3 +91,23 @@ function editorText(string $text, array $marks = []): array
         'marks' => $marks,
     ], fn ($value) => $value !== []);
 }
+
+/**
+ * A minimal `PageSectionTemplate` -- a "title" (string) slot and a "content" (wysiwyg) slot --
+ * shared across Pages' controller/renderer tests so they don't each hand-roll the same template
+ * shape.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function pageSectionTemplate(array $overrides = []): \Kopling\Pages\PageSectionTemplate
+{
+    return \Kopling\Pages\PageSectionTemplate::create([
+        'name' => 'Test template',
+        'blade_source' => '<div>{{ $title }}{!! $content !!}</div>',
+        'slots' => [
+            ['name' => 'title', 'type' => 'string', 'label' => 'Title'],
+            ['name' => 'content', 'type' => 'wysiwyg', 'label' => 'Content'],
+        ],
+        ...$overrides,
+    ]);
+}

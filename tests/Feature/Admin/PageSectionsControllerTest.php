@@ -5,64 +5,71 @@ declare(strict_types=1);
 use Kopling\Pages\Page;
 use Kopling\Pages\PageSection;
 
-it('adds a rich-text section, rendering content_html server-side', function () {
+it('adds a section, storing plain slots directly and wysiwyg slots as json+rendered html', function () {
     $page = Page::create(['path' => 'a', 'title' => 'A']);
+    $template = pageSectionTemplate();
     $doc = editorDoc([['type' => 'paragraph', 'content' => [editorText('Hello world')]]]);
 
     $this->actingAs(personWithManagePages())
-        ->post("/admin/pages/{$page->id}/sections", ['kind' => 'rich-text', 'content' => $doc])
+        ->post("/admin/pages/{$page->id}/sections", [
+            'template_id' => $template->id,
+            'title' => 'Welcome',
+            'content' => $doc,
+        ])
         ->assertRedirect();
 
     $section = $page->sections()->sole();
-    expect($section->kind)->toBe('rich-text')
-        ->and($section->content)->toBe($doc)
-        ->and($section->content_html)->toContain('Hello world')
+    expect($section->template_id)->toBe($template->id)
+        ->and($section->data['title'])->toBe('Welcome')
+        ->and($section->data['content']['json'])->toBe($doc)
+        ->and($section->data['content']['html'])->toContain('Hello world')
         ->and($section->order)->toBe(1);
 });
 
-it('rejects an empty rich-text document', function () {
+it('rejects an empty wysiwyg document for a wysiwyg slot', function () {
     $page = Page::create(['path' => 'a', 'title' => 'A']);
+    $template = pageSectionTemplate();
     $doc = editorDoc([['type' => 'paragraph', 'content' => []]]);
 
     $this->actingAs(personWithManagePages())
-        ->post("/admin/pages/{$page->id}/sections", ['kind' => 'rich-text', 'content' => $doc])
+        ->post("/admin/pages/{$page->id}/sections", [
+            'template_id' => $template->id,
+            'title' => 'Welcome',
+            'content' => $doc,
+        ])
         ->assertSessionHasErrors('content');
 
     expect($page->sections()->count())->toBe(0);
 });
 
-it('adds a hero section with subtitle/cta fields', function () {
-    $page = Page::create(['path' => 'a', 'title' => 'A']);
-
-    $this->actingAs(personWithManagePages())
-        ->post("/admin/pages/{$page->id}/sections", [
-            'kind' => 'hero',
-            'subtitle' => 'Real relationships',
-            'cta_label' => 'Get started',
-            'cta_url' => 'https://example.test',
-        ])
-        ->assertRedirect();
-
-    $section = $page->sections()->sole();
-    expect($section->kind)->toBe('hero')
-        ->and($section->data)->toBe(['subtitle' => 'Real relationships', 'cta_label' => 'Get started', 'cta_url' => 'https://example.test'])
-        ->and($section->content_html)->toBeNull();
-});
-
 it('assigns each new section the next order', function () {
     $page = Page::create(['path' => 'a', 'title' => 'A']);
-    $page->sections()->create(['kind' => 'hero', 'order' => 1, 'data' => []]);
+    $template = pageSectionTemplate();
+    $page->sections()->create(['template_id' => $template->id, 'order' => 1, 'data' => []]);
 
     $this->actingAs(personWithManagePages())
-        ->post("/admin/pages/{$page->id}/sections", ['kind' => 'hero', 'subtitle' => 'Two']);
+        ->post("/admin/pages/{$page->id}/sections", ['template_id' => $template->id, 'title' => 'Two']);
 
     expect($page->sections()->orderBy('order')->pluck('order')->all())->toBe([1, 2]);
 });
 
+it('updates a section using its own template\'s slots', function () {
+    $page = Page::create(['path' => 'a', 'title' => 'A']);
+    $template = pageSectionTemplate();
+    $section = $page->sections()->create(['template_id' => $template->id, 'order' => 1, 'data' => ['title' => 'Old']]);
+
+    $this->actingAs(personWithManagePages())
+        ->post("/admin/pages/{$page->id}/sections/{$section->id}", ['title' => 'New'])
+        ->assertRedirect();
+
+    expect($section->fresh()->data['title'])->toBe('New');
+});
+
 it('swaps order with the neighbor above on move up', function () {
     $page = Page::create(['path' => 'a', 'title' => 'A']);
-    $first = $page->sections()->create(['kind' => 'hero', 'order' => 1, 'data' => ['subtitle' => 'first']]);
-    $second = $page->sections()->create(['kind' => 'hero', 'order' => 2, 'data' => ['subtitle' => 'second']]);
+    $template = pageSectionTemplate();
+    $first = $page->sections()->create(['template_id' => $template->id, 'order' => 1, 'data' => ['title' => 'first']]);
+    $second = $page->sections()->create(['template_id' => $template->id, 'order' => 2, 'data' => ['title' => 'second']]);
 
     $this->actingAs(personWithManagePages())
         ->post("/admin/pages/{$page->id}/sections/{$second->id}/move", ['direction' => 'up'])
@@ -74,7 +81,8 @@ it('swaps order with the neighbor above on move up', function () {
 
 it('does nothing when moving the first section up', function () {
     $page = Page::create(['path' => 'a', 'title' => 'A']);
-    $only = $page->sections()->create(['kind' => 'hero', 'order' => 1, 'data' => []]);
+    $template = pageSectionTemplate();
+    $only = $page->sections()->create(['template_id' => $template->id, 'order' => 1, 'data' => []]);
 
     $this->actingAs(personWithManagePages())
         ->post("/admin/pages/{$page->id}/sections/{$only->id}/move", ['direction' => 'up']);
@@ -84,7 +92,8 @@ it('does nothing when moving the first section up', function () {
 
 it('deletes a section', function () {
     $page = Page::create(['path' => 'a', 'title' => 'A']);
-    $section = $page->sections()->create(['kind' => 'hero', 'order' => 1, 'data' => []]);
+    $template = pageSectionTemplate();
+    $section = $page->sections()->create(['template_id' => $template->id, 'order' => 1, 'data' => []]);
 
     $this->actingAs(personWithManagePages())
         ->post("/admin/pages/{$page->id}/sections/{$section->id}/delete")
@@ -96,7 +105,8 @@ it('deletes a section', function () {
 it('404s when the section does not belong to the page in the URL', function () {
     $pageA = Page::create(['path' => 'a', 'title' => 'A']);
     $pageB = Page::create(['path' => 'b', 'title' => 'B']);
-    $section = $pageB->sections()->create(['kind' => 'hero', 'order' => 1, 'data' => []]);
+    $template = pageSectionTemplate();
+    $section = $pageB->sections()->create(['template_id' => $template->id, 'order' => 1, 'data' => []]);
 
     $this->actingAs(personWithManagePages())
         ->post("/admin/pages/{$pageA->id}/sections/{$section->id}/delete")

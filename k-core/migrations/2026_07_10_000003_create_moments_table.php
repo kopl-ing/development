@@ -17,9 +17,11 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('person_id')->constrained(table: 'people')->cascadeOnDelete();
             $table->string('title');
-            // Canonical ProseMirror JSON document. `body_html` is the sanitized rendered HTML
-            // `DocumentRenderer` produces from it at write time.
-            $table->text('body');
+            // Canonical ProseMirror JSON document. Nullable -- a Moment can be entirely
+            // composed of an extension's own content (e.g. a poll) with no body of its own.
+            // `body_html` is the sanitized rendered HTML `DocumentRenderer` produces from it at
+            // write time.
+            $table->text('body')->nullable();
             $table->text('body_html')->nullable();
             $table->timestamps();
         });

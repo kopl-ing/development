@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Kopling\Pages\Page;
+use Kopling\Pages\PageSectionTemplate;
 
 it('404s when no page is set as the index and the portal root is requested', function () {
     $this->get('/pages')->assertNotFound();
@@ -14,18 +15,18 @@ it('shows the page marked as index at the portal root', function () {
     $this->get('/pages')->assertOk()->assertSee('Welcome');
 });
 
-it('shows a published page by its path', function () {
-    $page = Page::create(['path' => 'about', 'title' => 'About Us', 'published' => true]);
-    $page->sections()->create([
-        'kind' => 'rich-text',
-        'order' => 1,
-        'content' => '{"type":"doc","content":[]}',
-        'content_html' => '<p>Hello there</p>',
+it('shows a published page by its path, compiling its section template against its slot data', function () {
+    $template = PageSectionTemplate::create([
+        'name' => 'Greeting',
+        'blade_source' => '<p>{{ $title }}</p>',
+        'slots' => [['name' => 'title', 'type' => 'string', 'label' => 'Title']],
     ]);
+    $page = Page::create(['path' => 'about', 'title' => 'About Us', 'published' => true]);
+    $page->sections()->create(['template_id' => $template->id, 'order' => 1, 'data' => ['title' => 'Hello there']]);
 
     $this->get('/pages/about')
         ->assertOk()
-        ->assertSee('Hello there', false);
+        ->assertSee('Hello there');
 });
 
 it('404s an unpublished page even by its exact path', function () {
@@ -34,20 +35,23 @@ it('404s an unpublished page even by its exact path', function () {
     $this->get('/pages/draft')->assertNotFound();
 });
 
-it('renders a hero section using the page\'s own title plus the section\'s subtitle/cta', function () {
+it('renders a wysiwyg slot as its pre-rendered, sanitized html', function () {
+    $template = PageSectionTemplate::create([
+        'name' => 'Rich text',
+        'blade_source' => '<div class="prose">{!! $body !!}</div>',
+        'slots' => [['name' => 'body', 'type' => 'wysiwyg', 'label' => 'Body']],
+    ]);
     $page = Page::create(['path' => 'landing', 'title' => 'Kopling', 'published' => true]);
     $page->sections()->create([
-        'kind' => 'hero',
+        'template_id' => $template->id,
         'order' => 1,
-        'data' => ['subtitle' => 'Real relationships', 'cta_label' => 'Get started', 'cta_url' => 'https://example.test'],
+        'data' => ['body' => ['json' => '{"type":"doc","content":[]}', 'html' => '<p>Real relationships</p>']],
     ]);
 
     $this->get('/pages/landing')
         ->assertOk()
         ->assertSee('Kopling')
-        ->assertSee('Real relationships')
-        ->assertSee('Get started')
-        ->assertSee('https://example.test', false);
+        ->assertSee('Real relationships', false);
 });
 
 it('lists published, show_in_nav pages in the topbar, ordered by nav_order', function () {

@@ -51,6 +51,14 @@ Route::middleware('can:kopling-core::manage-people')->group(function () {
     Route::post('groups/{group}/delete', [GroupsController::class, 'destroy'])->name('groups.destroy');
 });
 
+// "manage-permissions" is its own, more granular Core permission (declared since Core::permissions()'s
+// original pass, never wired to a UI until now) -- deliberately not folded into "manage-people"
+// above, same granular-not-a-flag philosophy as everywhere else: someone who can manage people
+// isn't automatically trusted to grant/revoke permissions too.
+Route::middleware('can:kopling-core::manage-permissions')->group(function () {
+    Route::post('groups/{group}/permissions', [GroupsController::class, 'updatePermissions'])->name('groups.permissions');
+});
+
 // The bare Portal path ("/admin") itself has no page of its own yet -- settings is the only
 // thing in here today, so land there rather than 404ing. Ungated beyond the Portal's own
 // "access-admin" (inherited above): the redirect target re-checks "manage-settings" on arrival,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Kopling\Pages\Controllers\Admin\PageSectionsController;
+use Kopling\Pages\Controllers\Admin\PageSectionTemplatesController;
 use Kopling\Pages\Controllers\Admin\PagesController;
 
 // Attached to Admin's own Portal (see Extension::extendsPortals()), so this inherits Admin's
@@ -28,4 +29,13 @@ Route::middleware('can:kopling-pages::manage-pages')->group(function () {
         Route::post('pages/{page}/sections/{section}/delete', [PageSectionsController::class, 'destroy'])->name('pages.sections.destroy');
         Route::post('pages/{page}/sections/{section}/move', [PageSectionsController::class, 'move'])->name('pages.sections.move');
     });
+});
+
+// A separate, more locked-down permission -- see Extension::permissions()'s own docblock on
+// "manage-page-templates" for why this isn't folded into "manage-pages" above.
+Route::middleware('can:kopling-pages::manage-page-templates')->group(function () {
+    Route::get('section-templates', [PageSectionTemplatesController::class, 'index'])->name('section-templates');
+    Route::post('section-templates', [PageSectionTemplatesController::class, 'store'])->name('section-templates.store');
+    Route::post('section-templates/{template}', [PageSectionTemplatesController::class, 'update'])->name('section-templates.update');
+    Route::post('section-templates/{template}/delete', [PageSectionTemplatesController::class, 'destroy'])->name('section-templates.destroy');
 });

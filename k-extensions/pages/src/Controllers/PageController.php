@@ -27,7 +27,7 @@ class PageController
     {
         return view('kopling-pages::show', [
             'page' => $page,
-            'sections' => $page->sections,
+            'sections' => $page->sections()->with('template')->get(),
         ]);
     }
 }

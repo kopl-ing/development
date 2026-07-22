@@ -11,18 +11,19 @@ use Kopling\Core\Ux\Editor\DocumentRenderer;
 use Kopling\Core\Ux\Editor\Rules\ValidDocument;
 use Kopling\Pages\Page;
 use Kopling\Pages\PageSection;
-use Kopling\Pages\SectionKind;
+use Kopling\Pages\PageSectionTemplate;
+use Kopling\Pages\SlotType;
 
 class PageSectionsController
 {
     public function store(Request $request, Page $page, Manager $manager): RedirectResponse
     {
-        $kind = SectionKind::from($request->input('kind'));
+        $template = PageSectionTemplate::findOrFail($request->input('template_id'));
 
         $page->sections()->create([
-            'kind' => $kind->value,
+            'template_id' => $template->id,
             'order' => (int) $page->sections()->max('order') + 1,
-            ...$this->kindData($request, $kind, $manager),
+            'data' => $this->slotData($request, $template, $manager),
         ]);
 
         return redirect()->route('kopling-admin::admin/pages.edit', $page);
@@ -30,7 +31,9 @@ class PageSectionsController
 
     public function update(Request $request, Page $page, PageSection $section, Manager $manager): RedirectResponse
     {
-        $section->update($this->kindData($request, SectionKind::from($section->kind), $manager));
+        $section->update([
+            'data' => $this->slotData($request, $section->template, $manager),
+        ]);
 
         return redirect()->route('kopling-admin::admin/pages.edit', $page);
     }
@@ -65,53 +68,32 @@ class PageSectionsController
     }
 
     /**
-     * @return array{content: ?string, content_html: ?string, data: ?array}
+     * One value per the template's own declared slots -- a "wysiwyg" slot is validated and
+     * rendered to HTML server-side, at write time, through the same DocumentRenderer whitelist
+     * Moment::$body/$body_html uses (see SectionRenderer for why only the rendered `html` is ever
+     * exposed to the template itself).
      */
-    protected function kindData(Request $request, SectionKind $kind, Manager $manager): array
+    protected function slotData(Request $request, PageSectionTemplate $template, Manager $manager): array
     {
-        return match ($kind) {
-            SectionKind::RichText => $this->richTextData($request, $manager),
-            SectionKind::Hero => $this->heroData($request),
-        };
-    }
+        $data = [];
 
-    /**
-     * `content_html` is rendered server-side from the validated document here, at write time --
-     * the exact same DocumentRenderer whitelist Moment::$body/$body_html uses, never a second
-     * sanitization codepath just because this content is admin-authored rather than
-     * person-authored.
-     */
-    protected function richTextData(Request $request, Manager $manager): array
-    {
-        $request->validate([
-            'content' => ['required', 'string', new ValidDocument($manager->editorNodes())],
-        ]);
+        foreach ($template->slots as $slot) {
+            $name = $slot['name'];
 
-        $content = $request->input('content');
+            if (SlotType::from($slot['type']) === SlotType::Wysiwyg) {
+                $request->validate([$name => ['nullable', 'string', new ValidDocument($manager->editorNodes())]]);
 
-        return [
-            'content' => $content,
-            'content_html' => DocumentRenderer::render($content, $manager->editorNodes()),
-            'data' => null,
-        ];
-    }
+                $json = $request->input($name);
+                $data[$name] = $json !== null
+                    ? ['json' => $json, 'html' => DocumentRenderer::render($json, $manager->editorNodes())]
+                    : null;
+            } else {
+                $request->validate([$name => ['nullable', 'string', 'max:2000']]);
 
-    protected function heroData(Request $request): array
-    {
-        $request->validate([
-            'subtitle' => ['nullable', 'string', 'max:255'],
-            'cta_label' => ['nullable', 'string', 'max:60'],
-            'cta_url' => ['nullable', 'string', 'max:2000'],
-        ]);
+                $data[$name] = $request->input($name);
+            }
+        }
 
-        return [
-            'content' => null,
-            'content_html' => null,
-            'data' => [
-                'subtitle' => $request->input('subtitle'),
-                'cta_label' => $request->input('cta_label'),
-                'cta_url' => $request->input('cta_url'),
-            ],
-        ];
+        return $data;
     }
 }

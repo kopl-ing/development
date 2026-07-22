@@ -33,7 +33,23 @@
                                 </form>
                             </td>
                             <td>{{ $group->people_count }}</td>
-                            <td>
+                            <td class="flex gap-2">
+                                @can('kopling-core::manage-permissions')
+                                    <x-k::modal id="group-permissions-{{ $group->id }}" :label="__('kopling-admin::messages.manage_permissions')">
+                                        <x-slot:trigger>{{ __('kopling-admin::messages.permissions') }}</x-slot:trigger>
+                                        <form method="POST" action="{{ route('kopling-admin::admin/groups.permissions', $group) }}" class="flex flex-col gap-4">
+                                            @csrf
+                                            <h2 class="text-lg font-semibold">{{ $group->name }}</h2>
+                                            <x-k::form.multi-select :data="[
+                                                'name' => 'permissions',
+                                                'label' => __('kopling-admin::messages.permissions'),
+                                                'options' => $permissions,
+                                                'value' => $group->permissions->pluck('permission'),
+                                            ]" />
+                                            <button type="submit" class="btn btn-primary self-start">{{ __('kopling-admin::messages.save') }}</button>
+                                        </form>
+                                    </x-k::modal>
+                                @endcan
                                 <form method="POST" action="{{ route('kopling-admin::admin/groups.destroy', $group) }}"
                                       onsubmit="return confirm('{{ __('kopling-admin::messages.confirm_delete_group') }}')">
                                     @csrf
