@@ -1,0 +1,36 @@
+<?php
+
+return [
+    'pages' => 'Pages',
+    'new_page' => 'New page',
+    'create_page' => 'Create page',
+    'edit_page' => 'Edit page',
+    'no_pages' => 'No pages yet.',
+    'title' => 'Title',
+    'path' => 'Path',
+    'meta_description' => 'Meta description',
+    'published' => 'Published',
+    'show_in_nav' => 'Show in navigation',
+    'nav_order' => 'Navigation order',
+    'is_index' => 'Use as home page',
+    'save' => 'Save',
+    'delete' => 'Delete',
+    'confirm_delete_page' => 'Delete this page and all its sections? This cannot be undone.',
+    'path_taken' => 'That path is already used by another page.',
+
+    'sections' => 'Sections',
+    'add_section' => 'Add section',
+    'section_kind' => 'Kind',
+    'kind_rich_text' => 'Rich text',
+    'kind_hero' => 'Hero',
+    'hero_subtitle' => 'Subtitle',
+    'hero_cta_label' => 'Button label',
+    'hero_cta_url' => 'Button link',
+    'content' => 'Content',
+    'move_up' => 'Move up',
+    'move_down' => 'Move down',
+    'no_sections' => 'No sections yet.',
+    'confirm_delete_section' => 'Delete this section? This cannot be undone.',
+
+    'page_not_found' => 'Page not found.',
+];

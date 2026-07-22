@@ -1,0 +1,19 @@
+{
+    "name": "kopling/pages",
+    "description": "An admin-authored pages CMS -- reusable landing/marketing pages built from a small set of section kinds (rich text, hero), reusing Core's own Tiptap editor.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Pages\\": "src/"
+        }
+    }
+}
