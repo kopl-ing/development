@@ -18,7 +18,8 @@
         "php": ">= 8.4",
         "laravel/framework": "13.*",
         "owenvoke/blade-fontawesome": "^3.0",
-        "spatie/once": "^3.0"
+        "spatie/once": "^3.0",
+        "league/flysystem-path-prefixing": "^3.31"
     },
     "autoload": {
         "psr-4": {
