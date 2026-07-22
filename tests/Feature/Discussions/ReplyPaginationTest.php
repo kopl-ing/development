@@ -33,7 +33,12 @@ it('renders pagination controls once a thread has enough replies to need a secon
     expect($html)->toContain('aria-label="Next"')
         ->and($html)->toContain('page=2')
         // The heading counts the whole thread, not just what fits on this one page.
-        ->and($html)->toContain("{$count} replies");
+        ->and($html)->toContain("{$count} replies")
+        // Page links refresh #replies-wrapper-{id} via htmx -- #replies-{id} itself (the
+        // composer's own append target) is untouched by this.
+        ->and($html)->toContain("id=\"replies-wrapper-{$moment->id}\"")
+        ->and($html)->toContain("id=\"replies-{$moment->id}\"")
+        ->and($html)->toContain("hx-target:inherited=\"#replies-wrapper-{$moment->id}\"");
 });
 
 it('renders no pagination controls when the whole thread fits on one page', function () {

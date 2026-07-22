@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\View as ViewFacade;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Ux\Context;
@@ -28,11 +29,21 @@ class DiscussionController
         $this->authorize('kopling-discussions::view');
 
         $context = new Context(subject: Reply::forMoment($moment));
+        $replies = $context->getSubjectPaginator();
+
+        // A reading-position dock (reply-dock's own scrubber) needs the whole thread's real
+        // total/page position to count correctly across pages -- shared rather than threaded
+        // through `kopling-discussions::show.composer`'s own `$context` (that slot's `$context`
+        // is documented as the Moment itself; several registered entries already read
+        // `$context?->getSubject()` expecting exactly that, so repurposing it here would break
+        // them). `$replies` is reused, not re-queried -- `Context::getSubjectPaginator()` is
+        // memoized, so this is the exact same paginator `show.blade.php` already resolved.
+        ViewFacade::share('discussionReplies', $replies);
 
         return view('kopling-discussions::show', [
             'moment' => $moment,
             'context' => $context,
-            'replies' => $context->getSubjectPaginator(),
+            'replies' => $replies,
         ]);
     }
 

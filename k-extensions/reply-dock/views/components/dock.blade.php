@@ -8,6 +8,18 @@
     // discussions' own "log in to reply" line (its form only renders for auth anyway).
     $moment = request()->route('moment');
     $me = auth()->user();
+
+    // `discussionReplies` is `DiscussionController::show()`'s own already-paginated Reply
+    // paginator, shared (not re-queried) for exactly this -- see that controller's own comment.
+    // `count`/`pageBaseIndex` number replies only, not the OP -- `count` needs the whole thread's
+    // real total, not just however many `[data-reply]` cards this one page happens to render:
+    // counting only the DOM would silently report "you've read everything" the moment you reach
+    // page 1's own pagination controls, even with more replies waiting on page 2+.
+    // `pageBaseIndex` is how many replies preceded this page (0 on page 1) -- `recount()`/
+    // `onScroll()` add the current page's own `[data-reply]` count on top of it to estimate a
+    // global reading position without needing a full reload.
+    $totalPosts = $discussionReplies?->total() ?? 0;
+    $pageBaseIndex = (($discussionReplies?->currentPage() ?? 1) - 1) * ($discussionReplies?->perPage() ?? 1);
 @endphp
 
 @if ($moment instanceof Moment && $me)
@@ -30,7 +42,9 @@
     <div class="kop-dock"
          x-data="{
             open: false,
-            count: 1,
+            count: {{ $totalPosts }},
+            pageBaseIndex: {{ $pageBaseIndex }},
+            pageReplyCount: 0,
             current: 1,
             progress: 0,
             scrubbing: false,
@@ -59,19 +73,43 @@
                     this.quotes = [];
                     this.emitQuotes();
                 });
-                // Recount once the new reply is actually swapped into the list.
-                this.$el.addEventListener('htmx:after:swap', () => { this.recount(); this.syncPad(); });
+                // Recount once the new reply is actually swapped into the list -- a reply just
+                // posted through this dock, so the whole thread's real total grows by one too
+                // (the server-rendered `count` above is otherwise stale until the next reload).
+                this.$el.addEventListener('htmx:after:swap', () => { this.count++; this.recount(); this.syncPad(); });
+                // Pagination boosts a fresh page of replies into #replies-wrapper-{{ $moment->id }}
+                // (an outerHTML swap, see show.blade.php) -- that div sits outside this dock's own
+                // subtree (a sibling under the same parent), so a listener on $el would never see
+                // it. `htmx:after:swap` itself fires on the *clicked pagination link*, not the
+                // swapped container (htmx quirk: for an outerHTML swap of an ancestor, that link is
+                // already detached by the time the event fires, so it has nowhere left to bubble
+                // to) -- `htmx:after:settle` fires on the actual swapped-in element instead, once
+                // it's back in the live DOM, which does bubble. A global `window` listener, since
+                // the wrapper is a sibling, not a descendant, of this dock.
+                window.addEventListener('htmx:after:settle', (e) => this.syncFromRepliesPage(e));
             },
             recount() {
                 const wrap = document.getElementById('replies-{{ $moment->id }}');
-                this.count = (wrap ? wrap.querySelectorAll('[data-reply]').length : 0) + 1;
+                this.pageReplyCount = wrap ? wrap.querySelectorAll('[data-reply]').length : 0;
                 this.onScroll();
+            },
+            // Re-syncs `count`/`pageBaseIndex` from the freshly swapped-in replies wrapper's own
+            // data attributes -- trusting whatever was embedded in *this* dock's markup at the
+            // original page load would leave it stuck on whichever page happened to be loaded
+            // first, even after a boosted click has since moved the visible replies elsewhere.
+            syncFromRepliesPage(e) {
+                if (e.target?.id !== 'replies-wrapper-{{ $moment->id }}') return;
+                const total = parseInt(e.target.dataset.totalReplies, 10);
+                if (!Number.isNaN(total)) this.count = total;
+                const base = parseInt(e.target.dataset.pageBaseIndex, 10);
+                if (!Number.isNaN(base)) this.pageBaseIndex = base;
+                this.recount();
             },
             onScroll() {
                 if (this.scrubbing) return;
                 const h = document.documentElement.scrollHeight - window.innerHeight;
                 this.progress = h > 0 ? Math.min(1, Math.max(0, window.scrollY / h)) : 0;
-                this.current = Math.min(this.count, Math.max(1, Math.round(this.progress * (this.count - 1)) + 1));
+                this.current = Math.min(this.count, Math.max(1, this.pageBaseIndex + Math.round(this.progress * this.pageReplyCount)));
             },
             openComposer() { this.open = true; this.$nextTick(() => { this.editorEl()?.querySelector('.ProseMirror')?.focus(); this.syncPad(); }); },
             // The mount point rendered by the editor component inside x-ref=editor --

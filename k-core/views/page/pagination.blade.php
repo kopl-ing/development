@@ -8,9 +8,24 @@
 --}}
 @php
     $pages = $paginator->linkCollection()->slice(1, -1);
+
+    // htmx 4 inheritance is explicit (`:inherited`) -- without it these would sit inertly on
+    // `<nav>` itself, never reaching the plain `<a>` tags below that actually trigger a request.
+    // `show:top` scrolls `$target` back into view after the swap -- otherwise the page would
+    // stay at whatever scroll position clicking "Next" happened to leave it at, mid-old-content.
+    $htmxAttributes = $target ? [
+        'hx-boost:inherited' => 'true',
+        'hx-target:inherited' => $target,
+        'hx-select:inherited' => $target,
+        'hx-swap:inherited' => 'outerHTML show:top',
+        'hx-push-url:inherited' => 'true',
+    ] : [];
 @endphp
 @if ($paginator->hasPages())
-    <nav {{ $attributes->merge(['class' => 'flex justify-center']) }} aria-label="{{ __('kopling-core::ux.pagination_navigation') }}">
+    <nav
+        {{ $attributes->merge(array_merge(['class' => 'flex justify-center'], $htmxAttributes)) }}
+        aria-label="{{ __('kopling-core::ux.pagination_navigation') }}"
+    >
         <div class="join">
             @if ($paginator->onFirstPage())
                 <span class="join-item btn btn-disabled" tabindex="-1" role="button" aria-disabled="true" aria-label="{{ __('kopling-core::ux.previous') }}">

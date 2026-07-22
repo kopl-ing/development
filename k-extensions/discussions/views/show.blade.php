@@ -23,13 +23,27 @@
                 {{ trans_choice('kopling-discussions::messages.replies', $replies->total(), ['count' => $replies->total()]) }}
             </h2>
 
-            <div id="replies-{{ $moment->id }}" class="flex flex-col gap-3">
-                @foreach ($replies as $reply)
-                    @include('kopling-discussions::partials.reply', ['reply' => $reply])
-                @endforeach
-            </div>
+            {{-- `#replies-wrapper-{id}` is the pagination's own htmx target/select (see
+                 `Pagination`'s own docblock) -- `#replies-{id}` itself stays untouched inside
+                 it, since the reply composer's own `hx-target="#replies-{id}"` (dock.blade.php,
+                 composer.blade.php) already appends a freshly-posted reply there directly and
+                 knows nothing about this wrapper. `data-total-replies`/`data-page-base-index`
+                 let reply-dock's own scrubber (dock.blade.php) re-sync itself after a boosted
+                 page change swaps this whole wrapper in fresh -- see that file's own
+                 `syncFromRepliesPage()` for why it can't just trust its own initial numbers. --}}
+            <div
+                id="replies-wrapper-{{ $moment->id }}"
+                data-total-replies="{{ $replies->total() }}"
+                data-page-base-index="{{ ($replies->currentPage() - 1) * $replies->perPage() }}"
+            >
+                <div id="replies-{{ $moment->id }}" class="flex flex-col gap-3">
+                    @foreach ($replies as $reply)
+                        @include('kopling-discussions::partials.reply', ['reply' => $reply])
+                    @endforeach
+                </div>
 
-            <x-k::page.pagination :context="$context" />
+                <x-k::page.pagination :context="$context" target="#replies-wrapper-{{ $moment->id }}" />
+            </div>
 
             {{-- A slot, not hardcoded markup -- lets a superseding extension (reply-dock) call
                  `Ux::remove('kopling-discussions::default-composer')` and own the one reply

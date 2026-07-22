@@ -21,7 +21,12 @@ it('renders pagination controls once there are enough moments to need a second p
     $html = $this->get('/')->assertOk()->getContent();
 
     expect($html)->toContain('aria-label="Next"')
-        ->and($html)->toContain('page=2');
+        ->and($html)->toContain('page=2')
+        // Page links refresh #moments-feed-wrapper via htmx instead of a full page reload --
+        // #moments-feed itself (the live poller's own OOB swap target) is untouched by this.
+        ->and($html)->toContain('id="moments-feed-wrapper"')
+        ->and($html)->toContain('id="moments-feed"')
+        ->and($html)->toContain('hx-target:inherited="#moments-feed-wrapper"');
 });
 
 it('renders no pagination controls when everything fits on one page', function () {
