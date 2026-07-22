@@ -33,6 +33,7 @@ use Kopling\Core\Extension\LoadOrder\Resolver;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Settings\EnabledExtensions;
+use Kopling\Core\Settings\Settings;
 use Kopling\Core\Storage\StorageRequest;
 use Kopling\Core\Ux\Editor\EditorNode;
 use Kopling\Core\Ux\Form\Field;
@@ -331,7 +332,9 @@ class Manager
     public function portals(): Collection
     {
         if (($cached = $this->cache->get()) !== null) {
-            return collect($cached['portals'])->map(fn (array $data) => Portal::fromArray($data))->keyBy('id');
+            return $this->applyPortalPathOverrides(
+                collect($cached['portals'])->map(fn (array $data) => Portal::fromArray($data))->keyBy('id')
+            );
         }
 
         $portals = [];
@@ -355,7 +358,25 @@ class Manager
             }
         }
 
-        return collect($portals)->keyBy('id');
+        return $this->applyPortalPathOverrides(collect($portals)->keyBy('id'));
+    }
+
+    /**
+     * A final map step, run every time `portals()` is called regardless of whether it came from
+     * `RegistrationCache` or a live computation -- an admin-configured path override lives in
+     * `Settings` (live, DB-backed), never baked into `RegistrationCache` (a Composer-boundary
+     * snapshot only rebuilt by explicitly running `kopling:extensions:cache`). Always resolves
+     * from `$portal->defaultPath`, never the portal's current `$path`, so this is safe to run
+     * unconditionally even against an already-overridden value reconstructed from a stale cache.
+     *
+     * @param  Collection<int, Portal>  $portals
+     * @return Collection<int, Portal>
+     */
+    protected function applyPortalPathOverrides(Collection $portals): Collection
+    {
+        return $portals->each(function (Portal $portal) {
+            $portal->path = Settings::get("core.portal_path.{$portal->id}", $portal->defaultPath);
+        });
     }
 
     /**

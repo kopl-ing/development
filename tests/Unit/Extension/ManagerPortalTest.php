@@ -22,6 +22,18 @@ it('prefixes a declared Portal\'s id and permission with the owning package id',
         ->and($portal->permission)->toBe('tests-fixtures-portal-owner::access-demo');
 });
 
+it('keeps $path equal to the declared $defaultPath when nothing overrides it', function () use ($portalOwner) {
+    // A bare fakeManager() test boots no app/DB at all, so the Settings::get() lookup inside
+    // applyPortalPathOverrides() always hits its own caught RuntimeException path and falls
+    // back to $defaultPath -- see tests/Feature/Portal/PortalPathOverrideTest.php for the real,
+    // DB-backed override actually taking effect.
+    $portal = fakeManager(['tests-fixtures/portal-owner' => $portalOwner])
+        ->portals()->get('tests-fixtures-portal-owner::demo');
+
+    expect($portal->path)->toBe('fixture-demo')
+        ->and($portal->defaultPath)->toBe('fixture-demo');
+});
+
 it('always includes Core\'s own Community Portal regardless of what else is discovered', function () {
     $manager = fakeManager();
 

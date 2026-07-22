@@ -134,6 +134,30 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
             ->as('settings')
             ->when('manage-settings')
             ->add(Item::class, [
+                'label' => __('kopling-admin::messages.drives'),
+                'route' => 'kopling-admin::admin/drives',
+            ])
+            ->in('kopling-admin::admin.navigation')
+            ->as('drives')
+            ->when('manage-settings')
+            ->after('settings')
+            ->add(Item::class, [
+                'label' => __('kopling-admin::messages.storage'),
+                'route' => 'kopling-admin::admin/storage',
+            ])
+            ->in('kopling-admin::admin.navigation')
+            ->as('storage')
+            ->when('manage-settings')
+            ->after('drives')
+            ->add(Item::class, [
+                'label' => __('kopling-admin::messages.portals'),
+                'route' => 'kopling-admin::admin/portals',
+            ])
+            ->in('kopling-admin::admin.navigation')
+            ->as('portals')
+            ->when('manage-settings')
+            ->after('storage')
+            ->add(Item::class, [
                 'label' => __('kopling-admin::messages.people'),
                 'route' => 'kopling-admin::admin/people',
             ])

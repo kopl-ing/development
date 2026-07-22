@@ -18,15 +18,26 @@ namespace Kopling\Core\Portal;
  */
 class Portal
 {
+    /**
+     * The path as originally declared by the extension -- never mutated, unlike `$path` itself
+     * (which `Manager::portals()` overwrites with an admin-configured override when one exists,
+     * the same way it already mutates `$id` for prefixing). Kept so admin UI can show "default
+     * vs override" without the only copy of the default having been overwritten, and so the
+     * override lookup always has a stable fallback to resolve against regardless of what `$path`
+     * currently holds (see `Manager::portals()`).
+     */
+    public readonly string $defaultPath;
+
     public function __construct(
         public string $id,
         public readonly string $label,
-        public readonly string $path,
+        public string $path,
         public readonly string $layout,
         public readonly ?string $icon = null,
         public readonly ?string $description = null,
         public ?string $permission = null,
     ) {
+        $this->defaultPath = $path;
     }
 
     public function toArray(): array
@@ -35,6 +46,7 @@ class Portal
             'id' => $this->id,
             'label' => $this->label,
             'path' => $this->path,
+            'defaultPath' => $this->defaultPath,
             'layout' => $this->layout,
             'icon' => $this->icon,
             'description' => $this->description,
@@ -44,14 +56,18 @@ class Portal
 
     public static function fromArray(array $data): self
     {
-        return new self(
+        $portal = new self(
             id: $data['id'],
             label: $data['label'],
-            path: $data['path'],
+            path: $data['defaultPath'] ?? $data['path'],
             layout: $data['layout'],
             icon: $data['icon'],
             description: $data['description'],
             permission: $data['permission'],
         );
+
+        $portal->path = $data['path'];
+
+        return $portal;
     }
 }

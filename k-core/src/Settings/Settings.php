@@ -37,4 +37,14 @@ class Settings
             ['value' => $value, 'updated_at' => now()],
         );
     }
+
+    /**
+     * Removes the row outright, so `get()`'s own `$default` takes over again -- distinct from
+     * `set($key, $default)`, which would leave an inert row behind holding the same value as
+     * the default rather than actually clearing the override.
+     */
+    public static function forget(string $key): void
+    {
+        DB::table('settings')->where('key', $key)->delete();
+    }
 }
