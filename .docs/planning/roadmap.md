@@ -51,13 +51,14 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   schema. A `?sort=top` feed mode orders by thumbs-up count. Also shipped Tags' first admin CRUD
   (`/admin/tags`, gated behind a new `manage-tags` permission), since per-tag vote config needed
   somewhere to be set. See decisions.md, 2026-07-18.
+- Rich-text composer — `composer`'s body field uses `<x-k::editor>` (`k-core/src/Ux/Editor.php`),
+  backed by a full TipTap/ProseMirror integration (`k-core/src/Ux/js/editor-tiptap.js`:
+  StarterKit, Underline/Link/TaskList/TaskItem/Blockquote, slash menu), not a plain `<textarea>`.
 
 ### Still needed
 
 - Email confirmation on sign-up — `auth-email-password` currently only has password
   *confirmation* (matching fields on the form), no actual email-verification flow.
-- WYSIWYG/rich-text editor integration — `composer`'s body field is a plain `<textarea>`, no
-  formatting.
 - Minimal moderation — enough to not get overrun by spam/bots on day one.
   - polymorphic flagging on both Moments and replies (one flaggable mechanism, not two)
   - a moderation queue to review flagged content — location TBD (`admin` extension is the

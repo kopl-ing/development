@@ -16,6 +16,7 @@ return [
     'no_people' => 'No people yet.',
     'no_groups' => 'No groups yet.',
     'manage_groups' => 'Manage groups',
+    'view_profile' => 'View profile',
     'permissions' => 'Permissions',
     'manage_permissions' => 'Manage permissions',
     'new_group_name' => 'New group name',

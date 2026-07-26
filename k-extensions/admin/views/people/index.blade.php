@@ -1,5 +1,9 @@
 @extends('kopling-admin::layouts.admin')
 
+@php
+    use Kopling\Core\Ux\Context;
+@endphp
+
 @section('content')
     <div class="max-w-3xl">
         <h1 class="text-2xl font-bold mb-6">{{ __('kopling-admin::messages.people') }}</h1>
@@ -23,20 +27,25 @@
                             <td>{{ $person->email }}</td>
                             <td>{{ $person->groups->pluck('name')->join(', ') }}</td>
                             <td>
-                                <x-k::modal :label="__('kopling-admin::messages.manage_groups')">
-                                    <x-slot:trigger>{{ __('kopling-admin::messages.manage_groups') }}</x-slot:trigger>
-                                    <form method="POST" action="{{ route('kopling-admin::admin/people.groups', $person) }}" class="flex flex-col gap-4">
-                                        @csrf
-                                        <h2 class="text-lg font-semibold">{{ $person->name }}</h2>
-                                        <x-k::form.multi-select :data="[
-                                            'name' => 'groups',
-                                            'label' => __('kopling-admin::messages.groups'),
-                                            'options' => $groups->pluck('name', 'id'),
-                                            'value' => $person->groups->pluck('id'),
-                                        ]" />
-                                        <button type="submit" class="btn btn-primary self-start">{{ __('kopling-admin::messages.save') }}</button>
-                                    </form>
-                                </x-k::modal>
+                                <div class="flex items-center gap-4">
+                                    @if ($url = (new Context(subject: $person))->getSubjectUrl())
+                                        <a href="{{ $url }}" class="link">{{ __('kopling-admin::messages.view_profile') }}</a>
+                                    @endif
+                                    <x-k::modal :label="__('kopling-admin::messages.manage_groups')">
+                                        <x-slot:trigger>{{ __('kopling-admin::messages.manage_groups') }}</x-slot:trigger>
+                                        <form method="POST" action="{{ route('kopling-admin::admin/people.groups', $person) }}" class="flex flex-col gap-4">
+                                            @csrf
+                                            <h2 class="text-lg font-semibold">{{ $person->name }}</h2>
+                                            <x-k::form.multi-select :data="[
+                                                'name' => 'groups',
+                                                'label' => __('kopling-admin::messages.groups'),
+                                                'options' => $groups->pluck('name', 'id'),
+                                                'value' => $person->groups->pluck('id'),
+                                            ]" />
+                                            <button type="submit" class="btn btn-primary self-start">{{ __('kopling-admin::messages.save') }}</button>
+                                        </form>
+                                    </x-k::modal>
+                                </div>
                             </td>
                         </tr>
                     @endforeach

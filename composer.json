@@ -32,6 +32,7 @@
         "kopling/pages": "@dev",
         "kopling/pin": "@dev",
         "kopling/poll": "@dev",
+        "kopling/profile": "@dev",
         "kopling/reactions": "@dev",
         "kopling/reply-dock": "@dev",
         "kopling/style-guide": "@dev",
