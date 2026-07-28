@@ -18,6 +18,7 @@ use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Card\Accreditation;
 use Kopling\Core\Ux\Card\Author;
 use Kopling\Core\Ux\Card\Timestamp;
 use Kopling\Core\Ux\Person\Avatar;
@@ -76,17 +77,9 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->add('kopling-discussions::composer')
             ->in('kopling-discussions::show.composer')
             ->as('default-composer')
-            ->add(Avatar::class)
+            ->add(Accreditation::class)
             ->in(Reply::TOP_SLOT)
-            ->as('avatar')
-            ->add(Author::class)
-            ->in(Reply::TOP_SLOT)
-            ->as('author')
-            ->after('avatar')
-            ->add(Timestamp::class)
-            ->in(Reply::TOP_SLOT)
-            ->as('timestamp')
-            ->after('author')
+            ->as('accreditation')
             ->add('kopling-discussions::reply-content')
             ->in(Reply::BODY_SLOT)
             ->as('reply-content')
