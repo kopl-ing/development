@@ -12,7 +12,7 @@ beforeEach(fn () => Cache::forget('kopling-widgets.tags'));
 
 function renderTagsWidget(): string
 {
-    return (string) test()->blade('<x-dynamic-component :component="$component" />', ['component' => 'kopling-widgets::tags']);
+    return (string) test()->blade('<x-dynamic-component :component="$component" />', ['component' => 'kopling-widgets::ux.tags-widget']);
 }
 
 it('shows nothing for a tag whose moments predate the activity window', function () {

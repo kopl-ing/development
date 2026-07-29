@@ -22,7 +22,6 @@ class AvatarGroup extends Component
     public function __construct(
         public iterable $avatars = [],
         public string $size = 'w-6',
-        public ?string $mask = 'mask-squircle',
         public string $spacing = '-space-x-3',
         public int $overflow = 0,
     ) {

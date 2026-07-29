@@ -56,13 +56,13 @@
                         class="kop-rchip kop-rchip--mine shrink-0"
                         title="{{ __('kopling-reactions::messages.remove_reaction') }}"
                         aria-label="{{ __('kopling-reactions::messages.remove_reaction') }}">
-                    <x-k::person.avatar :name="$name" :color="$color" size="w-6" class="text-[10px]" />
+                    <x-k::person.avatar :name="$name" :color="$color" size="w-6" />
                     <span class="kop-rchip__emoji" aria-hidden="true">{{ $reaction->emoji }}</span>
                     <span class="kop-rchip__word">{{ $reaction->word }}</span>
                 </button>
             @else
                 <span class="kop-rchip shrink-0" title="{{ $name }}">
-                    <x-k::person.avatar :name="$name" :color="$color" size="w-6" class="text-[10px]" />
+                    <x-k::person.avatar :name="$name" :color="$color" size="w-6" />
                     <span class="kop-rchip__emoji" aria-hidden="true">{{ $reaction->emoji }}</span>
                     <span class="kop-rchip__word">{{ $reaction->word }}</span>
                 </span>

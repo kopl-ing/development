@@ -7,6 +7,8 @@ namespace Kopling\Widgets;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Widgets\Ux\PulseWidget;
+use Kopling\Widgets\Ux\TagsWidget;
 
 /**
  * Rail widgets for the community: a "pulse" (a few live counts) and, when the tags extension
@@ -31,10 +33,10 @@ class Extension extends AbstractExtension implements ChangesUx
     {
         // Left sidebar (matches the reference layout — widgets on the left, not the right rail).
         return Ux::make()
-            ->add('kopling-widgets::pulse')
+            ->add(PulseWidget::class)
             ->in('kopling-core::community.sidebar')
             ->as('pulse')
-            ->add('kopling-widgets::tags')
+            ->add(TagsWidget::class)
             ->in('kopling-core::community.sidebar')
             ->as('tags')
             ->after('pulse');

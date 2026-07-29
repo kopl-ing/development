@@ -22,7 +22,9 @@ use Kopling\Core\Ux\Context;
  * `$color` are there for callers with no real `Person`/`Context` to hand at all -- an
  * `AvatarGroup` iterating plain contributor arrays (`['name' => ..., 'color' => ...]`), or a
  * caller that wants a color other than `Person::avatarColor()` (the reply composer's own
- * "you" gradient) -- and win over whatever `$context` would have resolved.
+ * "you" gradient) -- and win over whatever `$context` would have resolved. `$initials`
+ * overrides the name-derived initials outright, for a caller with no name to derive them from
+ * at all (`AvatarGroup`'s own "+N" overflow count).
  */
 class Avatar extends Component
 {
@@ -30,6 +32,10 @@ class Avatar extends Component
         public array $data = [],
         public ?Context $context = null,
         public ?string $name = null,
+        // `protected`, not `public` -- Laravel's `Component::data()` re-merges every *public*
+        // property back onto the rendered view after `render()` runs, which would silently
+        // clobber the computed `'initials'` view key below with this raw (usually null) value.
+        protected ?string $initials = null,
         public ?string $color = null,
         public ?string $mask = 'mask-squircle',
         public string $size = 'w-8 sm:w-10',
@@ -45,7 +51,7 @@ class Avatar extends Component
         $name = $this->name ?? $person?->name;
 
         return view('kopling-core::person.avatar', [
-            'initials' => $this->initials($name),
+            'initials' => $this->initials ?? $this->initials($name),
             'name' => $name,
             'color' => $this->color ?? $person?->avatarColor(),
             'mask' => $this->mask,
