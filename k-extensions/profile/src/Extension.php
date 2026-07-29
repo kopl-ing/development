@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace Kopling\Profile;
 
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Model;
+use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
+use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\People\Person;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Community\UserMenu;
+use Kopling\Profile\Ux\ProfileLink;
 
-class Extension extends AbstractExtension implements ExtendsModels, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasIcons
 {
     public static function name(): string
     {
@@ -43,5 +49,23 @@ class Extension extends AbstractExtension implements ExtendsModels, ExtendsPorta
             new PortalExtension('kopling-core::community')
                 ->routes(__DIR__.'/../routes/web.php'),
         ];
+    }
+
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'person-profile', label: __('kopling-profile::messages.person-profile'), default: 'fas-id-badge')
+        ];
+    }
+
+    public function ux(): Ux
+    {
+        return Ux::make()
+            ->add(ProfileLink::class, [
+                'label' => __('kopling-profile::messages.person-profile'),
+                'icon' => 'kopling-profile::person-profile',
+            ])
+            ->in(UserMenu::SLOT)
+            ->as('person-profile');
     }
 }
