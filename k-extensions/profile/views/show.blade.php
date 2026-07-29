@@ -19,6 +19,8 @@
                     @foreach ($moments as $moment)
                         @include('kopling-core::community.moment', ['moment' => $moment])
                     @endforeach
+
+                    <x-k::page.pagination :context="$context" target="#moments-feed" />
                 </div>
             </div>
         </div>
