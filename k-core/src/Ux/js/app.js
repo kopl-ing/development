@@ -28,4 +28,23 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// A card wrapping a linked Moment/Reply (`Card\Card`'s own `data-href`, set only when the
+// subject actually links somewhere) -- clicking anywhere on it navigates there, unless the click
+// already landed on a real interactive element (its own `closest()` handles the click) or the
+// person was selecting text. No stretched invisible `<a>`/`pointer-events` allowlist to maintain:
+// every element inside the card just behaves normally.
+document.addEventListener('click', (event) => {
+    const card = event.target.closest('[data-href]');
+
+    if (!card || event.target.closest('a, button, input, label, select, textarea, [popovertarget]')) {
+        return;
+    }
+
+    if (window.getSelection().toString().length > 0) {
+        return;
+    }
+
+    window.location.href = card.dataset.href;
+});
+
 Alpine.start();

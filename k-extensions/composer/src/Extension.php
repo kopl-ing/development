@@ -20,12 +20,19 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
      * The compose card's own Top/Body/Footer slot family -- same `?string $slot` reuse
      * Discussions' Reply cards established, never Core's own `Card\Top::SLOT`/etc., so a
      * Moment-only registration (reactions, poll, teaser) never bleeds into the compose form.
+     * `CONTROL_SLOT` matters even though nothing registers into it: `Card\Top` renders `Control`
+     * fixed (not a `TOP_SLOT` entry), defaulting to Core's own real `Card\Control::SLOT` when no
+     * override is given -- without this, a real Pin/moderation action registered for Moments
+     * would render on the compose form's still-unsaved `Moment::draft()`, whose `getSubject()`
+     * has no real id for that action's own route to bind to.
      */
     public const TOP_SLOT = 'kopling-composer::compose.top';
 
     public const BODY_SLOT = 'kopling-composer::compose.body';
 
     public const FOOTER_SLOT = 'kopling-composer::compose.footer';
+
+    public const CONTROL_SLOT = 'kopling-composer::compose.control';
 
     public static function name(): string
     {

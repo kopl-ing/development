@@ -20,6 +20,10 @@ use Kopling\Core\Ux\UxEntry;
  * calls it already knows from `kopling-core::community.navigation` to add a real per-moment action
  * (edit, delete, report, pin, ...). `defaults()` deliberately registers nothing, same reasoning
  * as `Footer::defaults()` -- no fake actions, a real one registers into this slot when it exists.
+ * `$slot` overrides which slot gets resolved, same convention as `Top`/`Footer` -- `Top` passes
+ * its own `$controlSlot` through rather than always resolving `self::SLOT`, so Discussions' Reply
+ * cards (which render `Control` fixed, same as a Moment's own card) never share a Moment-only
+ * action with a reply just because this one piece was left unscoped.
  */
 class Control extends Component
 {
@@ -30,9 +34,9 @@ class Control extends Component
      */
     public Collection $entries;
 
-    public function __construct(Manager $manager, public Context $context)
+    public function __construct(Manager $manager, public Context $context, ?string $slot = null)
     {
-        $this->entries = SlotResolver::resolve(self::SLOT, $manager->ux(), $context);
+        $this->entries = SlotResolver::resolve($slot ?? self::SLOT, $manager->ux(), $context);
     }
 
     public function render(): View

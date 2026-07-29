@@ -15,8 +15,10 @@ use Kopling\Core\Ux\Context;
  * so its absolute-positioned badge row (straddling the card's own top edge) doesn't get clipped
  * by the wrapper's `overflow-hidden`.
  *
- * `$topSlot`/`$badgesSlot`/`$bodySlot`/`$footerSlot` let a caller point at different slot names
- * entirely (Discussions' Reply cards), so Moment-only registrations don't bleed onto a Reply.
+ * `$topSlot`/`$badgesSlot`/`$bodySlot`/`$footerSlot`/`$controlSlot` let a caller point at
+ * different slot names entirely (Discussions' Reply cards), so Moment-only registrations don't
+ * bleed onto a Reply. `$controlSlot` reaches `Top`, which passes it on to `Control` -- see
+ * `Top`'s own docblock for why `Control` isn't a generic `Top::SLOT` entry.
  *
  * `$url` is `$context->getSubjectUrl()`, resolved once for `card.blade.php`'s stretched-link
  * overlay/aura-glow/caret -- all gated on whether the subject actually has somewhere to go.
@@ -33,6 +35,7 @@ class Card extends Component
         public ?string $badgesSlot = null,
         public ?string $bodySlot = null,
         public ?string $footerSlot = null,
+        public ?string $controlSlot = null,
     ) {
         $event = new RenderingCard($context);
         event($event);

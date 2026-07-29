@@ -9,12 +9,13 @@ use Kopling\Core\Ux\Context;
 use Tests\Fixtures\Extensions\ModelExtender\Gadget;
 
 /*
- * `Card`'s whole-card stretched-link overlay, its aura-glow wrapper, trailing caret icon, and
+ * `Card`'s whole-card `data-href` click target, its aura-glow wrapper, trailing caret icon, and
  * `group` class are all gated on the exact same `Context::getSubjectUrl()` lookup
  * `ContextGetSubjectUrlTest.php` already exercises directly -- these confirm `Card` actually
  * wires that resolved value into its own rendered markup, reusing the same `fakeManager()` +
  * `ModelLinker` fixture pattern rather than introducing a second notion of "is this card
- * clickable."
+ * clickable." The real link lives on `Card\Title`'s own `<a>` -- `data-href` is only the
+ * generic delegated-click enhancement (`app.js`) on top of that.
  */
 
 beforeEach(function () {
@@ -37,7 +38,7 @@ it('renders no overlay, aura wrapper, caret icon, or group class when the subjec
     ]);
 
     expect($html)
-        ->not->toContain('class="absolute inset-0 z-0"')
+        ->not->toContain('data-href')
         ->not->toContain('aura aura-glow')
         ->not->toContain('group cursor-pointer');
 });
@@ -58,8 +59,7 @@ it('renders a stretched-link overlay, aura-glow wrapper, caret icon, and group c
 
     expect($html)
         ->toContain('href="'.route('fixture-gadgets.show', $gadget->id).'"')
-        ->toContain('class="absolute inset-0 z-0"')
+        ->toContain('data-href="'.route('fixture-gadgets.show', $gadget->id).'"')
         ->toContain('aura aura-glow')
-        ->toContain('pointer-events-none')
         ->toContain('group cursor-pointer');
 });

@@ -32,7 +32,7 @@
             @csrf
             <input type="hidden" name="compose_mode" :value="active">
 
-            <x-k::card.top :context="$context" :slot="Extension::TOP_SLOT" />
+            <x-k::card.top :context="$context" :slot="Extension::TOP_SLOT" :control-slot="Extension::CONTROL_SLOT" />
             <x-k::card.body :context="$context" :slot="Extension::BODY_SLOT" />
 
             @if ($fieldsEntries->isNotEmpty())

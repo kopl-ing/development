@@ -6,9 +6,11 @@ namespace Kopling\Core\People;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use Kopling\Core\Content\Moment;
 use Kopling\Core\Database\Concerns\HasExtendedCasts;
 
 /**
@@ -74,5 +76,10 @@ class Person extends Authenticatable
     public function avatarColor(): string
     {
         return static::colorFor($this->id);
+    }
+
+    public function moments(): HasMany
+    {
+        return $this->hasMany(Moment::class);
     }
 }

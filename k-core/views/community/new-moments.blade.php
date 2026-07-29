@@ -9,5 +9,5 @@
     hx-swap="outerHTML"
     class="btn btn-sm w-full mb-4"
 >
-    {{ $count }} new moment{{ $count === 1 ? '' : 's' }} — click to view
+    {{ trans_choice('kopling-core::community.new_moments', $count, ['count' => $count]) }}
 </div>

@@ -19,9 +19,6 @@ use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Card\Accreditation;
-use Kopling\Core\Ux\Card\Author;
-use Kopling\Core\Ux\Card\Timestamp;
-use Kopling\Core\Ux\Person\Avatar;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
 class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasIcons, HasPermissions, ExtendsModels, ExtendsPortals

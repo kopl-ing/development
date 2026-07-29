@@ -13,6 +13,7 @@ class ProfileController
     {
         return view('kopling-profile::show', [
             'person' => $person,
+            'moments' => $person->moments()->paginate()
         ]);
     }
 }

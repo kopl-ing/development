@@ -15,9 +15,15 @@ use Kopling\Core\Ux\SlotResolver;
 use Kopling\Core\Ux\UxEntry;
 
 /**
- * A card's header row -- Title, avatar, author, timestamp, `Control`. `$slot` overrides which
+ * A card's header row -- Title, Accreditation (avatar/author/timestamp). `$slot` overrides which
  * slot gets resolved (`self::SLOT` for Moment cards when omitted), so Discussions' Reply cards
  * can reuse this same extensible shape under their own slot name instead of duplicating it.
+ *
+ * `Control` (the "..." action menu) isn't one of `$entries` -- it renders fixed, absolutely
+ * positioned in the header's own top-right corner, the same way `Card` itself renders
+ * `Badges`/`Body`/`Footer` fixed rather than as generic slot entries. `$controlSlot` threads
+ * through the same way `$slot` does, so Reply cards get their own isolated action menu instead
+ * of sharing a Moment's `Control::SLOT`.
  */
 class Top extends Component
 {
@@ -28,8 +34,12 @@ class Top extends Component
      */
     public Collection $entries;
 
-    public function __construct(Manager $manager, public Context $context, ?string $slot = null)
-    {
+    public function __construct(
+        Manager $manager,
+        public Context $context,
+        ?string $slot = null,
+        public ?string $controlSlot = null,
+    ) {
         $this->entries = SlotResolver::resolve($slot ?? self::SLOT, $manager->ux(), $context);
     }
 
@@ -42,7 +52,6 @@ class Top extends Component
     {
         $ux
             ->add(Title::class)->in(self::SLOT)->as('title')
-            ->add(Accreditation::class)->in(self::SLOT)->as('accreditation')->after('avatar')
-            ->add(Control::class)->in(self::SLOT)->as('control')->after('timestamp');
+            ->add(Accreditation::class)->in(self::SLOT)->as('accreditation')->after('title');
     }
 }

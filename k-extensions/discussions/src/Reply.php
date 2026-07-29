@@ -37,11 +37,12 @@ class Reply extends Model
      * `Body::SLOT`/`Footer::SLOT` directly. A `Reply` isn't a `Moment`: sharing the same global
      * slot names would mean every Moment-only registration (reactions' vote/rail/words, tags'
      * own badge row, this same extension's own teaser/engage/quote-op) renders on a reply too,
-     * with nothing about those concepts applying to one. `BADGES_SLOT` has no registrations
-     * today -- kept for the same reason the other three are always passed rather than left to
-     * default to Core's own constants: so a future Core registration into its own
-     * `Card\Badges::SLOT` (mirroring how tags targets it for Moments) can never silently bleed
-     * onto a reply's card just because this one slot was the one left unscoped.
+     * with nothing about those concepts applying to one. `BADGES_SLOT`/`CONTROL_SLOT` have no
+     * registrations today -- kept for the same reason the other three are always passed rather
+     * than left to default to Core's own constants: so a future Core registration into its own
+     * `Card\Badges::SLOT`/`Card\Control::SLOT` (mirroring how tags targets `Badges::SLOT` for
+     * Moments) can never silently bleed onto a reply's card just because this one slot was the
+     * one left unscoped.
      */
     public const TOP_SLOT = 'kopling-discussions::reply.top';
 
@@ -50,6 +51,8 @@ class Reply extends Model
     public const BODY_SLOT = 'kopling-discussions::reply.body';
 
     public const FOOTER_SLOT = 'kopling-discussions::reply.footer';
+
+    public const CONTROL_SLOT = 'kopling-discussions::reply.control';
 
     public function moment(): BelongsTo
     {
