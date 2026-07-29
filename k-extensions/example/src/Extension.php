@@ -97,7 +97,11 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
      * Demonstrates every one of `PortalExtension`'s attachments at once, targeting Core's own
      * Community portal -- routes/, css/, js/, and resources/{css,js}/ (the compiled-asset
      * pipeline, see `compiledAssets()`'s own docblock) are the sibling directories this class's
-     * own docblock already points at, now wired up rather than sitting unused.
+     * own docblock already points at, now wired up rather than sitting unused. The second
+     * attachment, to Admin's own Portal, has no routes/css/js of its own -- it exists purely to
+     * demonstrate `compiledAssets()`'s auto-derived-per-Portal naming: this call resolves
+     * `resources/{css,js}/kopling-admin-admin.{css,js}` (sanitized from `kopling-admin::admin`)
+     * rather than colliding with the Community attachment's own `app.{css,js}` bundle above.
      *
      * @return array<PortalExtension>
      */
@@ -108,6 +112,8 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
                 ->routes(__DIR__.'/../routes/web.php')
                 ->css(__DIR__.'/../css/app.css')
                 ->js(__DIR__.'/../js/app.js')
+                ->compiledAssets(__DIR__.'/..'),
+            new PortalExtension('kopling-admin::admin')
                 ->compiledAssets(__DIR__.'/..'),
         ];
     }

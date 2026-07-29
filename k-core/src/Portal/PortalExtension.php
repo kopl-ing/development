@@ -12,12 +12,15 @@ namespace Kopling\Core\Portal;
  * `views/layouts/partials/head.blade.php`):
  *
  * - `css()`/`js()`: one plain hand-written, unprocessed file each -- no Tailwind, no bundling.
- * - `compiledAssets()`: this extension's own `resources/css/app.css` + `resources/js/app.js`
- *   (Tailwind/daisyUI-processed, npm dependencies bundled, same pipeline `k-core` itself uses --
- *   see CLAUDE.md's "How k-core ships compiled assets"). `Manager::viteOrDist()` decides at
- *   render time whether to serve them live via `@vite()` (inside this monorepo, dev server
- *   running or built) or the committed `dist/app.css`+`app.js` (a standalone install, or before
- *   anyone's run the extension build here) -- one dual-mode implementation, not two.
+ * - `compiledAssets()`: this extension's own `resources/css/{name}.css` + `resources/js/
+ *   {name}.js` (Tailwind/daisyUI-processed, npm dependencies bundled, same pipeline `k-core`
+ *   itself uses -- see CLAUDE.md's "How extensions ship compiled assets"). `{name}` defaults to
+ *   this attachment's own `$portal` (sanitized) so an extension attaching to two different
+ *   Portals can ship two different bundles without colliding on one `app.js` -- see
+ *   `compiledAssets()`'s own docblock. `Manager::viteOrDist()` decides at render time whether to
+ *   serve them live via `@vite()` (inside this monorepo, dev server running or built) or the
+ *   committed `dist/{name}.css`+`{name}.js` (a standalone install, or before anyone's run the
+ *   extension build here) -- one dual-mode implementation, not two.
  *
  * `$portal` is the target Portal's fully-qualified id ("kopling-core::community"), written out
  * by the author same as `Ux::after()`/`Ux::before()` reference another extension's
@@ -33,6 +36,8 @@ class PortalExtension
     public ?string $js = null;
 
     public ?string $compiledAssetsRoot = null;
+
+    public ?string $compiledAssetsName = null;
 
     public function __construct(public readonly string $portal)
     {
@@ -73,26 +78,41 @@ class PortalExtension
 
     /**
      * `$extensionRoot` is the extension's own package root (`__DIR__.'/..'` from `src/`, same
-     * as every other path an extension passes to `routes()`/`css()`/`js()`) -- `resources/css/
-     * app.css` + `resources/js/app.js` underneath it must exist (proves this extension actually
-     * opted into the compiled-asset pipeline), but `dist/app.css`+`app.js` deliberately aren't
-     * validated here: not having been built yet (a fresh monorepo checkout before `npm run
-     * build:extensions-dist`) is a normal state, not a misconfiguration -- `Manager::
-     * viteOrDist()` falls back to `@vite()` in that case instead.
+     * as every other path an extension passes to `routes()`/`css()`/`js()`). `$name` is which
+     * `resources/{css,js}/{name}.{css,js}` pair to use -- given explicitly for an extension that
+     * wants a specific bundle (e.g. two Portals deliberately sharing one), or left `null` to
+     * auto-derive from this attachment's own `$portal` (sanitized: "::"/"/" aren't filename-safe,
+     * replaced with "-"), falling back to the plain `app` convention when no portal-specific file
+     * exists -- the common case of one extension, one Portal stays zero-ceremony.
+     *
+     * `resources/js/{name}.js` underneath `$extensionRoot` must exist (proves this extension
+     * actually opted into the compiled-asset pipeline), but `dist/{name}.css`+`{name}.js`
+     * deliberately aren't validated here: not having been built yet (a fresh monorepo checkout
+     * before `npm run build:extensions-dist`) is a normal state, not a misconfiguration --
+     * `Manager::viteOrDist()` falls back to `@vite()` in that case instead.
      */
-    public function compiledAssets(string $extensionRoot): self
+    public function compiledAssets(string $extensionRoot, ?string $name = null): self
     {
         $extensionRoot = rtrim($extensionRoot, '/');
+        $name ??= $this->defaultAssetName($extensionRoot);
 
-        if (! file_exists($extensionRoot.'/resources/js/app.js')) {
+        if (! file_exists("$extensionRoot/resources/js/$name.js")) {
             throw new \InvalidArgumentException(
-                "No resources/js/app.js found for portal $this->portal: $extensionRoot"
+                "No resources/js/$name.js found for portal $this->portal: $extensionRoot"
             );
         }
 
         $this->compiledAssetsRoot = $extensionRoot;
+        $this->compiledAssetsName = $name;
 
         return $this;
+    }
+
+    protected function defaultAssetName(string $extensionRoot): string
+    {
+        $derived = str_replace(['::', '/'], '-', $this->portal);
+
+        return file_exists("$extensionRoot/resources/js/$derived.js") ? $derived : 'app';
     }
 
     public function toArray(): array
@@ -103,6 +123,7 @@ class PortalExtension
             'css' => $this->css,
             'js' => $this->js,
             'compiledAssetsRoot' => $this->compiledAssetsRoot,
+            'compiledAssetsName' => $this->compiledAssetsName,
         ];
     }
 
@@ -117,6 +138,7 @@ class PortalExtension
         $instance->css = $data['css'];
         $instance->js = $data['js'];
         $instance->compiledAssetsRoot = $data['compiledAssetsRoot'] ?? null;
+        $instance->compiledAssetsName = $data['compiledAssetsName'] ?? null;
 
         return $instance;
     }

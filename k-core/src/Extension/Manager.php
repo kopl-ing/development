@@ -52,6 +52,15 @@ use Kopling\Core\Ux\UxEntry;
  */
 class Manager
 {
+    /**
+     * `k-core`'s own compiled bundle names -- kept as one shared list rather than duplicated
+     * between `extensionAssets()` (registers `k-core/dist/{name}.*` for the asset route to
+     * find) and `head.blade.php` (which `name`s to call `viteOrDist()` with).
+     *
+     * @var array<int, string>
+     */
+    public const CORE_COMPILED_BUNDLES = ['app', 'editor', 'emoji-picker', 'tag-input', 'icon-picker'];
+
     protected ?Collection $models = null;
 
     public function __construct(
@@ -423,6 +432,22 @@ class Manager
     {
         $assets = [];
 
+        // `head.blade.php` generates these same URLs via `viteOrDist(base_path('k-core'),
+        // $name)` -- the path built here must match that call's own internal path exactly
+        // (same `base_path('k-core')` root, no trailing slash), since assetKey() is a plain
+        // hash of the literal path string.
+        foreach (static::CORE_COMPILED_BUNDLES as $name) {
+            foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
+                $path = base_path('k-core')."/dist/{$name}.{$kind}";
+
+                if (! is_file($path)) {
+                    continue;
+                }
+
+                $assets[static::assetKey($path)] = ['path' => $path, 'mime' => $mime];
+            }
+        }
+
         foreach ($this->portalExtensions() as $group) {
             foreach ($group as $portalExtension) {
                 foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
@@ -440,7 +465,7 @@ class Manager
                 }
 
                 foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
-                    $path = $portalExtension->compiledAssetsRoot."/dist/app.{$kind}";
+                    $path = $portalExtension->compiledAssetsRoot.'/dist/'.$portalExtension->compiledAssetsName.".{$kind}";
 
                     // Not built yet (fresh checkout, npm run build:extensions-dist never
                     // run) is a normal state here, same reasoning compiledAssets() itself
@@ -485,25 +510,33 @@ class Manager
     }
 
     /**
-     * `<link>`/`<script>` tags for one extension's compiled `resources/css/app.css` +
-     * `resources/js/app.js` -- `@vite()` when the monorepo's own dev build covers this exact
+     * `<link>`/`<script>` tags for one extension's compiled `resources/css/{name}.css` +
+     * `resources/js/{name}.js` -- `@vite()` when the monorepo's own dev build covers this exact
      * source path (dev server running, or `npm run build` already produced a manifest entry
      * for it -- the same live experience `k-core`'s own assets already have), falling back to
-     * the committed `dist/app.css`+`app.js` otherwise (a standalone Composer install, or
-     * before anyone's run `npm run build:extensions-dist` in this monorepo at all). See
-     * `PortalExtension::compiledAssets()`; used from `views/layouts/partials/head.blade.php`.
+     * the committed `dist/{name}.css`+`{name}.js` otherwise (a standalone Composer install, or
+     * before anyone's run `npm run build:extensions-dist` in this monorepo at all). `$name`
+     * matches whatever `PortalExtension::compiledAssets()` resolved (`compiledAssetsName`) --
+     * used from `views/layouts/partials/head.blade.php`.
      */
-    public static function viteOrDist(string $extensionRoot): string
+    public static function viteOrDist(string $extensionRoot, string $name = 'app'): string
     {
         $extensionRoot = rtrim($extensionRoot, '/');
-        $cssSource = $extensionRoot.'/resources/css/app.css';
-        $jsSource = $extensionRoot.'/resources/js/app.js';
+        $cssSource = "$extensionRoot/resources/css/$name.css";
+        $jsSource = "$extensionRoot/resources/js/$name.js";
         $relativeCss = ltrim(Str::after($cssSource, base_path()), '/');
         $relativeJs = ltrim(Str::after($jsSource, base_path()), '/');
 
         $vite = app(Vite::class);
 
-        if ($vite->isRunningHot() || static::viteManifestHas($relativeCss)) {
+        // Checked against whichever of css/js actually has a source file, not always css --
+        // an asymmetric bundle (js-only, like a Portal-specific entry with no matching css)
+        // would otherwise never match here even when the dev build genuinely covers it, since
+        // a manifest key can only exist for an input that was actually declared.
+        $coveredByManifest = (is_file($cssSource) && static::viteManifestHas($relativeCss))
+            || (is_file($jsSource) && static::viteManifestHas($relativeJs));
+
+        if ($vite->isRunningHot() || $coveredByManifest) {
             return $vite->withEntryPoints(array_values(array_filter([
                 is_file($cssSource) ? $relativeCss : null,
                 is_file($jsSource) ? $relativeJs : null,
@@ -511,8 +544,8 @@ class Manager
         }
 
         $html = '';
-        $distCss = $extensionRoot.'/dist/app.css';
-        $distJs = $extensionRoot.'/dist/app.js';
+        $distCss = "$extensionRoot/dist/$name.css";
+        $distJs = "$extensionRoot/dist/$name.js";
 
         if (is_file($distCss)) {
             $html .= '<link rel="stylesheet" href="'.e(static::assetUrl($distCss)).'">';

@@ -1058,28 +1058,47 @@ updated; `k-core/dist` output unchanged (still compiled release-time-only, per t
 ## 2026-07-29 — Extensions get their own compiled-asset pipeline, mirroring k-core's
 
 **Decision:** An extension that needs real Tailwind/daisyUI generation beyond the safelisted
-subset, or a bundled npm dependency, gets its own `resources/css/app.css` + `resources/js/
-app.js`, compiled into its own `k-extensions/{name}/dist/app.css`+`app.js` (fixed unhashed
-filenames, same convention `k-core/dist` already established). Three new pieces:
+subset, or a bundled npm dependency, gets its own `resources/css/{name}.css` + `resources/js/
+{name}.js`, compiled into its own `k-extensions/{extension}/dist/{name}.css`+`{name}.js` (fixed
+unhashed filenames, same convention `k-core/dist` already established). `{name}` isn't fixed to
+`app` — a single extension can attach to multiple Portals (`ExtendsPortals`/`PortalExtension`
+already supports this), and each attachment needs to be able to ship its own bundle rather than
+all of them colliding on one shared `app.js`. Three new pieces:
 
 - `vite.extension-dist.config.js` — one generic config, parameterized via the `KOPLING_EXTENSION`
   env var, mirroring `vite.core-dist.config.js`'s shape rather than one hand-copied config per
-  extension.
-- `scripts/build-extension-assets.mjs` — discovers every `k-extensions/*/resources/js/app.js`
-  present (directory-convention opt-in, same philosophy `migrations/`/`views/`/`lang/` already
-  use, per `Manager::conventions()`'s own docblock — no interface required) and runs the config
-  above once per extension found. Wired into `release.yml` (`npm run build:extensions-dist`,
-  right after `build:core-dist`) — `subsplit.yml` needed zero changes, since it already mirrors
-  whatever's committed in each configured directory at tag time.
-- `PortalExtension::compiledAssets(string $extensionRoot)` — the registration API (portal-scoped,
-  matching the existing hand-written `css()`/`js()`, not loaded unconditionally the way k-core's
-  own assets are) plus `Manager::viteOrDist()`, which renders `@vite()` when the monorepo's own
-  dev build covers the entry (checks `Vite::isRunningHot()` and `public/build/manifest.json`
+  extension. Discovers every `resources/js/*.js` file inside the target extension (not one
+  hardcoded entry) and builds each into its own `dist/{name}.js` (+ `dist/{name}.css` if a
+  matching `resources/css/{name}.css` exists).
+- `.scripts/build-extension-assets.mjs` — discovers every extension with at least one
+  `resources/js/*.js` file present (directory-convention opt-in, same philosophy
+  `migrations/`/`views/`/`lang/` already use, per `Manager::conventions()`'s own docblock — no
+  interface required) and runs the config above once per extension found. Wired into
+  `release.yml` (`npm run build:extensions-dist`, right after `build:core-dist`) —
+  `subsplit.yml` needed zero changes, since it already mirrors whatever's committed in each
+  configured directory at tag time.
+- `PortalExtension::compiledAssets(string $extensionRoot, ?string $name = null)` — the
+  registration API (portal-scoped, matching the existing hand-written `css()`/`js()`, not loaded
+  unconditionally the way k-core's own assets are). `$name` defaults to this attachment's own
+  `$portal` (sanitized: `::`/`/` → `-`), falling back to plain `app` when no Portal-specific file
+  exists — the common case of one extension, one Portal stays zero-ceremony, while an extension
+  attaching to two Portals gets two different bundles automatically. An explicit `$name` is
+  still accepted, for an author who wants a specific bundle (e.g. two Portals deliberately
+  sharing one) rather than the derived name. Paired with `Manager::viteOrDist(string
+  $extensionRoot, string $name = 'app')`, which renders `@vite()` when the monorepo's own dev
+  build covers the entry (checks `Vite::isRunningHot()` and `public/build/manifest.json`
   directly, since Laravel's `Vite` class exposes no public "does this key exist" check) or falls
   back to the committed `dist/` output otherwise (a standalone Composer install, or before
   anyone's run the extension build in this monorepo at all) — one dual-mode implementation,
-  reusable for k-core's own still-unconditional `@vite()` calls in `head.blade.php` too, not done
-  in this pass (see `CLAUDE.md`'s existing TODO on that).
+  now also used for `k-core`'s own five bundles in `head.blade.php` (`Manager::
+  CORE_COMPILED_BUNDLES`), closing the standing "`@vite()` called unconditionally" TODO
+  `CLAUDE.md` used to track. The dev-manifest check originally only inspected the CSS entry's
+  manifest key as a proxy for "this whole pair is built" -- wrong for an asymmetric bundle
+  (js-only, like the Admin example below), fixed to check whichever of css/js actually has a
+  source file. `Manager::extensionAssets()` also had to start registering `k-core/dist/{name}.*`
+  itself, using the exact same `base_path('k-core')` root `head.blade.php`'s own `viteOrDist()`
+  call uses -- `assetKey()` is a plain hash of the literal path string, so the two have to agree
+  on that string byte-for-byte or the runtime asset route 404s on a key nothing registered.
 
 **Why:** `k-core`'s own compiled CSS previously scanned *every* extension's Blade files in this
 monorepo via an explicit `@source` glob — the only reason extensions could use Tailwind classes
@@ -1100,14 +1119,29 @@ convention.
 **Status:** Decided & implemented. `k-extensions/example` (the documented reference
 implementation every other extension convention already uses) wired up end-to-end as the working
 example — `resources/css/app.css` (with a small `.kop-example-badge` custom class proving
-genuinely extension-owned CSS compiles), `resources/js/app.js`, registered via
-`->compiledAssets(__DIR__.'/..')` in its `Extension::extendsPortals()`. Verified: the scoped
-build produces a self-contained ~13KB bundle (vs. ~330KB when the whole-monorepo scan leaked
-through, caught and fixed with `source(none)`); `Manager::extensionAssets()` correctly registers
-the compiled `dist/` output once built and the runtime asset route serves it with the right
-content-type and content; `viteOrDist()` correctly renders nothing when neither a dev manifest
-nor a built `dist/` exists yet, and correctly falls back to `dist/` otherwise. No real extension
-has adopted this yet — `example` is illustrative only, same as every other convention it
-demonstrates.
+genuinely extension-owned CSS compiles) + `resources/js/app.js`, registered via
+`->compiledAssets(__DIR__.'/..')` on its Community Portal attachment, plus a second
+`PortalExtension('kopling-admin::admin')->compiledAssets(__DIR__.'/..')` with no `resources/css/
+kopling-admin-admin.css` at all (proving CSS is optional per name) and its own distinct
+`resources/js/kopling-admin-admin.js`, demonstrating the auto-derived-name case end to end.
+Verified: the scoped build produces a self-contained ~13KB bundle (vs. ~330KB when the
+whole-monorepo scan leaked through, caught and fixed with `source(none)`); building both
+attachments in one pass produces exactly `dist/app.css`, `dist/app.js`, and `dist/kopling-admin-
+admin.js` (no collision, no stray `kopling-admin-admin.css`); `PortalExtension` correctly
+resolves `'app'` for the Community attachment and `'kopling-admin-admin'` for the Admin one, and
+throws when neither an explicit nor auto-derived file exists; `Manager::extensionAssets()`
+correctly registers the compiled `dist/` output once built and the runtime asset route serves it
+with the right content-type and content; `viteOrDist()` correctly renders nothing when neither a
+dev manifest nor a built `dist/` exists yet, and correctly falls back to `dist/` otherwise. No
+real extension has adopted this yet — `example` is illustrative only, same as every other
+convention it demonstrates.
+
+`head.blade.php`'s own retrofit verified the same way, both branches for real: with the
+monorepo's dev manifest present, all five `k-core` bundles render as `@vite()` asset tags; with
+`public/build/manifest.json` removed (simulating a standalone install with no monorepo Vite
+build at all), it falls back to `k-core/dist/{name}.*`, and fetching that generated URL through
+the real runtime asset route actually returns the right file with the right content-type —
+this is what caught the `extensionAssets()` registration gap above, since the URL rendered
+correctly before that fix but 404'd when actually requested.
 
 ---
