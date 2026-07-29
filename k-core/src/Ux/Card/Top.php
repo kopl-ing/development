@@ -42,9 +42,7 @@ class Top extends Component
     {
         $ux
             ->add(Title::class)->in(self::SLOT)->as('title')
-            ->add(Avatar::class)->in(self::SLOT)->as('avatar')->after('title')
-            ->add(Author::class)->in(self::SLOT)->as('author')->after('avatar')
-            ->add(Timestamp::class)->in(self::SLOT)->as('timestamp')->after('author')
+            ->add(Accreditation::class)->in(self::SLOT)->as('accreditation')->after('avatar')
             ->add(Control::class)->in(self::SLOT)->as('control')->after('timestamp');
     }
 }
