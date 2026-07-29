@@ -8,7 +8,7 @@ on:
 jobs:
   prepare_release:
     runs-on: ubuntu-latest
-    name: Compile k-core release assets and tag
+    name: Compile k-core + extension release assets and tag
     if: github.repository == 'kopl-ing/development' # Execute this workflow job only on the main repository.
     steps:
       -   uses: actions/checkout@v7
@@ -17,7 +17,7 @@ jobs:
             persist-credentials: false
             fetch-depth: 0
 
-      # Needed to commit the compiled k-core/dist assets and push the release tag.
+      # Needed to commit the compiled dist assets and push the release tag.
       -   uses: frankdejonge/use-github-token@1.1.0
           with:
             authentication: 'username:${{ secrets.SUBSPLIT_TOKEN }}'
@@ -39,13 +39,27 @@ jobs:
       -   name: Compile k-core release assets
           run: npm run build:core-dist
 
+      # Same reasoning, generalized: scripts/build-extension-assets.mjs discovers every
+      # k-extensions/*/resources/js/app.js (directory-convention opt-in -- most extensions
+      # have none and are skipped) and compiles each into its own k-extensions/{name}/dist/.
+      # subsplit.yml needs no changes -- it already mirrors whatever's committed in each
+      # configured directory at tag time, the same as it already does for k-core/dist.
+      -   name: Compile extension release assets
+          run: npm run build:extensions-dist
+
       -   name: Commit compiled assets
           run: |
             git add k-core/dist
+            # A glob pathspec like k-extensions/*/dist doesn't match a bare directory (fnmatch
+            # needs a trailing wildcard to recurse into one) and `git add` fails outright if a
+            # given pathspec matches nothing at all -- `find` enumerates whichever extensions
+            # actually produced a dist/ this run (most won't have opted in) and adds each one
+            # as a literal path instead, no glob involved.
+            find k-extensions -mindepth 2 -maxdepth 2 -type d -name dist -exec git add {} +
             if git diff --cached --quiet; then
               echo "No asset changes to commit."
             else
-              git commit -m "chore(release): compile k-core assets for ${{ inputs.version }}"
+              git commit -m "chore(release): compile k-core + extension assets for ${{ inputs.version }}"
               git push origin HEAD:main
             fi
 

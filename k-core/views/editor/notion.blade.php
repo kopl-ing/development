@@ -3,7 +3,7 @@
     // compose form starts from when no $value was passed in.
     $initial = $value ?? '{"type":"doc","content":[{"type":"paragraph"}]}';
 @endphp
-{{-- Mount point for the editor.js bundle (see Ux/js/editor.js) -- vanilla JS, not an
+{{-- Mount point for the editor.js bundle (see resources/js/editor.js) -- vanilla JS, not an
      Alpine.data() component (core's Alpine.start() isn't guaranteed to run before/after an
      extension's own <script type="module">, see reply-dock's own note on this). The hidden
      input is what htmx's normal FormData submission already picks up, so composer/discussions/

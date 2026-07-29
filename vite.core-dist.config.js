@@ -17,16 +17,16 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
-                app: fileURLToPath(new URL('./k-core/src/Ux/js/app.js', import.meta.url)),
-                style: fileURLToPath(new URL('./k-core/src/Ux/css/app.css', import.meta.url)),
-                editor: fileURLToPath(new URL('./k-core/src/Ux/js/editor.js', import.meta.url)),
-                'editor-style': fileURLToPath(new URL('./k-core/src/Ux/css/editor.css', import.meta.url)),
-                'emoji-picker': fileURLToPath(new URL('./k-core/src/Ux/js/emoji-picker.js', import.meta.url)),
-                'emoji-picker-style': fileURLToPath(new URL('./k-core/src/Ux/css/emoji-picker.css', import.meta.url)),
-                'tag-input': fileURLToPath(new URL('./k-core/src/Ux/js/tag-input.js', import.meta.url)),
-                'tag-input-style': fileURLToPath(new URL('./k-core/src/Ux/css/tag-input.css', import.meta.url)),
-                'icon-picker': fileURLToPath(new URL('./k-core/src/Ux/js/icon-picker.js', import.meta.url)),
-                'icon-picker-style': fileURLToPath(new URL('./k-core/src/Ux/css/icon-picker.css', import.meta.url)),
+                app: fileURLToPath(new URL('./k-core/resources/js/app.js', import.meta.url)),
+                style: fileURLToPath(new URL('./k-core/resources/css/app.css', import.meta.url)),
+                editor: fileURLToPath(new URL('./k-core/resources/js/editor.js', import.meta.url)),
+                'editor-style': fileURLToPath(new URL('./k-core/resources/css/editor.css', import.meta.url)),
+                'emoji-picker': fileURLToPath(new URL('./k-core/resources/js/emoji-picker.js', import.meta.url)),
+                'emoji-picker-style': fileURLToPath(new URL('./k-core/resources/css/emoji-picker.css', import.meta.url)),
+                'tag-input': fileURLToPath(new URL('./k-core/resources/js/tag-input.js', import.meta.url)),
+                'tag-input-style': fileURLToPath(new URL('./k-core/resources/css/tag-input.css', import.meta.url)),
+                'icon-picker': fileURLToPath(new URL('./k-core/resources/js/icon-picker.js', import.meta.url)),
+                'icon-picker-style': fileURLToPath(new URL('./k-core/resources/css/icon-picker.css', import.meta.url)),
             },
             output: {
                 // editor.js/emoji-picker.js/tag-input.js each dynamically import() their own

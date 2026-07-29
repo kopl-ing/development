@@ -8,7 +8,9 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\Relation as EloquentRelation;
+use Illuminate\Foundation\Vite;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Kopling\Core\Core;
 use Kopling\Core\Database\Model as DatabaseModel;
 use Kopling\Core\Extend\Icon;
@@ -432,6 +434,23 @@ class Manager
 
                     $assets[static::assetKey($path)] = ['path' => $path, 'mime' => $mime];
                 }
+
+                if ($portalExtension->compiledAssetsRoot === null) {
+                    continue;
+                }
+
+                foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
+                    $path = $portalExtension->compiledAssetsRoot."/dist/app.{$kind}";
+
+                    // Not built yet (fresh checkout, npm run build:extensions-dist never
+                    // run) is a normal state here, same reasoning compiledAssets() itself
+                    // doesn't validate dist/ -- just nothing to serve until it is.
+                    if (! is_file($path)) {
+                        continue;
+                    }
+
+                    $assets[static::assetKey($path)] = ['path' => $path, 'mime' => $mime];
+                }
             }
         }
 
@@ -463,6 +482,65 @@ class Manager
         }
 
         return route('kopling-core::assets', ['key' => static::assetKey($path)]);
+    }
+
+    /**
+     * `<link>`/`<script>` tags for one extension's compiled `resources/css/app.css` +
+     * `resources/js/app.js` -- `@vite()` when the monorepo's own dev build covers this exact
+     * source path (dev server running, or `npm run build` already produced a manifest entry
+     * for it -- the same live experience `k-core`'s own assets already have), falling back to
+     * the committed `dist/app.css`+`app.js` otherwise (a standalone Composer install, or
+     * before anyone's run `npm run build:extensions-dist` in this monorepo at all). See
+     * `PortalExtension::compiledAssets()`; used from `views/layouts/partials/head.blade.php`.
+     */
+    public static function viteOrDist(string $extensionRoot): string
+    {
+        $extensionRoot = rtrim($extensionRoot, '/');
+        $cssSource = $extensionRoot.'/resources/css/app.css';
+        $jsSource = $extensionRoot.'/resources/js/app.js';
+        $relativeCss = ltrim(Str::after($cssSource, base_path()), '/');
+        $relativeJs = ltrim(Str::after($jsSource, base_path()), '/');
+
+        $vite = app(Vite::class);
+
+        if ($vite->isRunningHot() || static::viteManifestHas($relativeCss)) {
+            return $vite->withEntryPoints(array_values(array_filter([
+                is_file($cssSource) ? $relativeCss : null,
+                is_file($jsSource) ? $relativeJs : null,
+            ])))->toHtml();
+        }
+
+        $html = '';
+        $distCss = $extensionRoot.'/dist/app.css';
+        $distJs = $extensionRoot.'/dist/app.js';
+
+        if (is_file($distCss)) {
+            $html .= '<link rel="stylesheet" href="'.e(static::assetUrl($distCss)).'">';
+        }
+
+        if (is_file($distJs)) {
+            $html .= '<script type="module" src="'.e(static::assetUrl($distJs)).'"></script>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * Reads `public/build/manifest.json` directly rather than going through `Vite::asset()`
+     * (which throws when an entry is missing, and has no public "does this key exist" check)
+     * -- memoized per-request, so checking every extension's compiled assets on one page never
+     * re-reads/re-decodes the same file more than once.
+     */
+    protected static function viteManifestHas(string $key): bool
+    {
+        static $manifest = null;
+
+        if ($manifest === null) {
+            $path = public_path('build/manifest.json');
+            $manifest = is_file($path) ? (json_decode(file_get_contents($path), true) ?? []) : [];
+        }
+
+        return array_key_exists($key, $manifest);
     }
 
     public function iconUrl(string $package, string $size = 'lg'): ?string

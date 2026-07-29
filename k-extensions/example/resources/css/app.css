@@ -1,0 +1,19 @@
+/* `source(none)` disables Tailwind's automatic heuristic content-scan (which otherwise
+   walks from the Vite root -- the whole monorepo when built via
+   scripts/build-extension-assets.mjs, not just this package) -- the explicit @source
+   below is the only content this bundle scans. Scoped to this extension's own views only,
+   never the rest of the monorepo: a third-party extension installed standalone must
+   compile correctly in isolation. Theme token VALUES (colors) still come from k-core's
+   own compiled CSS, always loaded alongside this on a real page -- see CLAUDE.md's
+   "extensions follow core's daisyUI theme" convention: custom CSS reads core's
+   variables, never hardcodes values. */
+@import "tailwindcss" source(none);
+@plugin "daisyui";
+@source "../../views/**/*.blade.php";
+
+/* Illustrative only -- a real gap daisyUI/Tailwind utilities don't cover, same bar
+   CLAUDE.md's "Prefer daisyUI components" section sets for any `.kop-*` class. */
+.kop-example-badge {
+    background: var(--color-accent);
+    color: var(--color-accent-content);
+}

@@ -1,5 +1,5 @@
 {{--
-    Tailwind's @source only scans .blade.php files (see k-core/src/Ux/css/app.css), never plain
+    Tailwind's @source only scans .blade.php files (see k-core/resources/css/app.css), never plain
     .php classes -- DecoratePinnedCard builds its outline/bg classes dynamically from Pin::REASONS
     at runtime ("outline-{$pin->color()}"), so those literal strings need to appear somewhere
     scanned or they'd be purged from the compiled CSS despite being correct in the rendered HTML.

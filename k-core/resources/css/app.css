@@ -4,8 +4,8 @@
 /* Explicit sources: Tailwind's default heuristic scans from the repo root and should already
    pick these up, but k-extensions are separate Composer packages, not part of k-core, so
    this is kept explicit rather than relying on auto-detection. */
-@source "../../**/*.blade.php";
-@source "../../../../k-extensions/**/*.blade.php";
+@source "../src/**/*.blade.php";
+@source "../../k-extensions/**/*.blade.php";
 
 /* Brand tokens from the Kopling landing page (kopling-landing/public/index.html) */
 @plugin "daisyui/theme" {

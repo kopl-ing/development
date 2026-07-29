@@ -1,7 +1,7 @@
 @php use Kopling\Core\Ux\Theme\Token; @endphp
 {{--
     Every swatch below comes straight from Token::cases() -- the exact, finite set the compiled
-    "kopling" daisyUI theme (k-core/src/Ux/css/app.css) exposes as overridable (see Token's own
+    "kopling" daisyUI theme (k-core/resources/css/app.css) exposes as overridable (see Token's own
     docblock). Iterating the enum instead of a hand-copied list means this section can never
     drift from what Theme::css() actually lets an admin re-theme.
 --}}

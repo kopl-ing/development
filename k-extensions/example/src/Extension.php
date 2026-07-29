@@ -22,8 +22,8 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
 /**
  * A dummy extension -- not meant to be installed for real functionality. It exists so every
  * path and convention an extension can use has one working, verified example: see the
- * sibling directories (views/, css/, js/, migrations/, routes/, lang/, icon/) and
- * CLAUDE.md ("Extension conventions") for what each one does.
+ * sibling directories (views/, css/, js/, resources/css+js/, migrations/, routes/, lang/,
+ * icon/) and CLAUDE.md ("Extension conventions") for what each one does.
  */
 class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, LoadsAfter, ExtendsPortals
 {
@@ -94,9 +94,10 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     }
 
     /**
-     * Demonstrates all three of `PortalExtension`'s attachments at once, targeting Core's own
-     * Community portal -- routes/, css/, js/ are the sibling directories this class's own
-     * docblock already points at, now wired up rather than sitting unused.
+     * Demonstrates every one of `PortalExtension`'s attachments at once, targeting Core's own
+     * Community portal -- routes/, css/, js/, and resources/{css,js}/ (the compiled-asset
+     * pipeline, see `compiledAssets()`'s own docblock) are the sibling directories this class's
+     * own docblock already points at, now wired up rather than sitting unused.
      *
      * @return array<PortalExtension>
      */
@@ -106,7 +107,8 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
             new PortalExtension('kopling-core::community')
                 ->routes(__DIR__.'/../routes/web.php')
                 ->css(__DIR__.'/../css/app.css')
-                ->js(__DIR__.'/../js/app.js'),
+                ->js(__DIR__.'/../js/app.js')
+                ->compiledAssets(__DIR__.'/..'),
         ];
     }
 

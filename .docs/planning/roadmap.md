@@ -52,7 +52,7 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   (`/admin/tags`, gated behind a new `manage-tags` permission), since per-tag vote config needed
   somewhere to be set. See decisions.md, 2026-07-18.
 - Rich-text composer — `composer`'s body field uses `<x-k::editor>` (`k-core/src/Ux/Editor.php`),
-  backed by a full TipTap/ProseMirror integration (`k-core/src/Ux/js/editor-tiptap.js`:
+  backed by a full TipTap/ProseMirror integration (`k-core/resources/js/editor-tiptap.js`:
   StarterKit, Underline/Link/TaskList/TaskItem/Blockquote, slash menu), not a plain `<textarea>`.
 
 ### Still needed

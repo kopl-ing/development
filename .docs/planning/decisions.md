@@ -1029,3 +1029,85 @@ pin's `pin.store`/`pin.destroy`; poll's `poll.vote`; reactions' `reactions.toggl
 Documented in `.docs/planning/extending-patterns.md` (Section 6).
 
 ---
+
+## 2026-07-29 — k-core's CSS/JS source moves from `src/Ux/{css,js}` to package-root `resources/{css,js}`
+
+**Decision:** `k-core`'s compiled-asset source now lives at `k-core/resources/css/` and
+`k-core/resources/js/` — package-root-then-kind, not nested under `Ux/` (which keeps only
+`Ux/views/` and the `<x-k::*>` component PHP). This reverses the 2026-07-09 "Source assets live
+inside the owning package's own domain folder" entry's specific choice to nest under `Ux/`,
+while keeping that entry's actually load-bearing point: asset source still travels inside the
+subsplit package itself, never a monorepo-root `resources/`.
+
+**Why:** Extensions are getting their own compiled-asset pipeline (see the following entry) and
+need a source location of their own. `k-core/src/Ux/` and a hypothetical `k-extensions/reactions/
+src/Ux/` would have been two different depths for conceptually the same thing — "this package's
+compiled-asset source" isn't actually a `Ux`-domain concern (nothing about Vite/Tailwind cares
+about domain grouping), it's a package-level build concern. One shape, `resources/{css,js}` at
+the package root, used identically by `k-core` and every `k-extensions/*` package, removes that
+inconsistency. `Ux/` itself keeps the original entry's reasoning intact for what actually is
+domain-then-kind: views and PHP component classes.
+
+**Status:** Decided & implemented. `vite.config.js`, `vite.core-dist.config.js`,
+`k-core/resources/css/app.css`'s own `@source` globs, and `head.blade.php`'s `@vite()` calls all
+updated; `k-core/dist` output unchanged (still compiled release-time-only, per the 2026-07-09
+"k-core ships precompiled CSS/JS" entry, which this doesn't touch).
+
+---
+
+## 2026-07-29 — Extensions get their own compiled-asset pipeline, mirroring k-core's
+
+**Decision:** An extension that needs real Tailwind/daisyUI generation beyond the safelisted
+subset, or a bundled npm dependency, gets its own `resources/css/app.css` + `resources/js/
+app.js`, compiled into its own `k-extensions/{name}/dist/app.css`+`app.js` (fixed unhashed
+filenames, same convention `k-core/dist` already established). Three new pieces:
+
+- `vite.extension-dist.config.js` — one generic config, parameterized via the `KOPLING_EXTENSION`
+  env var, mirroring `vite.core-dist.config.js`'s shape rather than one hand-copied config per
+  extension.
+- `scripts/build-extension-assets.mjs` — discovers every `k-extensions/*/resources/js/app.js`
+  present (directory-convention opt-in, same philosophy `migrations/`/`views/`/`lang/` already
+  use, per `Manager::conventions()`'s own docblock — no interface required) and runs the config
+  above once per extension found. Wired into `release.yml` (`npm run build:extensions-dist`,
+  right after `build:core-dist`) — `subsplit.yml` needed zero changes, since it already mirrors
+  whatever's committed in each configured directory at tag time.
+- `PortalExtension::compiledAssets(string $extensionRoot)` — the registration API (portal-scoped,
+  matching the existing hand-written `css()`/`js()`, not loaded unconditionally the way k-core's
+  own assets are) plus `Manager::viteOrDist()`, which renders `@vite()` when the monorepo's own
+  dev build covers the entry (checks `Vite::isRunningHot()` and `public/build/manifest.json`
+  directly, since Laravel's `Vite` class exposes no public "does this key exist" check) or falls
+  back to the committed `dist/` output otherwise (a standalone Composer install, or before
+  anyone's run the extension build in this monorepo at all) — one dual-mode implementation,
+  reusable for k-core's own still-unconditional `@vite()` calls in `head.blade.php` too, not done
+  in this pass (see `CLAUDE.md`'s existing TODO on that).
+
+**Why:** `k-core`'s own compiled CSS previously scanned *every* extension's Blade files in this
+monorepo via an explicit `@source` glob — the only reason extensions could use Tailwind classes
+at all. That only works because every extension currently lives in this same monorepo at
+k-core's own release time; a third-party extension (installed via Composer into a real site,
+never part of this monorepo) was never scanned by anything, so any class it used beyond what's
+already used somewhere in this tree silently produced no CSS, and there was no bundling path for
+a real JS dependency at all. Each extension's own `app.css` uses `@import "tailwindcss"
+source(none)` (disables Tailwind's automatic whole-project heuristic scan, which otherwise walks
+from the Vite root regardless of which package is being built) plus an explicit `@source` scoped
+to only that extension's own `views/` — so its compiled bundle is self-contained and correct in
+isolation, which is what actually fixes the coupling. Theme token *values* (colors) still come
+from k-core's own compiled CSS, always loaded alongside on a real page — an extension's bundle
+doesn't redeclare the theme, only supplies utility/component CSS rules that reference the same
+shared CSS custom properties, per the existing "extensions follow core's daisyUI theme"
+convention.
+
+**Status:** Decided & implemented. `k-extensions/example` (the documented reference
+implementation every other extension convention already uses) wired up end-to-end as the working
+example — `resources/css/app.css` (with a small `.kop-example-badge` custom class proving
+genuinely extension-owned CSS compiles), `resources/js/app.js`, registered via
+`->compiledAssets(__DIR__.'/..')` in its `Extension::extendsPortals()`. Verified: the scoped
+build produces a self-contained ~13KB bundle (vs. ~330KB when the whole-monorepo scan leaked
+through, caught and fixed with `source(none)`); `Manager::extensionAssets()` correctly registers
+the compiled `dist/` output once built and the runtime asset route serves it with the right
+content-type and content; `viteOrDist()` correctly renders nothing when neither a dev manifest
+nor a built `dist/` exists yet, and correctly falls back to `dist/` otherwise. No real extension
+has adopted this yet — `example` is illustrative only, same as every other convention it
+demonstrates.
+
+---

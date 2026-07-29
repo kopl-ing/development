@@ -8,7 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
 /**
- * A single-emoji setting field, backed by the emoji-mart picker (`Ux/js/emoji-picker.js` +
+ * A single-emoji setting field, backed by the emoji-mart picker (`resources/js/emoji-picker.js` +
  * `emoji-picker-mart.js`, see their own docblocks) -- Core's one reusable emoji-picker
  * primitive, not something any individual extension hand-rolls again (`reactions`' own
  * `PALETTE`-grid picker predates this and stays as-is; this is for free-choice single-emoji
