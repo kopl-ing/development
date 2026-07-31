@@ -19,13 +19,14 @@ use Kopling\Core\Ux\ComponentTag;
 function coreUxComponentClasses(): \Illuminate\Support\Collection
 {
     // `Ux::add()`-only leaves -- never invoked as a bare `<x-k::*>` tag by convention. Card's
-    // Top/Body/Footer/Control resolve Author/Avatar/Content/Timestamp/Row/Column dynamically via
-    // SlotResolver/<x-dynamic-component> (see Card\Top::defaults() etc.), Editor's mount resolves
+    // Top/Body/Footer/Control resolve Accreditation/Author/Avatar/Content/Timestamp/Row/Column
+    // dynamically via SlotResolver/<x-dynamic-component> (see Card\Top::defaults() etc.), Editor's mount resolves
     // NotionEditor the same way (Editor::defaults()), and Navigation\Item is always dispatched
     // the same way from Navigation/Sidebar/admin's own sidebar. All exercised live by the style
     // guide's Card/Editor sections (through Core's real registered defaults) -- there's just no
     // literal tag to grep for.
     $leafOnly = [
+        \Kopling\Core\Ux\Card\Accreditation::class,
         \Kopling\Core\Ux\Card\Author::class,
         \Kopling\Core\Ux\Person\Avatar::class,
         \Kopling\Core\Ux\Card\Content::class,

@@ -53,7 +53,10 @@ it('caps visible avatars at 3 and shows a +N overflow count for the rest', funct
 
     $html = renderTagsWidget();
 
-    expect(substr_count($html, 'avatar-placeholder'))->toBe(3)
+    // `avatar-placeholder` is daisyUI's own class for "no image, initials only" -- both the 3
+    // real contributor avatars and the "+2" overflow badge share it via the same `Avatar`
+    // component, so count `title="` (only real, named avatars carry one) instead.
+    expect(substr_count($html, 'title="'))->toBe(3)
         ->and($html)->toContain('+2');
 });
 

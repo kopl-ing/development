@@ -35,8 +35,15 @@ it('shows the configured logo instead of the name once both are set', function (
 
     $html = $this->get('/')->assertOk()->getContent();
 
+    // Scoped to <header>, not the whole page -- <title> legitimately still carries the plain
+    // name text (it can't hold an <img>), same reasoning the Admin-portal test below already
+    // scopes its own check to.
+    $headerStart = strpos($html, '<header');
+    $headerEnd = strpos($html, '</header>', $headerStart);
+    $header = substr($html, $headerStart, $headerEnd - $headerStart);
+
     expect($html)->toContain('<img src="https://example.test/logo.png" alt="Acme Town Square"')
-        ->and($html)->not->toContain('>Acme Town Square<');
+        ->and($header)->not->toContain('>Acme Town Square<');
 });
 
 it('does not substitute the community name on the Admin portal -- it keeps showing "Admin"', function () {

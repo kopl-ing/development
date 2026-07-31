@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Kopling\Core\Content\Moment;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\People\Person;
 use Kopling\Core\Ux\Context;
 use Tests\Fixtures\Extensions\ModelExtender\Gadget;
 
@@ -62,4 +64,23 @@ it('renders a stretched-link overlay, aura-glow wrapper, caret icon, and group c
         ->toContain('data-href="'.route('fixture-gadgets.show', $gadget->id).'"')
         ->toContain('aura aura-glow')
         ->toContain('group cursor-pointer');
+});
+
+it('wires the real linksTo() case (a Moment linking to its discussions page) with the hx-boosted primary link', function () {
+    $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
+    $moment = Moment::create(['person_id' => $author->id, 'title' => 'Real moment', 'body' => 'Body']);
+
+    $html = (string) $this->blade('<x-k::card.card :context="$context" />', [
+        'context' => new Context(subject: $moment),
+    ]);
+
+    $url = route('kopling-core::community/discussions.show', $moment);
+
+    expect($html)
+        ->toContain('data-href="'.$url.'"')
+        ->and($html)->toContain('data-card-primary-link')
+        ->and($html)->toContain('hx-boost="true"')
+        ->and($html)->toContain('hx-target="#main-content"')
+        ->and($html)->toContain('aura aura-glow')
+        ->and($html)->toContain('group cursor-pointer');
 });

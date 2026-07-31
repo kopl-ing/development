@@ -75,6 +75,9 @@
             "@php artisan kopling:reactions:seed-demo --ansi",
             "@php artisan kopling:discussions:seed-demo --ansi",
             "@php artisan kopling:tags:seed-demo --ansi"
+        ],
+        "test": [
+            "@php vendor/bin/pest"
         ]
     },
     "minimum-stability": "stable",
