@@ -37,7 +37,7 @@
     $canReact = $actor !== null;
 @endphp
 @if ($reactable && ($items->isNotEmpty() || $canReact))
-    <div id="rwords-{{ $reactable->id }}" @if ($oob) hx-swap-oob="true" @endif class="contents">
+    <div id="rwords-{{ $reactable->id }}" @if ($oob) hx-swap-oob="true" @endif>
         @foreach ($items as $reaction)
             @php
                 $name = $reaction->person?->name ?? __('kopling-reactions::messages.someone');
