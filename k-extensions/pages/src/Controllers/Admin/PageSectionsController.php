@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Pages\Controllers\Admin;
 
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Kopling\Core\Extension\Manager;
@@ -48,8 +49,9 @@ class PageSectionsController
     /**
      * Swaps this section's `order` with its immediate neighbor in the requested direction --
      * simplest correct reordering for a short, admin-managed list; no drag-and-drop needed yet.
+     * Returns just the re-rendered sections list for an `HX-Request`, the redirect otherwise.
      */
-    public function move(Request $request, Page $page, PageSection $section): RedirectResponse
+    public function move(Request $request, Page $page, PageSection $section): RedirectResponse|View
     {
         $up = $request->input('direction') === 'up';
 
@@ -62,6 +64,13 @@ class PageSectionsController
             [$section->order, $neighbor->order] = [$neighbor->order, $section->order];
             $section->save();
             $neighbor->save();
+        }
+
+        if ($request->hasHeader('HX-Request')) {
+            return view('kopling-pages::admin.pages.partials.sections-list', [
+                'page' => $page,
+                'sections' => $page->sections()->with('template')->get(),
+            ]);
         }
 
         return redirect()->route('kopling-admin::admin/pages.edit', $page);

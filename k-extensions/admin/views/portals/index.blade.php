@@ -26,7 +26,7 @@
                             @if ($errors->any() && old('_form') === 'portal-'.$portal->id)
                                 <div class="alert alert-error alert-sm mb-2">{{ $errors->first('path') }}</div>
                             @endif
-                            <form method="POST" action="{{ route('kopling-admin::admin/portals.update') }}" class="flex gap-2 items-center">
+                            <form method="POST" action="{{ route('kopling-admin::admin/portals.update') }}" hx-boost="true" class="flex gap-2 items-center">
                                 @csrf
                                 <input type="hidden" name="_form" value="portal-{{ $portal->id }}">
                                 <input type="hidden" name="id" value="{{ $portal->id }}">
@@ -38,7 +38,7 @@
                         <td>
                             @if ($overridden)
                                 <span class="badge badge-warning badge-sm">{{ __('kopling-admin::messages.overridden') }}</span>
-                                <form method="POST" action="{{ route('kopling-admin::admin/portals.reset') }}" class="inline">
+                                <form method="POST" action="{{ route('kopling-admin::admin/portals.reset') }}" hx-boost="true" class="inline">
                                     @csrf
                                     <input type="hidden" name="id" value="{{ $portal->id }}">
                                     <button type="submit" class="btn btn-sm btn-ghost">{{ __('kopling-admin::messages.reset_to_default') }}</button>

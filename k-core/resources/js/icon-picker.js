@@ -1,18 +1,14 @@
-// Vanilla JS, event-delegated on `document` -- same shape as emoji-picker.js/tag-input.js. No
-// lazy-loaded second module the way the emoji picker has: unlike emoji-mart's bundled dataset,
-// there's no heavy payload to defer here -- search results are already server-rendered SVG
-// strings (see Http\Controllers\IconSearchController), so this file never builds icon markup
-// itself, only inserts what the server sent.
+// Vanilla JS, event-delegated on `document`, same shape as emoji-picker.js/tag-input.js -- the
+// search input/results are wired declaratively via htmx instead, so this file only
+// positions/opens/closes the popover and reads the selection back out of it.
 
 let openPicker = null;
 let openContainer = null;
-let debounceTimer = null;
 
 function close() {
     openPicker?.remove();
     openPicker = null;
     openContainer = null;
-    clearTimeout(debounceTimer);
     document.removeEventListener('keydown', onKeydown);
     document.removeEventListener('mousedown', onClickOutside, true);
     window.removeEventListener('resize', close);
@@ -52,18 +48,18 @@ function position(popover, trigger) {
     });
 }
 
-function select(container, icon) {
+function select(container, id, icon) {
     const input = container.querySelector('[data-icon-input]');
     const display = container.querySelector('[data-icon-display]');
     const clearButton = container.querySelector('[data-icon-clear]');
 
     if (input) {
-        input.value = icon.id;
+        input.value = id;
         input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     if (display) {
-        display.innerHTML = icon.icon;
+        display.innerHTML = icon;
     }
 
     if (clearButton) {
@@ -71,45 +67,6 @@ function select(container, icon) {
     }
 
     close();
-}
-
-function renderResults(list, container, icons, term) {
-    list.innerHTML = '';
-
-    if (icons.length === 0) {
-        const empty = document.createElement('p');
-        empty.className = 'kop-icon-picker__empty';
-        empty.textContent = term ? 'No icons found.' : 'Type to search icons…';
-        list.appendChild(empty);
-
-        return;
-    }
-
-    icons.forEach((icon) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'kop-icon-picker__option';
-        button.title = icon.label;
-        button.setAttribute('aria-label', icon.label);
-        button.innerHTML = icon.icon;
-        button.addEventListener('click', () => select(container, icon));
-        list.appendChild(button);
-    });
-}
-
-async function search(term, container, list) {
-    const searchUrl = container.dataset.searchUrl;
-
-    if (!term) {
-        renderResults(list, container, [], term);
-
-        return;
-    }
-
-    const response = await fetch(`${searchUrl}?q=${encodeURIComponent(term)}`);
-    const icons = response.ok ? await response.json() : [];
-
-    renderResults(list, container, icons, term);
 }
 
 /**
@@ -129,29 +86,31 @@ export function toggle(container) {
 
     const trigger = container.querySelector('[data-icon-trigger]');
     const host = container.closest('dialog') ?? document.body;
+    const searchUrl = container.dataset.searchUrl;
 
     const popover = document.createElement('div');
     popover.className = 'kop-icon-picker__popover';
 
+    const list = document.createElement('div');
+    list.className = 'kop-icon-picker__results';
+    list.id = `kop-icon-results-${Math.random().toString(36).slice(2)}`;
+
     const input = document.createElement('input');
     input.type = 'text';
+    input.name = 'q';
     input.className = 'input input-sm w-full';
     input.placeholder = container.dataset.placeholder || 'Search…';
     input.setAttribute('aria-label', input.placeholder);
-
-    const list = document.createElement('div');
-    list.className = 'kop-icon-picker__results';
+    input.setAttribute('hx-get', searchUrl);
+    input.setAttribute('hx-trigger', 'input changed delay:250ms, load');
+    input.setAttribute('hx-target', `#${list.id}`);
+    input.setAttribute('hx-swap', 'innerHTML');
 
     popover.appendChild(input);
     popover.appendChild(list);
     host.appendChild(popover);
 
-    renderResults(list, container, [], '');
-
-    input.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => search(input.value.trim(), container, list), 250);
-    });
+    window.htmx.process(popover);
 
     input.focus();
     position(popover, trigger);
@@ -166,6 +125,15 @@ export function toggle(container) {
 }
 
 document.addEventListener('click', (event) => {
+    const optionButton = event.target.closest('[data-icon-option]');
+
+    if (optionButton && openContainer) {
+        event.preventDefault();
+        select(openContainer, optionButton.dataset.iconId, optionButton.innerHTML);
+
+        return;
+    }
+
     const clearTrigger = event.target.closest('[data-icon-clear]');
 
     if (clearTrigger) {

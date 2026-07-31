@@ -9,7 +9,7 @@
                 @if ($errors->any() && old('_form') === 'template-create')
                     <div class="alert alert-error mb-4">{{ $errors->first() }}</div>
                 @endif
-                <form method="POST" action="{{ route('kopling-admin::admin/section-templates.store') }}" class="flex flex-col gap-4">
+                <form method="POST" action="{{ route('kopling-admin::admin/section-templates.store') }}" hx-boost="true" class="flex flex-col gap-4">
                     @csrf
                     <input type="hidden" name="_form" value="template-create">
                     <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-pages::messages.template_name'), 'value' => old('name')]" />
@@ -48,7 +48,7 @@
                                     @if ($errors->any() && old('_form') === 'template-edit-'.$template->id)
                                         <div class="alert alert-error mb-4">{{ $errors->first() }}</div>
                                     @endif
-                                    <form method="POST" action="{{ route('kopling-admin::admin/section-templates.update', $template) }}" class="flex flex-col gap-4">
+                                    <form method="POST" action="{{ route('kopling-admin::admin/section-templates.update', $template) }}" hx-boost="true" class="flex flex-col gap-4">
                                         @csrf
                                         <input type="hidden" name="_form" value="template-edit-{{ $template->id }}">
                                         <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-pages::messages.template_name'), 'value' => $template->name]" />
@@ -58,7 +58,7 @@
                                     </form>
                                 </x-k::modal>
                                 <form method="POST" action="{{ route('kopling-admin::admin/section-templates.destroy', $template) }}"
-                                      onsubmit="return confirm('{{ __('kopling-pages::messages.confirm_delete_template') }}')">
+                                      hx-boost="true" hx-confirm="{{ __('kopling-pages::messages.confirm_delete_template') }}">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-admin::messages.delete') }}</button>
                                 </form>

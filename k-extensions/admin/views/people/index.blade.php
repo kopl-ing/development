@@ -33,7 +33,7 @@
                                     @endif
                                     <x-k::modal :label="__('kopling-admin::messages.manage_groups')">
                                         <x-slot:trigger>{{ __('kopling-admin::messages.manage_groups') }}</x-slot:trigger>
-                                        <form method="POST" action="{{ route('kopling-admin::admin/people.groups', $person) }}" class="flex flex-col gap-4">
+                                        <form method="POST" action="{{ route('kopling-admin::admin/people.groups', $person) }}" hx-boost="true" class="flex flex-col gap-4">
                                             @csrf
                                             <h2 class="text-lg font-semibold">{{ $person->name }}</h2>
                                             <x-k::form.multi-select :data="[

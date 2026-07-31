@@ -4,7 +4,10 @@
      the viewport on mobile instead of actually truncating. --}}
 <h2 class="card-title overflow-x-auto">
     @if ($url)
-        <a href="{{ $url }}" class="transition-colors group-hover:text-primary">{{ $title }}</a>
+        {{-- `data-card-primary-link` is app.js's whole-card click hook; `hx-target`/`hx-select` reuse `page/pagination.blade.php`'s `#main-content` swap idiom. --}}
+        <a href="{{ $url }}" data-card-primary-link class="transition-colors group-hover:text-primary"
+           hx-boost="true" hx-target="#main-content" hx-select="#main-content"
+           hx-swap="outerHTML show:top" hx-push-url="true">{{ $title }}</a>
     @else
         <span>{{ $title }}</span>
     @endif

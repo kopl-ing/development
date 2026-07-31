@@ -41,7 +41,7 @@
                             <td class="flex gap-2">
                                 <a href="{{ route('kopling-admin::admin/pages.edit', $page) }}" class="btn btn-sm">{{ __('kopling-admin::messages.edit') }}</a>
                                 <form method="POST" action="{{ route('kopling-admin::admin/pages.destroy', $page) }}"
-                                      onsubmit="return confirm('{{ __('kopling-pages::messages.confirm_delete_page') }}')">
+                                      hx-boost="true" hx-confirm="{{ __('kopling-pages::messages.confirm_delete_page') }}">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-pages::messages.delete') }}</button>
                                 </form>

@@ -7,6 +7,8 @@ namespace Kopling\Widgets;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
+use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Portal\PortalExtension;
 use Kopling\Widgets\Ux\PulseWidget;
 use Kopling\Widgets\Ux\TagsWidget;
 
@@ -17,7 +19,7 @@ use Kopling\Widgets\Ux\TagsWidget;
  * discussion pages. Pure server-rendered daisyUI -- each widget self-hides when it has nothing
  * to show, and the tags one no-ops entirely without the tags extension.
  */
-class Extension extends AbstractExtension implements ChangesUx
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
 {
     public static function name(): string
     {
@@ -40,5 +42,16 @@ class Extension extends AbstractExtension implements ChangesUx
             ->in('kopling-core::community.sidebar')
             ->as('tags')
             ->after('pulse');
+    }
+
+    /**
+     * @return array<PortalExtension>
+     */
+    public function extendsPortals(): array
+    {
+        return [
+            new PortalExtension('kopling-core::community')
+                ->routes(__DIR__.'/../routes/web.php'),
+        ];
     }
 }

@@ -1,4 +1,5 @@
-<form method="POST" action="{{ route('kopling-core::community/register.attempt') }}" class="flex flex-col gap-3">
+{{-- Same `hx-boost` reasoning as login-form.blade.php's own comment. --}}
+<form method="POST" action="{{ route('kopling-core::community/register.attempt') }}" hx-boost="true" class="flex flex-col gap-3">
     @csrf
 
     <fieldset class="fieldset">

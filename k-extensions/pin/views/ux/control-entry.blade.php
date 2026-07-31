@@ -5,7 +5,7 @@
             <form method="POST" action="{{ route('kopling-core::community/pin.store', $moment) }}"
                   hx-post="{{ route('kopling-core::community/pin.store', $moment) }}"
                   hx-target="#moment-{{ $moment->id }}" hx-swap="outerHTML"
-                  hx-on::after-request="if (event.detail.successful) $el.closest('dialog').close()"
+                  hx-on::after:request="if ((event.detail?.ctx?.response?.status ?? 500) < 400) { $el.closest('dialog').close() }"
                   class="flex flex-col gap-4">
                 @csrf
                 <x-k::form.select :data="[

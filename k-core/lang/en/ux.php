@@ -7,6 +7,8 @@ return [
     'clear' => 'Clear',
     'pick_emoji' => 'Pick an emoji',
     'no_options' => 'No options available.',
+    'icon_search_prompt' => 'Type to search icons…',
+    'icon_search_no_results' => 'No icons found.',
     'select_min_max' => 'Select between :min and :max.',
     'select_min' => 'Select at least :min.',
     'select_max' => 'Select up to :max.',

@@ -24,7 +24,8 @@
                 </aside>
 
                 <main class="flex-1 p-4 sm:p-6">
-                    <div class="{{ $mainClass }}">
+                    {{-- Shared swap target for `Card\Title`'s `hx-boost`ed link (`card/title.blade.php`). --}}
+                    <div id="main-content" class="{{ $mainClass }}">
                         {{ $slot }}
                     </div>
                 </main>

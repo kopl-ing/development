@@ -36,7 +36,7 @@
                             <td><span class="badge badge-ghost">{{ $request->access->value }}</span></td>
                             <td><span class="badge badge-ghost">{{ $request->permission->value }}</span></td>
                             <td colspan="3">
-                                <form method="POST" action="{{ route('kopling-admin::admin/storage.store') }}" class="flex gap-2 items-center">
+                                <form method="POST" action="{{ route('kopling-admin::admin/storage.store') }}" hx-boost="true" class="flex gap-2 items-center">
                                     @csrf
                                     <input type="hidden" name="request_id" value="{{ $request->id }}">
                                     <select name="drive_id" class="select select-sm" required>
@@ -72,7 +72,7 @@
                                 <td class="font-mono text-xs">{{ $mapping->request_id }}</td>
                                 <td>{{ $mapping->drive->name ?? '—' }}</td>
                                 <td>
-                                    <form method="POST" action="{{ route('kopling-admin::admin/storage.destroy') }}">
+                                    <form method="POST" action="{{ route('kopling-admin::admin/storage.destroy') }}" hx-boost="true">
                                         @csrf
                                         <input type="hidden" name="request_id" value="{{ $mapping->request_id }}">
                                         <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-admin::messages.delete') }}</button>

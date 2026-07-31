@@ -61,15 +61,18 @@ it('returns an empty array when the API returns no icons', function () {
     expect((new FontAwesomeIconSearch)->search('zzzznotarealterm'))->toBe([]);
 });
 
-it('GET /_xhr/kopling-core/icon-search returns [] for a blank query without hitting the API at all', function () {
+it('GET /_xhr/kopling-core/icon-search returns the search prompt for a blank query without hitting the API at all', function () {
     Http::fake();
 
-    $this->get('/_xhr/kopling-core/icon-search?q=')->assertOk()->assertExactJson([]);
+    $this->get('/_xhr/kopling-core/icon-search?q=')
+        ->assertOk()
+        ->assertSee(__('kopling-core::ux.icon_search_prompt'))
+        ->assertDontSee('data-icon-option', false);
 
     Http::assertNothingSent();
 });
 
-it('GET /_xhr/kopling-core/icon-search proxies a real term through to search results', function () {
+it('GET /_xhr/kopling-core/icon-search proxies a real term through to a rendered results fragment', function () {
     Http::fake([
         'api.fontawesome.com' => Http::response([
             'data' => ['searchPaginated' => ['icons' => [['id' => 'star', 'label' => 'Star']]]],
@@ -78,5 +81,6 @@ it('GET /_xhr/kopling-core/icon-search proxies a real term through to search res
 
     $this->get('/_xhr/kopling-core/icon-search?q=star')
         ->assertOk()
-        ->assertJsonFragment(['id' => 'star', 'label' => 'Star']);
+        ->assertSee('data-icon-id="star"', false)
+        ->assertSee('<svg', false);
 });

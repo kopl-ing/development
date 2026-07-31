@@ -13,7 +13,7 @@
                 @if ($errors->any() && old('_form') === 'drive-create')
                     <div class="alert alert-error mb-4">{{ $errors->first() }}</div>
                 @endif
-                <form method="POST" action="{{ route('kopling-admin::admin/drives.store') }}" class="flex flex-col gap-4">
+                <form method="POST" action="{{ route('kopling-admin::admin/drives.store') }}" hx-boost="true" class="flex flex-col gap-4">
                     @csrf
                     <input type="hidden" name="_form" value="drive-create">
                     <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-admin::messages.name'), 'value' => old('name')]" />
@@ -66,7 +66,7 @@
                                     @if ($errors->any() && old('_form') === 'drive-edit-'.$drive->id)
                                         <div class="alert alert-error mb-4">{{ $errors->first() }}</div>
                                     @endif
-                                    <form method="POST" action="{{ route('kopling-admin::admin/drives.update', $drive) }}" class="flex flex-col gap-4">
+                                    <form method="POST" action="{{ route('kopling-admin::admin/drives.update', $drive) }}" hx-boost="true" class="flex flex-col gap-4">
                                         @csrf
                                         <input type="hidden" name="_form" value="drive-edit-{{ $drive->id }}">
                                         <x-k::form.input :data="['name' => 'name', 'label' => __('kopling-admin::messages.name'), 'value' => $drive->name]" />
@@ -80,7 +80,7 @@
                                     </form>
                                 </x-k::modal>
                                 <form method="POST" action="{{ route('kopling-admin::admin/drives.destroy', $drive) }}"
-                                      onsubmit="return confirm('{{ __('kopling-admin::messages.confirm_delete_drive') }}')">
+                                      hx-boost="true" hx-confirm="{{ __('kopling-admin::messages.confirm_delete_drive') }}">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-admin::messages.delete') }}</button>
                                 </form>

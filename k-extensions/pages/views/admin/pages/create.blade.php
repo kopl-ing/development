@@ -4,7 +4,7 @@
     <div class="max-w-2xl flex flex-col gap-6">
         <h1 class="text-2xl font-bold">{{ __('kopling-pages::messages.new_page') }}</h1>
 
-        <form method="POST" action="{{ route('kopling-admin::admin/pages.store') }}" class="flex flex-col gap-4">
+        <form method="POST" action="{{ route('kopling-admin::admin/pages.store') }}" hx-boost="true" class="flex flex-col gap-4">
             @csrf
             <x-k::form.input :data="['name' => 'title', 'label' => __('kopling-pages::messages.title'), 'value' => old('title')]" />
             <x-k::form.input :data="['name' => 'path', 'label' => __('kopling-pages::messages.path'), 'value' => old('path')]" />

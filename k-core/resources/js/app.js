@@ -28,11 +28,9 @@ document.addEventListener('click', (event) => {
     }
 });
 
-// A card wrapping a linked Moment/Reply (`Card\Card`'s own `data-href`, set only when the
-// subject actually links somewhere) -- clicking anywhere on it navigates there, unless the click
-// already landed on a real interactive element (its own `closest()` handles the click) or the
-// person was selecting text. No stretched invisible `<a>`/`pointer-events` allowlist to maintain:
-// every element inside the card just behaves normally.
+// A card wrapping a linked Moment/Reply (`Card\Card`'s own `data-href`) forwards a click anywhere
+// on it into a real click on `[data-card-primary-link]`, so it gets the same htmx-boosted
+// navigation a direct click on the title link would.
 document.addEventListener('click', (event) => {
     const card = event.target.closest('[data-href]');
 
@@ -41,6 +39,14 @@ document.addEventListener('click', (event) => {
     }
 
     if (window.getSelection().toString().length > 0) {
+        return;
+    }
+
+    const primaryLink = card.querySelector('[data-card-primary-link]');
+
+    if (primaryLink) {
+        primaryLink.click();
+
         return;
     }
 

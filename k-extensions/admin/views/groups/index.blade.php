@@ -4,7 +4,7 @@
     <div class="max-w-3xl flex flex-col gap-6">
         <h1 class="text-2xl font-bold">{{ __('kopling-admin::messages.groups') }}</h1>
 
-        <form method="POST" action="{{ route('kopling-admin::admin/groups.store') }}" class="flex gap-2">
+        <form method="POST" action="{{ route('kopling-admin::admin/groups.store') }}" hx-boost="true" class="flex gap-2">
             @csrf
             <input type="text" name="name" placeholder="{{ __('kopling-admin::messages.new_group_name') }}"
                    class="input" required>
@@ -26,7 +26,7 @@
                     @foreach ($groups as $group)
                         <tr>
                             <td>
-                                <form method="POST" action="{{ route('kopling-admin::admin/groups.update', $group) }}" class="flex gap-2">
+                                <form method="POST" action="{{ route('kopling-admin::admin/groups.update', $group) }}" hx-boost="true" class="flex gap-2">
                                     @csrf
                                     <input type="text" name="name" value="{{ $group->name }}" class="input input-sm">
                                     <button type="submit" class="btn btn-sm">{{ __('kopling-admin::messages.rename') }}</button>
@@ -37,7 +37,7 @@
                                 @can('kopling-core::manage-permissions')
                                     <x-k::modal id="group-permissions-{{ $group->id }}" :label="__('kopling-admin::messages.manage_permissions')">
                                         <x-slot:trigger>{{ __('kopling-admin::messages.permissions') }}</x-slot:trigger>
-                                        <form method="POST" action="{{ route('kopling-admin::admin/groups.permissions', $group) }}" class="flex flex-col gap-4">
+                                        <form method="POST" action="{{ route('kopling-admin::admin/groups.permissions', $group) }}" hx-boost="true" class="flex flex-col gap-4">
                                             @csrf
                                             <h2 class="text-lg font-semibold">{{ $group->name }}</h2>
                                             <x-k::form.multi-select :data="[
@@ -51,7 +51,7 @@
                                     </x-k::modal>
                                 @endcan
                                 <form method="POST" action="{{ route('kopling-admin::admin/groups.destroy', $group) }}"
-                                      onsubmit="return confirm('{{ __('kopling-admin::messages.confirm_delete_group') }}')">
+                                      hx-boost="true" hx-confirm="{{ __('kopling-admin::messages.confirm_delete_group') }}">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-admin::messages.delete') }}</button>
                                 </form>

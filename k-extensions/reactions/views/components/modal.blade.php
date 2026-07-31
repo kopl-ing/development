@@ -8,8 +8,9 @@
     Styling is css/app.css (core's compiled build doesn't include extension utility classes).
 --}}
 @auth
+    {{-- `htmx.process()` re-scans the button once Alpine's `$nextTick` has written its `hx-post`/`hx-target` (see CLAUDE.md gotchas). --}}
     <div x-data="{ open: false, url: null, target: null, emoji: null, word: '' }"
-         @kop-react-open.window="open = true; url = $event.detail.url; target = $event.detail.target; emoji = null; word = ''"
+         @kop-react-open.window="open = true; url = $event.detail.url; target = $event.detail.target; emoji = null; word = ''; $nextTick(() => window.htmx.process($refs.submit))"
          @keydown.escape.window="open = false"
          x-show="open" x-cloak class="kop-rmodal">
         <div class="kop-rmodal__backdrop" @click="open = false"></div>
@@ -40,7 +41,7 @@
                 </div>
                 <input type="text" maxlength="{{ Reaction::WORD_MAX }}" x-model="word"
                        placeholder="{{ __('kopling-reactions::messages.say_it') }}"
-                       @keydown.enter.prevent="if (emoji) { window.htmx.ajax('POST', url, { target, swap: 'outerHTML', values: { emoji, word } }); open = false }"
+                       @keydown.enter.prevent="if (emoji) $refs.submit.click()"
                        class="input input-bordered input-sm w-full">
                 <div class="kop-rmodal__quips">
                     @foreach ((array) __('kopling-reactions::messages.quips') as $quip)
@@ -55,8 +56,11 @@
                     <span x-text="emoji"></span>
                     <span x-show="word.trim()" x-text="'“' + word.trim() + '”'"></span>
                 </span>
-                <button type="button" :disabled="!emoji"
-                        @click="window.htmx.ajax('POST', url, { target, swap: 'outerHTML', values: { emoji, word } }); open = false"
+                {{-- The one element carrying the htmx wiring -- the Enter-key handler above forwards into a click here instead of duplicating it. --}}
+                <button type="button" x-ref="submit" :disabled="!emoji"
+                        x-bind:hx-post="url" x-bind:hx-target="target" hx-swap="outerHTML"
+                        x-bind:hx-vals="JSON.stringify({ emoji, word })"
+                        @click="open = false"
                         class="btn btn-primary btn-sm" style="margin-inline-start:auto">{{ __('kopling-reactions::messages.word_submit') }}</button>
             </div>
         </div>
