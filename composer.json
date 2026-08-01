@@ -66,7 +66,27 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "app/"
+            "App\\": "app/",
+            "Kopling\\Core\\": "k-core/src/",
+            "Kopling\\Admin\\": "k-extensions/admin/src/",
+            "Kopling\\AuthEmailPassword\\": "k-extensions/auth-email-password/src/",
+            "Kopling\\Composer\\": "k-extensions/composer/src/",
+            "Kopling\\Demo\\": "k-extensions/demo/src/",
+            "Kopling\\Discussions\\": "k-extensions/discussions/src/",
+            "Kopling\\Docs\\": "k-extensions/docs/src/",
+            "Kopling\\Example\\": "k-extensions/example/src/",
+            "Kopling\\Pages\\": "k-extensions/pages/src/",
+            "Kopling\\Pin\\": "k-extensions/pin/src/",
+            "Kopling\\Poll\\": "k-extensions/poll/src/",
+            "Kopling\\Profile\\": "k-extensions/profile/src/",
+            "Kopling\\Reactions\\": "k-extensions/reactions/src/",
+            "Kopling\\ReplyDock\\": "k-extensions/reply-dock/src/",
+            "Kopling\\StyleGuide\\": "k-extensions/style-guide/src/",
+            "Kopling\\Tags\\": "k-extensions/tags/src/",
+            "Kopling\\ThemeDelft\\": "k-extensions/theme-delft/src/",
+            "Kopling\\ThemeMidnight\\": "k-extensions/theme-midnight/src/",
+            "Kopling\\ThreadTitle\\": "k-extensions/thread-title/src/",
+            "Kopling\\Widgets\\": "k-extensions/widgets/src/"
         }
     },
     "autoload-dev": {
@@ -119,5 +139,12 @@
         "mockery/mockery": "^1.6",
         "pestphp/pest": "^4.7",
         "pestphp/pest-plugin-laravel": "^4.1"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kopling\\Core\\Provider\\ServiceProvider"
+            ]
+        }
     }
 }
