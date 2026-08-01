@@ -1,5 +1,6 @@
 name: subsplit.yml
 on:
+  workflow_dispatch:
   push:
     # Only trigger for specific branches or changes in specific paths.
     branches:
