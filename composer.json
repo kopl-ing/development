@@ -42,6 +42,28 @@
         "kopling/thread-title": "@dev",
         "kopling/widgets": "@dev"
     },
+    "replaces": {
+        "kopling/admin": "self.version",
+        "kopling/auth-email-password": "self.version",
+        "kopling/composer": "self.version",
+        "kopling/core": "self.version",
+        "kopling/demo": "self.version",
+        "kopling/discussions": "self.version",
+        "kopling/docs": "self.version",
+        "kopling/example": "self.version",
+        "kopling/pages": "self.version",
+        "kopling/pin": "self.version",
+        "kopling/poll": "self.version",
+        "kopling/profile": "self.version",
+        "kopling/reactions": "self.version",
+        "kopling/reply-dock": "self.version",
+        "kopling/style-guide": "self.version",
+        "kopling/tags": "self.version",
+        "kopling/theme-delft": "self.version",
+        "kopling/theme-midnight": "self.version",
+        "kopling/thread-title": "self.version",
+        "kopling/widgets": "self.version"
+    },
     "autoload": {
         "psr-4": {
             "App\\": "app/"
