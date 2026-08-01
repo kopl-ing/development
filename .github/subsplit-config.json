@@ -6,9 +6,84 @@
             "target": "git@github.com:kopl-ing/core.git"
         },
         {
+            "name": "admin",
+            "directory": "k-extensions/admin",
+            "target": "git@github.com:kopl-ing/admin.git"
+        },
+        {
+            "name": "auth-email-password",
+            "directory": "k-extensions/auth-email-password",
+            "target": "git@github.com:kopl-ing/auth-email-password.git"
+        },
+        {
+            "name": "composer",
+            "directory": "k-extensions/composer",
+            "target": "git@github.com:kopl-ing/composer.git"
+        },
+        {
+            "name": "demo",
+            "directory": "k-extensions/demo",
+            "target": "git@github.com:kopl-ing/demo.git"
+        },
+        {
+            "name": "discussions",
+            "directory": "k-extensions/discussions",
+            "target": "git@github.com:kopl-ing/discussions.git"
+        },
+        {
+            "name": "pin",
+            "directory": "k-extensions/pin",
+            "target": "git@github.com:kopl-ing/pin.git"
+        },
+        {
+            "name": "poll",
+            "directory": "k-extensions/poll",
+            "target": "git@github.com:kopl-ing/poll.git"
+        },
+        {
+            "name": "profile",
+            "directory": "k-extensions/profile",
+            "target": "git@github.com:kopl-ing/profile.git"
+        },
+        {
             "name": "reactions",
             "directory": "k-extensions/reactions",
             "target": "git@github.com:kopl-ing/reactions.git"
+        },
+        {
+            "name": "reply-dock",
+            "directory": "k-extensions/reply-dock",
+            "target": "git@github.com:kopl-ing/reply-dock.git"
+        },
+        {
+            "name": "style-guide",
+            "directory": "k-extensions/style-guide",
+            "target": "git@github.com:kopl-ing/style-guide.git"
+        },
+        {
+            "name": "tags",
+            "directory": "k-extensions/tags",
+            "target": "git@github.com:kopl-ing/tags.git"
+        },
+        {
+            "name": "theme-delft",
+            "directory": "k-extensions/theme-delft",
+            "target": "git@github.com:kopl-ing/theme-delft.git"
+        },
+        {
+            "name": "theme-midnight",
+            "directory": "k-extensions/theme-midnight",
+            "target": "git@github.com:kopl-ing/theme-midnight.git"
+        },
+        {
+            "name": "thread-title",
+            "directory": "k-extensions/thread-title",
+            "target": "git@github.com:kopl-ing/thread-title.git"
+        },
+        {
+            "name": "widgets",
+            "directory": "k-extensions/widgets",
+            "target": "git@github.com:kopl-ing/widgets.git"
         }
     ]
 }
