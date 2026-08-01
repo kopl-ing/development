@@ -43,11 +43,6 @@
                        placeholder="{{ __('kopling-reactions::messages.say_it') }}"
                        @keydown.enter.prevent="if (emoji) $refs.submit.click()"
                        class="input input-bordered input-sm w-full">
-                <div class="kop-rmodal__quips">
-                    @foreach ((array) __('kopling-reactions::messages.quips') as $quip)
-                        <button type="button" class="badge badge-ghost" @click="word = @js($quip)">{{ $quip }}</button>
-                    @endforeach
-                </div>
             </div>
 
             {{-- live preview + submit --}}

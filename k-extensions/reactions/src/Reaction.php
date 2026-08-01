@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Collection;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Database\Model;
 use Kopling\Core\People\Person;
+use Kopling\Tags\Tag;
 
 /**
  * A single person's single-emoji reaction to a reactable -- a Moment today, a Reply too once
@@ -35,7 +37,7 @@ class Reaction extends Model
     public const WORDS_LIMIT = 6;
 
     /** Longest word a reaction may carry -- matches the migration column + the route guard. */
-    public const WORD_MAX = 40;
+    public const WORD_MAX = 20;
 
     protected $fillable = [
         'reactable_type',
@@ -119,13 +121,13 @@ class Reaction extends Model
      */
     public static function voteConfigFor(Moment $moment): array
     {
-        if (! class_exists(\Kopling\Tags\Tag::class)) {
+        if (! class_exists(Tag::class)) {
             return [];
         }
 
         $pairs = [];
 
-        foreach (\Kopling\Tags\Tag::forMoment($moment) as $tag) {
+        foreach (Tag::forMoment($moment) as $tag) {
             foreach (['up' => $tag->upvote_emoji, 'down' => $tag->downvote_emoji] as $direction => $emoji) {
                 if ($emoji === null) {
                     continue;
@@ -151,9 +153,9 @@ class Reaction extends Model
      * The most recent worded reactions on a reactable (newest first) -- the "Latest reactions"
      * strip. Plain (wordless) rail toggles are excluded. Authors ride along via `$with`.
      *
-     * @return \Illuminate\Support\Collection<int, static>
+     * @return Collection<int, static>
      */
-    public static function latestWorded(Model $reactable, int $limit = self::WORDS_LIMIT): \Illuminate\Support\Collection
+    public static function latestWorded(Model $reactable, int $limit = self::WORDS_LIMIT): Collection
     {
         return static::onReactable($reactable)
             ->whereNotNull('word')

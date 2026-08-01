@@ -22,5 +22,4 @@ return [
     'optional' => 'optional',
     'say_it' => 'Say it in a word or two…',
     'close' => 'Close',
-    'quips' => ['well said', 'this', 'so true', 'big if true', 'hyped', 'oof'],
 ];
