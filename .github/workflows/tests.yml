@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - k-core/**
+      - k-extensions/**
   pull_request:
 jobs:
   test:
