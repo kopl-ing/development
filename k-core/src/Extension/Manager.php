@@ -83,6 +83,12 @@ class Manager
         return \once(function () use ($includeDisabled) {
             $discovered = ['kopling/core' => new Core()];
 
+            // A consuming app's own `App\Extension` -- opt-in, not Composer-discovered (there's
+            // no package for it), toggleable/orderable like any other extension once found.
+            if (class_exists(\App\Extension::class) && is_subclass_of(\App\Extension::class, AbstractExtension::class)) {
+                $discovered['app'] = new \App\Extension();
+            }
+
             foreach ($this->manifest->extensions() as $package => $extension) {
                 $class = $extension['namespace'].'Extension';
 
@@ -137,11 +143,11 @@ class Manager
 
     public function path(string $package): ?string
     {
-        if ($package === 'kopling/core') {
-            return __DIR__ . '/../../';
-        }
-
-        return $this->manifest->extensions()[$package]['path'] ?? null;
+        return match ($package) {
+            'kopling/core' => __DIR__ . '/../../',
+            'app' => base_path(),
+            default => $this->manifest->extensions()[$package]['path'] ?? null,
+        };
     }
 
     /**
