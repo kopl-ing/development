@@ -21,7 +21,6 @@ jobs:
   sync_commits:
     runs-on: ubuntu-latest
     name: Sync commits
-    if: github.repository == 'kopl-ing/development' # Execute this workflow job only on the main repository.
     steps:
       -   uses: actions/checkout@v7
           with:
@@ -32,7 +31,7 @@ jobs:
       -   uses: frankdejonge/use-github-token@1.1.0
           with:
             authentication: 'username:${{ secrets.SUBSPLIT_TOKEN }}'
-            user_name: 'Daniel Klabbers'
+            user_name: 'Daniël Klabbers'
             user_email: 'daniel+git@klabbers.email'
 
       # Cache the splitsh executable to speedup future runs
