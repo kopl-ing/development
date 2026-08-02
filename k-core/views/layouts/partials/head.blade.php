@@ -1,4 +1,5 @@
 @php
+    use Illuminate\Support\Facades\Vite;
     use Kopling\Core\Extension\Manager;
     use Kopling\Core\Settings\Settings;
     use Kopling\Core\Ux\Theme;
@@ -10,6 +11,10 @@
     <meta name="description" content="{{ $description }}">
 @endif
 <title>@yield('title', Settings::get('kopling-core::community-name', 'Kopling'))</title>
+{{-- `Vite::fonts()` -- renders nothing when the current install has no font manifest (a
+     consumer that never used laravel-vite-plugin's font-loading feature), so this is safe to
+     call unconditionally rather than gating it behind some "has fonts" check of our own. --}}
+{!! Vite::fonts() !!}
 {{-- `Manager::viteOrDist()` -- @vite() inside this monorepo (dev server, or npm run build
      already produced a manifest entry), the committed k-core/dist/{name}.* otherwise (a
      standalone `kopling/core` install has no monorepo Vite manifest at all). `app` is core's
