@@ -559,13 +559,12 @@ class Manager
         $isOwnAssets = $extensionRoot === base_path() || is_link($extensionRoot);
 
         if (($vite->isRunningHot() && $isOwnAssets) || $coveredByManifest) {
-            return [
+            $entries = array_values(array_filter([
                 is_file($cssSource) ? $relativeCss : null,
                 is_file($jsSource) ? $relativeJs : null,
-            ]
-                |> array_filter(...)
-                |> array_values(...)
-                |> $vite(...)->toHtml();
+            ]));
+
+            return $vite($entries)->toHtml();
         }
 
         $html = '';
