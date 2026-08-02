@@ -44,6 +44,8 @@ use Kopling\Core\Ux\Theme\Token;
 use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
 
+use function once;
+
 /**
  * Aggregates every installed extension's declarations (permissions, ux entries, models, icons,
  * themes, portals, settings, ...) from a `RegistrationCache` when warm, otherwise by looping
@@ -53,9 +55,8 @@ use Kopling\Core\Ux\UxEntry;
 class Manager
 {
     /**
-     * `k-core`'s own compiled bundle names -- kept as one shared list rather than duplicated
-     * between `extensionAssets()` (registers `k-core/dist/{name}.*` for the asset route to
-     * find) and `head.blade.php` (which `name`s to call `viteOrDist()` with).
+     * `k-core`'s own compiled bundle names -- `head.blade.php` loops these to know which `name`s
+     * to call `viteOrDist()` with.
      *
      * @var array<int, string>
      */
@@ -80,7 +81,7 @@ class Manager
      */
     public function extensions(bool $includeDisabled = false): array
     {
-        return \once(function () use ($includeDisabled) {
+        return once(function () use ($includeDisabled) {
             $discovered = ['kopling/core' => new Core()];
 
             // A consuming app's own `App\Extension` -- opt-in, not Composer-discovered (there's
@@ -430,7 +431,11 @@ class Manager
     /**
      * Keyed by a hash of its own already-validated path, not anything request-derived --
      * `ExtensionAssetController` looks a request's `key` up here rather than accepting a raw
-     * path, so a request can never walk this into an arbitrary filesystem read.
+     * path, so a request can never walk this into an arbitrary filesystem read. Only single,
+     * standalone files -- a compiled dist bundle's own directory (which Vite may have littered
+     * with sibling chunks, e.g. a shared `preload-helper.js`, that a bundle's relative `import`
+     * needs to reach too) is served through `compiledAssetDirectories()` instead, since a single
+     * file-to-hash registry can't answer a request for a chunk it never explicitly enumerated.
      *
      * @return Collection<string, array{path: string, mime: string}>
      */
@@ -438,50 +443,12 @@ class Manager
     {
         $assets = [];
 
-        // `head.blade.php` generates these same URLs via `viteOrDist($this->path('kopling/core'),
-        // $name)` -- the path built here must match that call's own internal path exactly
-        // (same root, no trailing slash), since assetKey() is a plain hash of the literal path
-        // string. `path('kopling/core')` (not `base_path('k-core')`) since a standalone
-        // Composer install has no `k-core/` under the consuming app's own base path -- k-core
-        // lives wherever Composer put it (e.g. `vendor/kopling/core`), and only `path()`,
-        // derived from `__DIR__`, resolves correctly in both the monorepo and that case.
-        $corePath = rtrim($this->path('kopling/core'), '/');
-
-        foreach (static::CORE_COMPILED_BUNDLES as $name) {
-            foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
-                $path = "{$corePath}/dist/{$name}.{$kind}";
-
-                if (! is_file($path)) {
-                    continue;
-                }
-
-                $assets[static::assetKey($path)] = ['path' => $path, 'mime' => $mime];
-            }
-        }
-
         foreach ($this->portalExtensions() as $group) {
             foreach ($group as $portalExtension) {
                 foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
                     $path = $portalExtension->{$kind};
 
                     if ($path === null) {
-                        continue;
-                    }
-
-                    $assets[static::assetKey($path)] = ['path' => $path, 'mime' => $mime];
-                }
-
-                if ($portalExtension->compiledAssetsRoot === null) {
-                    continue;
-                }
-
-                foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
-                    $path = $portalExtension->compiledAssetsRoot.'/dist/'.$portalExtension->compiledAssetsName.".{$kind}";
-
-                    // Not built yet (fresh checkout, npm run build:extensions-dist never
-                    // run) is a normal state here, same reasoning compiledAssets() itself
-                    // doesn't validate dist/ -- just nothing to serve until it is.
-                    if (! is_file($path)) {
                         continue;
                     }
 
@@ -521,6 +488,40 @@ class Manager
     }
 
     /**
+     * Every known compiled-dist directory (k-core's own, plus every distinct
+     * `PortalExtension::compiledAssetsRoot`), keyed by a hash of the directory path itself --
+     * `DistAssetController` looks a request's `key` up here, then confines `{filename}` inside
+     * that one directory (see its own docblock), rather than trusting either segment on its own.
+     *
+     * @return Collection<string, string>
+     */
+    public function compiledAssetDirectories(): Collection
+    {
+        $dirs = [rtrim($this->path('kopling/core'), '/').'/dist'];
+
+        foreach ($this->portalExtensions() as $group) {
+            foreach ($group as $portalExtension) {
+                if ($portalExtension->compiledAssetsRoot !== null) {
+                    $dirs[] = $portalExtension->compiledAssetsRoot.'/dist';
+                }
+            }
+        }
+
+        return collect($dirs)
+            ->unique()
+            ->filter(fn (string $dir) => is_dir($dir))
+            ->mapWithKeys(fn (string $dir) => [static::assetKey($dir) => $dir]);
+    }
+
+    public static function distAssetUrl(string $dir, string $filename): string
+    {
+        return route('kopling-core::dist-assets', [
+            'key' => static::assetKey(rtrim($dir, '/')),
+            'filename' => $filename,
+        ]);
+    }
+
+    /**
      * `<link>`/`<script>` tags for one extension's compiled `resources/css/{name}.css` +
      * `resources/js/{name}.js` -- `@vite()` when the monorepo's own dev build covers this exact
      * source path (dev server running, or `npm run build` already produced a manifest entry
@@ -555,15 +556,20 @@ class Manager
         }
 
         $html = '';
-        $distCss = "$extensionRoot/dist/$name.css";
-        $distJs = "$extensionRoot/dist/$name.js";
+        $distDir = "$extensionRoot/dist";
+        $distCss = "$distDir/$name.css";
+        $distJs = "$distDir/$name.js";
 
+        // Through distAssetUrl(), not assetUrl() -- a dist bundle may `import` a sibling chunk
+        // Vite emitted alongside it (e.g. a shared preload-helper.js), which the browser
+        // resolves relative to this very URL, so entry and chunk must share one directory-scoped
+        // route rather than each being an unrelated single-file hash.
         if (is_file($distCss)) {
-            $html .= '<link rel="stylesheet" href="'.e(static::assetUrl($distCss)).'">';
+            $html .= '<link rel="stylesheet" href="'.e(static::distAssetUrl($distDir, "$name.css")).'">';
         }
 
         if (is_file($distJs)) {
-            $html .= '<script type="module" src="'.e(static::assetUrl($distJs)).'"></script>';
+            $html .= '<script type="module" src="'.e(static::distAssetUrl($distDir, "$name.js")).'"></script>';
         }
 
         return $html;
