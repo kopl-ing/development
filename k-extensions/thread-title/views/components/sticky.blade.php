@@ -29,6 +29,7 @@
          class="kop-thread">
         <x-k::icon name="kopling-thread-title::thread" class="kop-thread__icon" width="15" height="15" />
         <a href="{{ (new Context(subject: $moment))->getSubjectUrl() }}"
+           @click.prevent="window.scrollTo({ top: 0, behavior: 'smooth' })"
            class="kop-thread__link" title="{{ $title }}">{{ $title }}</a>
     </div>
 @endif
