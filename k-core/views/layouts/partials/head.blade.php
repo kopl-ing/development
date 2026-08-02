@@ -1,4 +1,8 @@
-@php use Kopling\Core\Extension\Manager; use Kopling\Core\Settings\Settings; @endphp
+@php
+    use Kopling\Core\Extension\Manager;
+    use Kopling\Core\Settings\Settings;
+    use Kopling\Core\Ux\Theme;
+@endphp
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -13,9 +17,9 @@
      (TipTap, emoji-mart, tagify) lazy-loads via dynamic import() once its own mount point/
      trigger actually exists. --}}
 @foreach (Manager::CORE_COMPILED_BUNDLES as $coreBundle)
-    {!! Manager::viteOrDist(base_path('k-core'), $coreBundle) !!}
+    {!! Manager::viteOrDist(app(Manager::class)->path('kopling/core'), $coreBundle) !!}
 @endforeach
-<style>{!! \Kopling\Core\Ux\Theme::css() !!}</style>
+<style>{!! Theme::css() !!}</style>
 {{-- Every extension's css/js attached to the Portal this request resolved to -- hand-written
      (css/js) and compiled (compiledAssets(), via Manager::viteOrDist()) are two independent
      mechanisms, see PortalExtension's own docblock. --}}

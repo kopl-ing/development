@@ -432,13 +432,18 @@ class Manager
     {
         $assets = [];
 
-        // `head.blade.php` generates these same URLs via `viteOrDist(base_path('k-core'),
+        // `head.blade.php` generates these same URLs via `viteOrDist($this->path('kopling/core'),
         // $name)` -- the path built here must match that call's own internal path exactly
-        // (same `base_path('k-core')` root, no trailing slash), since assetKey() is a plain
-        // hash of the literal path string.
+        // (same root, no trailing slash), since assetKey() is a plain hash of the literal path
+        // string. `path('kopling/core')` (not `base_path('k-core')`) since a standalone
+        // Composer install has no `k-core/` under the consuming app's own base path -- k-core
+        // lives wherever Composer put it (e.g. `vendor/kopling/core`), and only `path()`,
+        // derived from `__DIR__`, resolves correctly in both the monorepo and that case.
+        $corePath = rtrim($this->path('kopling/core'), '/');
+
         foreach (static::CORE_COMPILED_BUNDLES as $name) {
             foreach (['css' => 'text/css', 'js' => 'application/javascript'] as $kind => $mime) {
-                $path = base_path('k-core')."/dist/{$name}.{$kind}";
+                $path = "{$corePath}/dist/{$name}.{$kind}";
 
                 if (! is_file($path)) {
                     continue;
