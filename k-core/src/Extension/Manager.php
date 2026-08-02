@@ -548,11 +548,24 @@ class Manager
         $coveredByManifest = (is_file($cssSource) && static::viteManifestHas($relativeCss))
             || (is_file($jsSource) && static::viteManifestHas($relativeJs));
 
-        if ($vite->isRunningHot() || $coveredByManifest) {
-            return $vite->withEntryPoints(array_values(array_filter([
+        // `isRunningHot()` alone only tells us *a* dev server is up somewhere -- not that it's
+        // the one covering this particular `$extensionRoot`. True for the app's own assets
+        // (`$extensionRoot === base_path()`) and for anything reached through this monorepo's
+        // own path-repo symlinks (`vendor/kopling/*` -> `k-core`/`k-extensions/*`, one shared
+        // dev server covers all of it). False for a standalone Composer install, where
+        // `vendor/kopling/core` is a real checkout with its own separate, unrelated npm project
+        // -- there, the consuming app's dev server can't resolve that package's own imports
+        // (e.g. `htmx.org`), so this must always fall through to its committed `dist/` instead.
+        $isOwnAssets = $extensionRoot === base_path() || is_link($extensionRoot);
+
+        if (($vite->isRunningHot() && $isOwnAssets) || $coveredByManifest) {
+            return [
                 is_file($cssSource) ? $relativeCss : null,
                 is_file($jsSource) ? $relativeJs : null,
-            ])))->toHtml();
+            ]
+                |> array_filter(...)
+                |> array_values(...)
+                |> $vite(...)->toHtml();
         }
 
         $html = '';
