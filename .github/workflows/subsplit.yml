@@ -43,6 +43,9 @@ jobs:
             key: '${{ runner.os }}-splitsh-v101'
 
       -   name: subtree split (automatic)
-          uses: acrobat/subtree-splitter@v1.1.5
+          uses: frankdejonge/use-subsplit-publish@v1.1.0
           with:
-            config-path: .github/subsplit-config.json
+            source-branch: 'main'
+            config-path: './.github/subsplit-config.json'
+            splitsh-path: './.splitsh/splitsh-lite'
+            splitsh-version: 'v1.0.1'
