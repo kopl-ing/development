@@ -44,7 +44,6 @@ jobs:
             key: '${{ runner.os }}-splitsh-v101'
 
       -   name: subtree split (automatic)
-          if: github.event_name != 'workflow_dispatch'
           uses: acrobat/subtree-splitter@v1.1.5
           with:
             config-path: .github/subsplit-config.json
