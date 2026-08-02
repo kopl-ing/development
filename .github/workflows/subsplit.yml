@@ -43,7 +43,7 @@ jobs:
             key: '${{ runner.os }}-splitsh-v101'
 
       -   name: subtree split (automatic)
-          uses: frankdejonge/use-subsplit-publish@v1.1.0
+          uses: frankdejonge/use-subsplit-publish@1.1.0
           with:
             source-branch: 'main'
             config-path: './.github/subsplit-config.json'
