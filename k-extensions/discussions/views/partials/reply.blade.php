@@ -27,6 +27,6 @@
     :body-slot="Reply::BODY_SLOT"
     :footer-slot="Reply::FOOTER_SLOT"
     :control-slot="Reply::CONTROL_SLOT"
-    class="bg-base-300/20 card-dash"
+    class="bg-base-100 card-dash"
     data-reply="{{ $reply->id }}"
 />
