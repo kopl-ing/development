@@ -145,7 +145,7 @@ class Manager
     public function path(string $package): ?string
     {
         return match ($package) {
-            'kopling/core' => __DIR__ . '/../../',
+            'kopling/core' => dirname(__DIR__, 2),
             'app' => base_path(),
             default => $this->manifest->extensions()[$package]['path'] ?? null,
         };
