@@ -549,14 +549,20 @@ class Manager
             || (is_file($jsSource) && static::viteManifestHas($relativeJs));
 
         // `isRunningHot()` alone only tells us *a* dev server is up somewhere -- not that it's
-        // the one covering this particular `$extensionRoot`. True for the app's own assets
-        // (`$extensionRoot === base_path()`) and for anything reached through this monorepo's
-        // own path-repo symlinks (`vendor/kopling/*` -> `k-core`/`k-extensions/*`, one shared
-        // dev server covers all of it). False for a standalone Composer install, where
-        // `vendor/kopling/core` is a real checkout with its own separate, unrelated npm project
-        // -- there, the consuming app's dev server can't resolve that package's own imports
-        // (e.g. `htmx.org`), so this must always fall through to its committed `dist/` instead.
-        $isOwnAssets = $extensionRoot === base_path() || is_link($extensionRoot);
+        // the one covering this particular `$extensionRoot`. Own assets means `realpath()`
+        // lands outside `vendor/`: true for the app's own base path, and for this monorepo's
+        // own `k-core`/`k-extensions` -- whether reached directly (a real, non-symlinked
+        // checkout resolves straight to itself, outside `vendor/`) or through their
+        // `vendor/kopling/*` path-repo symlinks (`realpath()` resolves the symlink away,
+        // landing outside `vendor/` all the same) -- one shared dev server covers all of it.
+        // False for a standalone Composer install, where `vendor/kopling/core` is a real
+        // checkout with its own separate, unrelated npm project -- there, `realpath()` stays
+        // inside `vendor/` since there's no symlink to resolve away, so this must always fall
+        // through to its committed `dist/` instead.
+        $vendorPath = realpath(base_path('vendor'));
+        $realExtensionRoot = realpath($extensionRoot);
+        $isOwnAssets = $realExtensionRoot !== false
+            && ($vendorPath === false || ! Str::startsWith($realExtensionRoot, $vendorPath));
 
         if (($vite->isRunningHot() && $isOwnAssets) || $coveredByManifest) {
             $entries = array_values(array_filter([
