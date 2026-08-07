@@ -17,17 +17,11 @@ class SeedFakeDataCommand extends Command
 
     public function handle(Manager $manager): int
     {
-        $person = null;
-
-        $resolvePerson = function () use (&$person): Person {
-            return $person ??= $this->personOrNew();
-        };
-
         $enabled = $manager->editorNodes();
-        $actions = [$resolvePerson];
+        $actions = [fn () => $this->personOrNew()];
 
-        for ($i = 0, $count = random_int(3, 9); $i < $count; $i++) {
-            $actions[] = function () use ($resolvePerson, $enabled): void {
+        for ($i = 0, $count = random_int(5, 25); $i < $count; $i++) {
+            $actions[] = function () use ($enabled): void {
                 // body is a ProseMirror JSON document, not plain text -- a single paragraph is
                 // all a fake paragraph needs, same shape ComposerController::store() builds
                 // from a real editor submission.
@@ -40,7 +34,7 @@ class SeedFakeDataCommand extends Command
                 ]);
 
                 Moment::create([
-                    'person_id' => $resolvePerson()->id,
+                    'person_id' => $this->personOrNew()->id,
                     'title' => fake()->sentence(),
                     'body' => $body,
                     'body_html' => DocumentRenderer::render($body, $enabled),
