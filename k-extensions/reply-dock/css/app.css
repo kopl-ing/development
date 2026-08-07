@@ -17,7 +17,7 @@
     .kop-dock { bottom: 14px; }
 }
 .kop-dock__inner {
-    max-width: 46rem;
+    max-width: 43rem;
     margin-inline: auto;
     pointer-events: auto;
 }

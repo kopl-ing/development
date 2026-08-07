@@ -154,9 +154,10 @@
 
             {{-- ========= collapsed: the scrubber bar ========= --}}
             <div class="kop-dock__bar" x-show="!open" x-cloak>
-                <span class="kop-dock__count"><span x-text="current"></span>/<span x-text="count"></span></span>
+                <span class="kop-dock__count" x-show="count > 0"><span x-text="current"></span>/<span x-text="count"></span></span>
 
                 <input type="range" class="range range-primary range-xs kop-dock__scrub" min="0" max="1" step="any"
+                       x-show="count > 0"
                        x-model.number="progress"
                        title="{{ __('kopling-reply-dock::messages.scrub') }}"
                        @input="scrubbing = true; window.scrollTo(0, progress * (document.documentElement.scrollHeight - window.innerHeight))"
