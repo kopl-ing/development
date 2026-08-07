@@ -82,4 +82,14 @@ class Person extends Authenticatable
     {
         return $this->hasMany(Moment::class);
     }
+
+    public function identities(): HasMany
+    {
+        return $this->hasMany(PersonIdentity::class);
+    }
+
+    public function isLocal(): bool
+    {
+        return $this->origin === null;
+    }
 }
