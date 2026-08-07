@@ -25,6 +25,7 @@ class Title extends Component
         return view('kopling-core::card.title', [
             'title' => $this->context?->getSubject()?->title,
             'url' => $this->context?->getSubjectUrl(),
+            'boost' => $this->context?->boost ?? true,
         ]);
     }
 }

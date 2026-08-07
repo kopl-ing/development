@@ -8,18 +8,6 @@
     // discussions' own "log in to reply" line (its form only renders for auth anyway).
     $moment = request()->route('moment');
     $me = auth()->user();
-
-    // `discussionReplies` is `DiscussionController::show()`'s own already-paginated Reply
-    // paginator, shared (not re-queried) for exactly this -- see that controller's own comment.
-    // `count`/`pageBaseIndex` number replies only, not the OP -- `count` needs the whole thread's
-    // real total, not just however many `[data-reply]` cards this one page happens to render:
-    // counting only the DOM would silently report "you've read everything" the moment you reach
-    // page 1's own pagination controls, even with more replies waiting on page 2+.
-    // `pageBaseIndex` is how many replies preceded this page (0 on page 1) -- `recount()`/
-    // `onScroll()` add the current page's own `[data-reply]` count on top of it to estimate a
-    // global reading position without needing a full reload.
-    $totalPosts = $discussionReplies?->total() ?? 0;
-    $pageBaseIndex = (($discussionReplies?->currentPage() ?? 1) - 1) * ($discussionReplies?->perPage() ?? 1);
 @endphp
 
 @if ($moment instanceof Moment && $me)
@@ -32,6 +20,19 @@
         // already styled in css/app.css) containing an `<x-k::icon>` + a `.kop-dock__tool-lbl`
         // span, matching the Reply button's own markup just below.
         $toolEntries = SlotResolver::resolve('kopling-reply-dock::dock.tools', app(Manager::class)->ux(), new Context(subject: $moment));
+
+        // `discussionReplies` is `DiscussionController::show()`'s own already-paginated Reply
+        // paginator, shared (not re-queried) for exactly this -- see that controller's own
+        // comment. Only ever set on a discussion page, which is exactly where this branch runs.
+        // `count`/`pageBaseIndex` number replies only, not the OP -- `count` needs the whole
+        // thread's real total, not just however many `[data-reply]` cards this one page happens
+        // to render: counting only the DOM would silently report "you've read everything" the
+        // moment you reach page 1's own pagination controls, even with more replies waiting on
+        // page 2+. `pageBaseIndex` is how many replies preceded this page (0 on page 1) --
+        // `recount()`/`onScroll()` add the current page's own `[data-reply]` count on top of it
+        // to estimate a global reading position without needing a full reload.
+        $totalPosts = $discussionReplies?->total() ?? 0;
+        $pageBaseIndex = (($discussionReplies?->currentPage() ?? 1) - 1) * ($discussionReplies?->perPage() ?? 1);
     @endphp
     {{-- The "post scrubber" dock: a sticky pill with a reading-position counter, a draggable
          scrubber, an extensible tool row (see $toolEntries above) + Reply, that morphs into a

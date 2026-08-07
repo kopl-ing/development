@@ -31,6 +31,11 @@ class Context
         public ?Portal             $portal = null,
         public ?Request            $request = null,
         public ?Person             $actor = null,
+        // `Card\Title` reads this to decide htmx-boost (`#main-content` swap) vs. a plain
+        // `<a href>` -- boosting assumes the *current* page already has a `#main-content` to
+        // swap into, true by default since that's Kopling's own community chrome. Set false for
+        // a Card embedded on a host app's own page outside that chrome.
+        public bool                $boost = true,
     ) {
         $this->actor ??= Auth::user();
         $this->request ??= request();

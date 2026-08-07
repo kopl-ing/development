@@ -4,10 +4,10 @@
      the viewport on mobile instead of actually truncating. --}}
 <h2 class="card-title overflow-x-auto">
     @if ($url)
-        {{-- `data-card-primary-link` is app.js's whole-card click hook; `hx-target`/`hx-select` reuse `page/pagination.blade.php`'s `#main-content` swap idiom. --}}
+        {{-- `data-card-primary-link` is app.js's whole-card click hook; `hx-target`/`hx-select` reuse `page/pagination.blade.php`'s `#main-content` swap idiom. `$boost` (`Context::$boost`) opts a Card embedded outside Kopling's own chrome -- no `#main-content` there to swap into -- back to a plain full navigation. --}}
         <a href="{{ $url }}" data-card-primary-link class="transition-colors group-hover:text-primary"
-           hx-boost="true" hx-target="#main-content" hx-select="#main-content"
-           hx-swap="outerHTML show:top" hx-push-url="true">{{ $title }}</a>
+           @if ($boost) hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML show:top" hx-push-url="true" @endif
+        >{{ $title }}</a>
     @else
         <span>{{ $title }}</span>
     @endif
