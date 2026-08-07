@@ -1,0 +1,1 @@
+document.querySelectorAll(`[data-kop-example-badge]`).forEach(e=>{e.classList.add(`kop-example-badge`)});

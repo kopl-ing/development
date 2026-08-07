@@ -1,0 +1,1 @@
+console.log(`kopling-example: admin-only bundle loaded`);
