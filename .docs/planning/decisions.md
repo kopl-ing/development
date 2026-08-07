@@ -1145,3 +1145,21 @@ this is what caught the `extensionAssets()` registration gap above, since the UR
 correctly before that fix but 404'd when actually requested.
 
 ---
+
+## 2026-08-07 — `k-core`/extension compiled assets rebuild on every push to `main`, not just at manual release time
+
+**Decision:** New `.github/workflows/build-dist.yml` runs `build:core-dist` + `build:extensions-dist`
+on every push to `main` touching `k-core`/`k-extensions` source (Blade, `resources/**` — never
+`dist/` itself, so its own commit can't retrigger it) and commits any changed output straight
+back to `main`. `release.yml` (`workflow_dispatch`) is unchanged and still re-runs the same
+compile+commit as a safety net when cutting a version tag, but is now normally a no-op.
+
+**Why:** `k-core/dist` was only rebuilt at manual release time, so a real Composer install (e.g.
+`kopling-website.test`, pulling `kopling/core: dev-main`) was serving CSS/JS up to 19 days and
+73 commits stale — any daisyUI/Tailwind class added to an extension's Blade views since the last
+release simply wasn't in the compiled output, read as "daisyUI isn't working" even though theming
+and `viteOrDist()`'s own fallback logic were both correct.
+
+**Status:** Decided & implemented.
+
+---

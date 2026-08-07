@@ -1,0 +1,62 @@
+name: build-dist.yml
+on:
+  push:
+    branches:
+      - 'main'
+    # Only source that actually feeds a compiled bundle -- never k-core/dist or
+    # k-extensions/*/dist themselves, so this workflow's own commit (dist-only) can't
+    # retrigger itself.
+    paths:
+      - k-core/resources/**
+      - k-core/src/**/*.blade.php
+      - k-core/views/**/*.blade.php
+      - k-extensions/**/*.blade.php
+      - k-extensions/*/resources/**
+jobs:
+  build_dist:
+    runs-on: ubuntu-latest
+    name: Rebuild k-core + extension compiled assets
+    if: github.repository == 'kopl-ing/development' # Execute this workflow job only on the main repository.
+    # Pushes to main from this same job must never overlap -- serialize instead of racing two
+    # concurrent commits onto the same branch.
+    concurrency:
+      group: build-dist
+      cancel-in-progress: false
+    steps:
+      -   uses: actions/checkout@v7
+          with:
+            persist-credentials: false
+
+      # Needed to commit the freshly compiled dist assets.
+      -   uses: frankdejonge/use-github-token@1.1.0
+          with:
+            authentication: 'username:${{ secrets.SUBSPLIT_TOKEN }}'
+            user_name: 'Daniël Klabbers'
+            user_email: 'daniel+git@klabbers.email'
+
+      -   uses: actions/setup-node@v5
+          with:
+            node-version: 22
+
+      -   name: Install dependencies
+          run: npm ci
+
+      # Same build k-core/dist ships at release time (see release.yml) -- run here on every
+      # push instead so a real Composer install's precompiled CSS/JS never drifts more than
+      # one commit behind whatever Blade/resources actually changed.
+      -   name: Compile k-core release assets
+          run: npm run build:core-dist
+
+      -   name: Compile extension release assets
+          run: npm run build:extensions-dist
+
+      -   name: Commit compiled assets
+          run: |
+            git add k-core/dist
+            find k-extensions -mindepth 2 -maxdepth 2 -type d -name dist -exec git add {} +
+            if git diff --cached --quiet; then
+              echo "No asset changes to commit."
+            else
+              git commit -m "chore: rebuild compiled assets"
+              git push origin HEAD:main
+            fi
