@@ -1,7 +1,6 @@
 {{--
-    Reuses Core's own shared chrome, same as kopling-admin::layouts.admin -- no navigation/rail
-    entries registered into this portal's own sidebar/rail slots yet in Phase 1 (nothing to put
-    there besides the queue itself), so the sidebar simply renders empty for now.
+    Reuses Core's own shared chrome, same as kopling-admin::layouts.admin -- QueueNav (this
+    portal's own kopling-moderation::moderation.sidebar-panel entry) is the status filter nav.
 --}}
 <x-k::community.chrome
     portal-id="kopling-moderation::moderation"

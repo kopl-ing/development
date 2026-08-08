@@ -1,5 +1,5 @@
 @if ($flaggable && ! $isOwnContent)
-    <x-k::modal :label="__('kopling-moderation::moderation.report')">
+    <x-k::modal :label="__('kopling-moderation::moderation.report')" class="w-full justify-start">
         <x-slot:trigger>{{ __('kopling-moderation::moderation.report') }}</x-slot:trigger>
         <form method="POST" action="{{ route('kopling-core::community/flag.store', ['type' => $type, 'id' => $flaggable->id]) }}" class="flex flex-col gap-4">
             @csrf

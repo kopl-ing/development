@@ -1,5 +1,10 @@
 @if ($flaggable)
-    <x-k::modal :label="__('kopling-moderation::moderation.hide')">
+    {{-- A plain divider ahead of the moderator-only cluster (Hide/Delete/Pin) -- a visual break
+         from Report just above it, the one action any signed-in person can take, not just a
+         moderator. A bare <hr> rather than a border on the trigger button itself: the button's
+         own rounded corners made a border-t there read as a boxed-in outline, not a clean line. --}}
+    <hr class="border-base-300 my-1">
+    <x-k::modal :label="__('kopling-moderation::moderation.hide')" class="w-full justify-start">
         <x-slot:trigger><span class="text-error">{{ __('kopling-moderation::moderation.hide') }}</span></x-slot:trigger>
         {{-- The card itself is the swap target -- once hidden there's no new state left to
              render in its place (see HideControlEntry's own docblock), so the whole card

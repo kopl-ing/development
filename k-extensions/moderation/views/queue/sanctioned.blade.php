@@ -2,16 +2,7 @@
 
 @section('content')
     <div class="flex flex-col gap-6">
-        <h1 class="text-2xl font-bold">{{ __('kopling-moderation::moderation.queue_title') }}</h1>
-
-        <div role="tablist" class="tabs tabs-box w-fit">
-            @foreach (['pending', 'actioned', 'dismissed', 'sanctioned'] as $tab)
-                <a role="tab" href="{{ route('kopling-moderation::moderation/queue.index', ['status' => $tab]) }}"
-                   class="tab @if ($status === $tab) tab-active @endif">
-                    {{ __("kopling-moderation::moderation.status.$tab") }}
-                </a>
-            @endforeach
-        </div>
+        <h1 class="text-2xl font-bold">{{ __('kopling-moderation::moderation.status.sanctioned') }}</h1>
 
         <div id="moderation-queue-wrapper">
             <div id="moderation-queue" class="flex flex-col gap-4">

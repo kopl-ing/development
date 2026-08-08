@@ -1,5 +1,5 @@
 @if ($flaggable)
-    <x-k::modal :label="__('kopling-moderation::moderation.delete')">
+    <x-k::modal :label="__('kopling-moderation::moderation.delete')" class="w-full justify-start">
         <x-slot:trigger><span class="text-error">{{ __('kopling-moderation::moderation.delete') }}</span></x-slot:trigger>
         {{-- Same swap target/reasoning as hide-control-entry.blade.php -- the card disappears
              on a successful response, there's no "deleted" state left to render in its place. --}}

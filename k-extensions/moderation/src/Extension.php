@@ -24,6 +24,7 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
 use Kopling\Moderation\Command\SeedModeratorsCommand;
 use Kopling\Moderation\Ux\DeleteControlEntry;
 use Kopling\Moderation\Ux\HideControlEntry;
+use Kopling\Moderation\Ux\QueueNav;
 use Kopling\Moderation\Ux\ReportControlEntry;
 
 class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasPermissions, HasPortals, RegistersModerationTargets
@@ -173,7 +174,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ])
             ->in(UserMenu::SLOT)
             ->as('queue-link')
-            ->when('moderate');
+            ->when('moderate')
+            ->add(QueueNav::class)
+            ->in('kopling-moderation::moderation.sidebar-panel')
+            ->as('queue-nav');
     }
 
     /**
