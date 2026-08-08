@@ -9,6 +9,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Kopling\Core\Authentication\Event\AttemptLogin;
 use Kopling\Core\Authentication\Event\ValidateLogin;
 use Kopling\Core\Http\Controllers\Concerns\RedirectsUsers;
@@ -49,6 +50,19 @@ class LoginController
         $event = $this->attemptLogin($request);
 
         if ($event->person) {
+            // Checked here, before Auth::login() ever establishes a session -- otherwise a
+            // sanctioned person would be logged in for exactly one request, then immediately
+            // bounced back out by EnforceSanctions on the very next one. Same "email" message
+            // key AttemptPasswordLogin's own credential-mismatch failure uses, so both render
+            // through the login form's existing inline-error markup with no view changes.
+            if ($event->person->isAccessBlocked()) {
+                $this->incrementLoginAttempts($request);
+
+                throw ValidationException::withMessages([
+                    'email' => __('kopling-core::auth.access_blocked'),
+                ]);
+            }
+
             Auth::login($event->person, $request->boolean('remember'));
 
             return $this->sendLoginResponse($request);

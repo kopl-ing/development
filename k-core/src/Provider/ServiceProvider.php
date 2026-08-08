@@ -22,6 +22,7 @@ use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\Manifest;
 use Kopling\Core\Extension\RegistrationCache;
 use Kopling\Core\Http\Exceptions\RedirectUnauthenticated;
+use Kopling\Core\Http\Middleware\EnforceSanctions;
 use Kopling\Core\Http\Middleware\InjectPortal;
 use Kopling\Core\People\Guest;
 use Kopling\Core\People\Person;
@@ -84,6 +85,11 @@ class ServiceProvider extends Provider
             fn () => Route::has('kopling-core::community/login') ? route('kopling-core::community/login') : '/login'
         );
         $http->appendMiddlewareToGroup('web', InjectPortal::class);
+        // The per-request "is this person still allowed to be here" check -- see that
+        // middleware's own docblock. Order relative to InjectPortal doesn't matter: this reads
+        // only Auth::user(), already resolvable via the session as soon as StartSession has run
+        // earlier in this same 'web' group, regardless of where either sits within it.
+        $http->appendMiddlewareToGroup('web', EnforceSanctions::class);
 
         Blade::componentNamespace('Kopling\\Core\\Ux', 'k');
 
@@ -114,6 +120,14 @@ class ServiceProvider extends Provider
                 $this->loadTranslationsFrom($conventions['lang'], $id);
             }
         }
+
+        // Unlike models()/listeners() above, this can safely run after the lang-loading loop --
+        // nothing before this point needs its morph-map side effect yet (see
+        // AggregatesModerationTargets's own docblock) -- and a ModerationTarget's own label can
+        // then use __() the same as a Permission's, instead of hitting the same
+        // called-before-its-own-lang-file-is-loaded trap Portal labels avoid by never
+        // translating at all (see Extension::portals()'s own docblock).
+        $manager->moderationTargets();
 
         foreach ($manager->permissions() as $permission) {
             Gate::define($permission->id, function (?Person $person) use ($permission) {

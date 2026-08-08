@@ -1163,3 +1163,68 @@ and `viteOrDist()`'s own fallback logic were both correct.
 **Status:** Decided & implemented.
 
 ---
+
+## 2026-08-08 — Moderation extension (Phase 1): reporting, the queue, hide/unhide; `RegistersModerationTargets` reuses an existing morph alias rather than minting a competing one
+
+**Decision:** `kopling/moderation` ships with its own Portal (`moderation`, gated by a new
+`moderate` permission), a polymorphic `flags` table, and a new `RegistersModerationTargets`
+contract (+ `Extend\ModerationTarget`, `Manager::moderationTargets()`) letting any extension
+declare a model as flaggable — Moment/Reply/Person are its own three built-ins. Hide/unhide are
+plain `SoftDeletes` (`delete()`/`restore()`), not a bespoke mechanism — see the plan doc for the
+full reasoning. `AggregatesModerationTargets` reuses an already-registered morph alias for a
+target's model instead of always deriving its own: `Eloquent\Model::getMorphClass()` does a
+*reverse* lookup (class → alias) against the single global `Relation::$morphMap`, so if two
+different aliases pointed at the same class (`reactions`' own `morphAlias('moment')` and a second
+one this extension would otherwise mint), `getMorphClass()` could only ever return one of them —
+silently corrupting every caller relying on it, not just this extension's own writes. Caught via
+`reactions`' own Feature tests failing (`reactable_type` no longer matched `'moment'`) once
+`kopling/moderation` was installed.
+
+**Why this needs remembering:** the failure mode is silent and only surfaces in *unrelated* code
+(a different extension's tests, or its own model writes), not in the extension that introduced
+the second alias — the next contract that touches the morph map (or a future
+`RegistersModerationTargets` implementor targeting a model another extension already aliased)
+needs the same reuse-don't-duplicate check, not just this one call site.
+
+**Status:** Phase 1 decided & implemented (see `.docs/planning/moderation-extension-plan.md`).
+Phase 2 (delete/cascade-hook) and Phase 3 (core-owned person sanctions) not yet built.
+
+---
+
+## 2026-08-08 — Moderation extension (Phase 3): core-owned Person sanctions; `Sanction` carries no cross-extension FK; `MorphTo::withoutGlobalScopes()` bypasses every scope per morphed type
+
+**Decision:** `Sanction` (`k-core/src/People/Sanction.php`) is the core-owned mechanism for the
+three-axis (communication/visibility/access) person-sanction system — `issue()`/`lift()` are the
+only way either the audit-log row or `Person`'s own live state columns change, and each `issue()`
+call auto-supersedes any still-active prior sanction for that person (stamping its `lifted_at`,
+leaving `lifted_by` null to distinguish "superseded" from an explicit lift), keeping "at most one
+active sanction per person" a real invariant. Deliberately dropped the plan's own sketched
+`flag_id` column: `sanctions` is a core table, `flags` belongs to the optional `kopling/moderation`
+extension, and giving core's own table a hard FK into an extension's table the extension might
+not even have installed would invert the whole ownership boundary (CLAUDE.md's "Feature ownership
+across extensions") this codebase otherwise holds to everywhere else. A caller with a specific
+`Flag` in hand (`moderation`'s own `SanctionController`) resolves that relationship on its own
+side instead.
+
+`AuthorVisibilityScope` (excludes a shadowbanned author's content from everyone but themselves)
+is a second global scope stacked alongside `SoftDeletes` on `Moment`/`Reply`. The moderation
+queue's own eager-load of a flagged item needs to see past *both* regardless of hide/shadowban
+state — `MorphTo::__call()` turns out to already special-case `withoutGlobalScopes()` (alongside
+`select`/`selectRaw`/etc.) for its own macro-replay-per-morphed-type mechanism, the same way it
+already does for `withTrashed()`, so `$morphTo->withoutGlobalScopes()` bypasses every registered
+global scope for every morphed type in one call — a harmless no-op for a type with none (Person)
+— found while replacing the narrower `withTrashed()` call Phase 1 used, once a second scope needed
+bypassing too.
+
+**Why this needs remembering:** the `flag_id` omission is the concrete instance of "reach into a
+domain you don't own through an existing extensibility mechanism, never a raw FK/import" applied
+to core-owned-table-design specifically, not just PHP code — the next core primitive an extension
+wants to reference back to should follow the same shape. The `MorphTo::withoutGlobalScopes()`
+behavior isn't documented anywhere obvious in Laravel's own docs; worth knowing before reaching
+for a narrower `withTrashed()`-only bypass on a polymorphic eager-load that might gain a second
+scope later.
+
+**Status:** Phase 3 decided & implemented — all three phases of
+`.docs/planning/moderation-extension-plan.md` are now built.
+
+---

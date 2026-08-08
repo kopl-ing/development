@@ -16,6 +16,7 @@ use Kopling\Core\Extension\Concerns\AggregatesEditorNodes;
 use Kopling\Core\Extension\Concerns\AggregatesIcons;
 use Kopling\Core\Extension\Concerns\AggregatesModels;
 use Kopling\Core\Extension\Concerns\AggregatesModelValidation;
+use Kopling\Core\Extension\Concerns\AggregatesModerationTargets;
 use Kopling\Core\Extension\Concerns\AggregatesPermissions;
 use Kopling\Core\Extension\Concerns\AggregatesPortalExtensions;
 use Kopling\Core\Extension\Concerns\AggregatesPortals;
@@ -47,6 +48,7 @@ class Manager
     use AggregatesIcons;
     use AggregatesModels;
     use AggregatesModelValidation;
+    use AggregatesModerationTargets;
     use AggregatesPermissions;
     use AggregatesPortalExtensions;
     use AggregatesPortals;

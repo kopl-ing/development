@@ -7,9 +7,11 @@ namespace Kopling\Discussions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection as SupportCollection;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Database\Model;
+use Kopling\Core\Database\Scopes\AuthorVisibilityScope;
 use Kopling\Core\People\Person;
 use Kopling\Core\Ux\Editor\PlainTextExtractor;
 
@@ -20,6 +22,7 @@ use Kopling\Core\Ux\Editor\PlainTextExtractor;
 class Reply extends Model
 {
     use HasUuids;
+    use SoftDeletes;
 
     protected $perPage = 10;
 
@@ -29,6 +32,11 @@ class Reply extends Model
         'body',
         'body_html',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new AuthorVisibilityScope());
+    }
 
     /**
      * A reply renders through the exact same extensible `Top`/`Badges`/`Body`/`Footer` mechanism

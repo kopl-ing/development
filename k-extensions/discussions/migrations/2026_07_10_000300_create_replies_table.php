@@ -21,6 +21,11 @@ return new class extends Migration
             $table->text('body');
             $table->text('body_html')->nullable();
             $table->timestamps();
+            // Mirrors moments' own hide/delete columns -- see
+            // .docs/planning/moderation-extension-plan.md.
+            $table->softDeletes();
+            $table->foreignUuid('deleted_by')->nullable()->constrained(table: 'people')->nullOnDelete();
+            $table->string('deleted_reason')->nullable();
         });
     }
 

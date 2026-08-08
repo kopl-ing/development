@@ -24,6 +24,12 @@ return new class extends Migration
             $table->text('body')->nullable();
             $table->text('body_html')->nullable();
             $table->timestamps();
+            // Hide = soft delete, Delete = force delete -- see
+            // .docs/planning/moderation-extension-plan.md. deleted_by/deleted_reason ride
+            // alongside deleted_at so that attribution never outlives the row itself.
+            $table->softDeletes();
+            $table->foreignUuid('deleted_by')->nullable()->constrained(table: 'people')->nullOnDelete();
+            $table->string('deleted_reason')->nullable();
         });
     }
 

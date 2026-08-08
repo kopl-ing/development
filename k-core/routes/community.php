@@ -10,6 +10,11 @@ use Kopling\Core\Authentication\Controller\RegistrationController;
 
 Route::get('/', IndexController::class)->name('community');
 
+// Reachable by anyone, signed in or not -- EnforceSanctions logs a sanctioned person out before
+// redirecting here (see that middleware's own docblock), so by the time this loads they're
+// already a guest again.
+Route::get('access-blocked', SanctionEnforcementController::class)->name('access-blocked');
+
 // `_xhr/{extension-id}/...` -- pure htmx/AJAX action targets, never a page a person navigates
 // to directly; see decisions.md, "XHR/htmx-action endpoints get a dedicated, extension-scoped
 // path prefix". `theme.set` is the one exception on this page -- a plain, non-htmx `<form>`

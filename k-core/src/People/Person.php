@@ -40,6 +40,9 @@ class Person extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'communication_blocked_at' => 'datetime',
+            'access_blocked_at' => 'datetime',
+            'access_blocked_until' => 'datetime',
         ];
     }
 
@@ -91,5 +94,18 @@ class Person extends Authenticatable
     public function isLocal(): bool
     {
         return $this->origin === null;
+    }
+
+    /**
+     * `communication_blocked_at !== null` and `visibility === 'hidden'` are plain single-column
+     * checks callers read directly, no wrapper needed -- this is the one sanction-state check
+     * that earns a method, since it's real logic (comparing two columns against `now()`, not a
+     * null-check): `access_blocked_at` set + `access_blocked_until` null means a permanent ban;
+     * set + a past `access_blocked_until` means an expired, no-longer-active temporary suspend.
+     */
+    public function isAccessBlocked(): bool
+    {
+        return $this->access_blocked_at !== null
+            && ($this->access_blocked_until === null || $this->access_blocked_until->isFuture());
     }
 }

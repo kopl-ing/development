@@ -6,12 +6,15 @@ namespace Kopling\Core\Content;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Kopling\Core\Database\Model;
+use Kopling\Core\Database\Scopes\AuthorVisibilityScope;
 use Kopling\Core\People\Person;
 
 class Moment extends Model
 {
     use HasUuids;
+    use SoftDeletes;
 
     protected $perPage = 20;
 
@@ -21,6 +24,11 @@ class Moment extends Model
         'body',
         'body_html',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new AuthorVisibilityScope());
+    }
 
     public function person(): BelongsTo
     {

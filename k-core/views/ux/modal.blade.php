@@ -4,7 +4,12 @@
     {{ $trigger }}
 </button>
 
-<dialog id="{{ $id }}" class="modal" aria-label="{{ $label }}">
+{{-- grid-cols-1/grid-rows-1: daisyUI's own .modal leaves grid-template-columns/rows implicit
+     ("auto"), which can't resolve modal-box's percentage width against a stable track size --
+     both it and the stretched modal-backdrop collapse to their content size instead of the
+     viewport, pinning the box near the dialog's own top-left origin instead of centering it.
+     An explicit 1fr track (verified live) fixes it; every <x-k::modal> caller shares this file. --}}
+<dialog id="{{ $id }}" class="modal grid-cols-1 grid-rows-1" aria-label="{{ $label }}">
     <div class="modal-box">
         {{ $slot }}
     </div>
