@@ -1,21 +1,11 @@
 @php
     use Kopling\Core\Ux\Context;
-    $url = (new Context(subject: $flaggable))->getSubjectUrl();
 @endphp
-<div class="flex items-start gap-3 {{ $flaggable->trashed() ? 'opacity-60' : '' }}">
-    <x-k::person.avatar :context="new Context(subject: $flaggable)" size="w-8" />
-    <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 text-sm opacity-70">
-            <span class="font-semibold">{{ $flaggable->person?->name ?? __('kopling-moderation::moderation.unknown_author') }}</span>
-            <span>{{ $flaggable->created_at?->diffForHumans() }}</span>
-            @if ($flaggable->trashed())
-                <span class="badge badge-error badge-outline">{{ __('kopling-moderation::moderation.hidden') }}</span>
-            @endif
-        </div>
-        <p class="font-medium">{{ $flaggable->title }}</p>
-        <p class="opacity-70 line-clamp-3">{{ Illuminate\Support\Str::limit(strip_tags((string) $flaggable->body_html), 200) }}</p>
-        @if ($url)
-            <a href="{{ $url }}" class="link text-sm">{{ __('kopling-moderation::moderation.view') }}</a>
-        @endif
-    </div>
-</div>
+{{-- The real Moment card -- same `Card\Card` the community feed itself renders, not a bespoke
+     summary that can drift out of sync with it. `control-slot` points at an unregistered slot,
+     deliberately suppressing the card's own "..." action menu: HideControlEntry/DeleteControlEntry
+     are built assuming a non-trashed subject reachable through the normal feed (see
+     HideControlEntry's own docblock), which doesn't hold for an already-hidden flaggable shown
+     here. The queue row's own action buttons below already handle Hide/Unhide/Delete correctly
+     for both states, so they stay the only controls on this card. --}}
+<x-k::card.card :context="new Context(subject: $flaggable)" control-slot="kopling-moderation::queue-preview" />

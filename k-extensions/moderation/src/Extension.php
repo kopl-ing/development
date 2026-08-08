@@ -137,6 +137,9 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
      * installed, the exact convention `reactions` already established for its own footer entries.
      * Hide/Delete are gated `moderate`; Report isn't -- reporting needs no permission by design,
      * only a signed-in session (enforced by the route's own `auth` middleware).
+     *
+     * `user-menu` in this portal's own topbar slot is the same avatar dropdown Community/Admin
+     * render -- same registration Admin's own `Extension::ux()` uses for its own topbar slot.
      */
     public function ux(): Ux
     {
@@ -177,7 +180,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ->when('moderate')
             ->add(QueueNav::class)
             ->in('kopling-moderation::moderation.sidebar-panel')
-            ->as('queue-nav');
+            ->as('queue-nav')
+            ->add(UserMenu::class)
+            ->in('kopling-moderation::moderation.topbar')
+            ->as('user-menu');
     }
 
     /**

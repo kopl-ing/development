@@ -15,14 +15,19 @@
                                     {{ __('kopling-moderation::moderation.reported_by', ['name' => $flag->person?->name ?? __('kopling-moderation::moderation.unknown_reporter')]) }}
                                     &middot; {{ $flag->created_at->diffForHumans() }}
                                 </span>
-                                <span class="badge badge-outline">{{ __("kopling-moderation::moderation.reasons.{$flag->reason->value}") }}</span>
+                                <span class="flex items-center gap-2">
+                                    <span class="badge badge-outline">{{ __("kopling-moderation::moderation.reasons.{$flag->reason->value}") }}</span>
+                                    @if ($target?->softDeletable && $flag->flaggable?->trashed())
+                                        <span class="badge badge-error badge-outline">{{ __('kopling-moderation::moderation.hidden') }}</span>
+                                    @endif
+                                </span>
                             </div>
 
                             @if ($flag->note)
                                 <p class="italic opacity-80">&ldquo;{{ $flag->note }}&rdquo;</p>
                             @endif
 
-                            <div class="border-t border-base-300 pt-4">
+                            <div class="border-t border-base-300 pt-4 @if ($target?->softDeletable && $flag->flaggable?->trashed()) opacity-60 @endif">
                                 @if ($target && $flag->flaggable)
                                     @include($target->preview, ['flaggable' => $flag->flaggable, 'flag' => $flag])
                                 @else
