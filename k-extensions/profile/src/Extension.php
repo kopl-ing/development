@@ -16,6 +16,7 @@ use Kopling\Core\People\Person;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Community\UserMenu;
 use Kopling\Profile\Ux\ProfileLink;
+use Kopling\Profile\Ux\Tabs;
 
 class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasIcons
 {
@@ -58,6 +59,11 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
         ];
     }
 
+    /**
+     * `moments-tab` is profile's own entry into its own `Tabs::SLOT` -- `->first()` pins it
+     * ahead of whatever else registers there (discussions' `replies` tab, say), so the profile
+     * page owns the ordering without every other extension having to `->before()` it by name.
+     */
     public function ux(): Ux
     {
         return Ux::make()
@@ -66,6 +72,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                 'icon' => 'kopling-profile::person-profile',
             ])
             ->in(UserMenu::SLOT)
-            ->as('person-profile');
+            ->as('person-profile')
+            ->add('kopling-profile::moments-tab')
+            ->in(Tabs::SLOT)
+            ->as('moments-tab')
+            ->first();
     }
 }

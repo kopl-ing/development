@@ -86,6 +86,19 @@ class Reply extends Model
     }
 
     /**
+     * One person's replies newest-first, moments eager-loaded -- feeds the profile page's
+     * "Replies" tab (see `Kopling\Discussions\Extension::ux()`), which links each reply back to
+     * its own discussion.
+     */
+    public static function forPerson(Person $person): Builder
+    {
+        return static::query()
+            ->with('moment')
+            ->where('person_id', $person->id)
+            ->latest();
+    }
+
+    /**
      * What the activity teaser says: how many replies, how many distinct people, and how many
      * words they spent -- the demo's "N people used X words to talk about this".
      *

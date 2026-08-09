@@ -32,6 +32,7 @@ class Context
         public ?Request            $request = null,
         public ?Person             $actor = null,
         public bool                $boost = true,
+        public string              $pageName = 'page',
     ) {
         $this->actor ??= Auth::user();
         $this->request ??= request();
@@ -101,11 +102,13 @@ class Context
     /**
      * Memoized per-instance -- a page that both loops over the paginated items and renders
      * `<x-k::page.pagination :context="$context" />` off the same `$context` (the moment feed,
-     * say) would otherwise run the identical count+select query twice.
+     * say) would otherwise run the identical count+select query twice. `$pageName` defaults to
+     * Laravel's own `'page'` -- pass a distinct one whenever a page renders more than one
+     * independently-paginated region (two tabs, say), so paging one doesn't also move the other.
      */
     public function getSubjectPaginator(): LengthAwarePaginator
     {
-        return $this->paginator ??= $this->getSubjectQuery()->paginate();
+        return $this->paginator ??= $this->getSubjectQuery()->paginate(pageName: $this->pageName);
     }
 
     /**

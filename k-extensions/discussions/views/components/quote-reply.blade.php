@@ -3,8 +3,13 @@
     Quote this reply into the reply dock -- registered into `Reply::FOOTER_SLOT`. Same event
     contract as `quote-op.blade.php` (the Moment's own "+ Quote"): dispatches kop-quote-toggle and
     reflects its own state from the dock's kop-quotes-changed echo -- a harmless no-op if nothing
-    listens (reply-dock not installed). Unlike `quote-op`, no `isRoute('moment')` check: a reply
-    only ever renders on its own moment's discussion page in the first place, never a feed/rail.
+    listens (reply-dock not installed). Same reasoning as `quote-op`'s own `isRoute('moment')`
+    guard -- the dock only ever listens on the reply's own moment's discussion page, so this is a
+    dead button anywhere else the reply itself renders (profile's own "Replies" tab included).
+    `Context::isRoute()` can't express this directly (it only compares against its own `$subject`,
+    the reply here, not the reply's moment), hence the inline route-parameter check below instead
+    -- compares `moment_id` rather than the `moment` relation so this never forces a per-reply
+    lazy-load on pages (the discussion thread) that don't eager-load it.
 
     `ml-auto shrink-0`: reactions now registers its own `rail`/`words` into this same slot ahead
     of this entry (`->before('kopling-discussions::quote-reply')`, see reactions'
@@ -13,9 +18,12 @@
 --}}
 @php
     $reply = $context?->getSubject();
+    $routeMoment = request()->route('moment');
+    $onOwnDiscussionPage = $reply && $routeMoment instanceof \Kopling\Core\Content\Moment
+        && $routeMoment->getKey() === $reply->moment_id;
 @endphp
 @auth
-    @if ($reply)
+    @if ($reply && $onOwnDiscussionPage)
         @php
             $replyId = (string) $reply->id;
             $replyAuthor = $reply->person?->name ?? __('kopling-discussions::messages.someone');

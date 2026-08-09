@@ -55,6 +55,13 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
      * neither reads anything Moment-specific -- alongside this extension's own `reply-content`
      * (no title, unlike core's `Content`) and `quote-reply` (this reply's own "+ Quote", the
      * sibling of `quote-op` above).
+     *
+     * `profile-tab` targets `'kopling-profile::profile.tabs'` by its raw string id, not
+     * `Tabs::SLOT` -- same soft-dependency reasoning as `->after('kopling-reactions::words')`
+     * above: a harmless no-op (dangling slot, never resolved by anything) when profile isn't
+     * installed, no composer dependency needed either way. Gated on this extension's own `view`
+     * permission, same as `DiscussionController::show()`'s own `$this->authorize()` -- someone
+     * who can't see a discussion page shouldn't see a tab listing what was said on one either.
      */
     public function ux(): Ux
     {
@@ -82,7 +89,12 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->as('reply-content')
             ->add('kopling-discussions::quote-reply')
             ->in(Reply::FOOTER_SLOT)
-            ->as('quote-reply');
+            ->as('quote-reply')
+            ->add('kopling-discussions::profile-replies-tab')
+            ->in('kopling-profile::profile.tabs')
+            ->as('profile-tab')
+            ->after('kopling-profile::moments-tab')
+            ->when('view');
     }
 
     /**

@@ -10,19 +10,7 @@
         </div>
 
         <div role="tablist" class="tabs tabs-lift my-6 px-4">
-            <label class="tab bg-base-200 hover:bg-base-300">
-                <input type="radio" name="posts" checked="checked" />
-                @choice('kopling-core::community.moments', $moments->total())
-            </label>
-            <div class="tab-content bg-base-200 border-base-300 p-6">
-                <div id="moments-feed" class="flex flex-col gap-4 sm:gap-8">
-                    @foreach ($moments as $moment)
-                        @include('kopling-core::community.moment', ['moment' => $moment])
-                    @endforeach
-
-                    <x-k::page.pagination :context="$context" target="#moments-feed" />
-                </div>
-            </div>
+            <x-kopling-profile::ux.tabs :context="new Context(subject: $person)" />
         </div>
     </div>
 
