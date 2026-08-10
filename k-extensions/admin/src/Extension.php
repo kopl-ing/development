@@ -7,6 +7,7 @@ namespace Kopling\Admin;
 use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesUx;
@@ -120,7 +121,7 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
      * unchanged) as this portal's one entry in `Chrome`'s generic `admin.sidebar-panel` slot --
      * the same shared chrome layout Community/Style Guide use (see `layouts/admin.blade.php`).
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(Navigation::class, ['slot' => 'kopling-admin::admin.navigation'])

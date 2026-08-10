@@ -21,7 +21,7 @@ it('shows the admin panel link, with its helmet-safety icon, inside the user men
 
     $html = $this->actingAs($person)->get('/')->assertOk()->getContent();
 
-    expect($html)->toContain('Admin panel');
+    expect(userMenuLabels($html))->toContain('Admin panel');
 
     // The icon's own rendered SVG markup, byte-for-byte as `<x-k::icon>` itself renders it
     // (views/ux/icon.blade.php's exact svg() call) -- not just that *some* <svg> appears
@@ -38,5 +38,5 @@ it('does not show the admin panel link for a signed-in person without access-adm
 
     $html = $this->actingAs($person)->get('/')->assertOk()->getContent();
 
-    expect($html)->not->toContain('Admin panel');
+    expect(userMenuLabels($html))->not->toContain('Admin panel');
 });

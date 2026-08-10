@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Widgets;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
@@ -31,7 +32,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
         return 'Community pulse and popular tags in the feed rail.';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         // Left sidebar (matches the reference layout — widgets on the left, not the right rail).
         return Ux::make()

@@ -4,6 +4,7 @@ use Illuminate\Events\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Kopling\Core\Extension\Manager;
 use Kopling\Core\Extension\RegistrationCache;
+use Symfony\Component\DomCrawler\Crawler;
 use Tests\Support\FakeManifest;
 use Tests\TestCase;
 
@@ -90,6 +91,27 @@ function editorText(string $text, array $marks = []): array
         'text' => $text,
         'marks' => $marks,
     ], fn ($value) => $value !== []);
+}
+
+/**
+ * Labels of every entry in the community topbar's own user-menu dropdown (`UserMenu::SLOT`),
+ * scoped to that dropdown alone -- not the whole page -- so a check like "Admin panel isn't
+ * shown" can't accidentally pass because that same text happens to appear elsewhere (a page
+ * heading, a showcase demo). The trigger `<button>`'s `aria-label` ("Account menu") is unique;
+ * its `popovertarget` names the sibling `<ul>` `Dropdown` renders entries into (`Dropdown::$id`
+ * is random per instance, so multiple dropdowns on one page never collide) -- shared across
+ * AdminLinkInUserMenuTest/StyleGuideLinkInUserMenuTest/StyleGuideTopbarUserMenuTest/
+ * UserMenuHideOnPortalTest rather than duplicated in each.
+ *
+ * @return array<int, string>
+ */
+function userMenuLabels(string $html): array
+{
+    $crawler = new Crawler($html);
+    $triggerLabel = __('kopling-core::community.account_menu');
+    $id = $crawler->filter('button[aria-label="'.$triggerLabel.'"]')->attr('popovertarget');
+
+    return $crawler->filter('#'.$id.' a')->each(fn (Crawler $a) => trim($a->text()));
 }
 
 /**

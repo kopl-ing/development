@@ -31,28 +31,15 @@ function personWithFullMenuAccess(): Person
     return $person;
 }
 
-/**
- * Isolates the user menu's own dropdown `<ul>` -- from its `aria-label` (unique to this
- * dropdown, "Account menu") up to the next `</ul>`, which closes it (Item's own `<li>` entries
- * never nest another `<ul>` inside).
- */
-function extractUserMenuHtml(string $html): string
-{
-    $start = strpos($html, 'aria-label="'.__('kopling-core::community.account_menu').'"');
-    $end = strpos($html, '</ul>', $start);
-
-    return substr($html, $start, $end - $start);
-}
-
 it('hides "Community" on the Community portal itself, but shows Admin and Style Guide', function () {
     $person = personWithFullMenuAccess();
 
     $html = $this->actingAs($person)->get('/')->assertOk()->getContent();
-    $menu = extractUserMenuHtml($html);
+    $labels = userMenuLabels($html);
 
-    expect($menu)->not->toContain(__('kopling-core::community.community'))
-        ->and($menu)->toContain(__('kopling-admin::messages.admin_panel'))
-        ->and($menu)->toContain(__('kopling-style-guide::messages.title'));
+    expect($labels)->not->toContain(__('kopling-core::community.community'))
+        ->and($labels)->toContain(__('kopling-admin::messages.admin_panel'))
+        ->and($labels)->toContain(__('kopling-style-guide::messages.title'));
 });
 
 it('hides "Admin panel" on the Admin portal itself, but shows Community and Style Guide', function () {
@@ -62,11 +49,11 @@ it('hides "Admin panel" on the Admin portal itself, but shows Community and Styl
         ->get(route('kopling-admin::admin/settings'))
         ->assertOk()
         ->getContent();
-    $menu = extractUserMenuHtml($html);
+    $labels = userMenuLabels($html);
 
-    expect($menu)->not->toContain(__('kopling-admin::messages.admin_panel'))
-        ->and($menu)->toContain(__('kopling-core::community.community'))
-        ->and($menu)->toContain(__('kopling-style-guide::messages.title'));
+    expect($labels)->not->toContain(__('kopling-admin::messages.admin_panel'))
+        ->and($labels)->toContain(__('kopling-core::community.community'))
+        ->and($labels)->toContain(__('kopling-style-guide::messages.title'));
 });
 
 it('hides "Style Guide" on the Style Guide portal itself, but shows Community and Admin', function () {
@@ -76,9 +63,9 @@ it('hides "Style Guide" on the Style Guide portal itself, but shows Community an
         ->get(route('kopling-style-guide::style-guide/index'))
         ->assertOk()
         ->getContent();
-    $menu = extractUserMenuHtml($html);
+    $labels = userMenuLabels($html);
 
-    expect($menu)->not->toContain(__('kopling-style-guide::messages.title'))
-        ->and($menu)->toContain(__('kopling-core::community.community'))
-        ->and($menu)->toContain(__('kopling-admin::messages.admin_panel'));
+    expect($labels)->not->toContain(__('kopling-style-guide::messages.title'))
+        ->and($labels)->toContain(__('kopling-core::community.community'))
+        ->and($labels)->toContain(__('kopling-admin::messages.admin_panel'));
 });

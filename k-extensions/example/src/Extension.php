@@ -6,6 +6,7 @@ namespace Kopling\Example;
 
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
@@ -84,7 +85,7 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
      * `.when('manage-things')` reuses the permission declared above, prefixed to
      * "kopling-example::manage-things" by Manager the same way the entry's own id is.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(Item::class, ['label' => 'Hello', 'route' => 'kopling-core::community/example.hello'])

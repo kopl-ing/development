@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Extensions\CardControlEntry;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Ux\Card\Control;
@@ -27,7 +28,7 @@ class Extension extends AbstractExtension implements ChangesUx
         return 'Adds one entry to Control::SLOT for testing the card control dropdown.';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(Row::class)

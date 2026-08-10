@@ -5,46 +5,50 @@ declare(strict_types=1);
 namespace Kopling\Core\Extend;
 
 use Illuminate\Support\Collection;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
+use Kopling\Core\Extend\Ux\UxAdding;
+use Kopling\Core\Extend\Ux\UxEditing;
+use Kopling\Core\Extend\Ux\UxReplacing;
 use Kopling\Core\Ux\UxAction;
 use Kopling\Core\Ux\UxEntry;
 
 /**
- * The fluent builder returned by `ChangesUx::ux()`. `add()`/`replace()`/`remove()` each start a
- * new `UxEntry`; every other method mutates whichever entry is currently selected.
+ * The fluent builder returned by `ChangesUx::ux()`. `add()`/`edit()`/`replace()` each return a
+ * staged object (`UxAdding`/`UxEditing`/`UxReplacing`) exposing only the modifiers that stage
+ * actually supports -- see those classes for which and why. `remove()` takes no modifiers, so it
+ * returns straight back here to start the next entry.
  */
-class Ux
+class Ux implements ProvidesUxEntries
 {
     /**
      * @var array<UxEntry>
      */
     protected array $entries = [];
 
-    protected ?UxEntry $current = null;
-
     public static function make(): static
     {
         return new static();
     }
 
-    public function add(string $component, array $data = []): static
+    public function add(string $component, array $data = []): UxAdding
     {
-        $this->entries[] = $this->current = new UxEntry($component, $data);
+        $this->entries[] = $entry = new UxEntry($component, $data);
 
-        return $this;
+        return new UxAdding($this, $entry);
     }
 
     /**
      * `$id` is the target's already fully-qualified id. A missing target is a no-op.
      */
-    public function replace(string $id, string $component, array $data = []): static
+    public function replace(string $id, string $component, array $data = []): UxReplacing
     {
         $entry = new UxEntry($component, $data);
         $entry->id = $id;
         $entry->action = UxAction::Replace;
 
-        $this->entries[] = $this->current = $entry;
+        $this->entries[] = $entry;
 
-        return $this;
+        return new UxReplacing($this, $entry);
     }
 
     public function remove(string $id): static
@@ -53,7 +57,7 @@ class Ux
         $entry->id = $id;
         $entry->action = UxAction::Remove;
 
-        $this->entries[] = $this->current = $entry;
+        $this->entries[] = $entry;
 
         return $this;
     }
@@ -64,68 +68,15 @@ class Ux
      *
      * @throws \InvalidArgumentException if no entry with this id was added earlier in this chain
      */
-    public function edit(string $id): static
+    public function edit(string $id): UxEditing
     {
         for ($i = count($this->entries) - 1; $i >= 0; $i--) {
             if ($this->entries[$i]->id === $id) {
-                $this->current = $this->entries[$i];
-
-                return $this;
+                return new UxEditing($this, $this->entries[$i]);
             }
         }
 
         throw new \InvalidArgumentException("No entry with id [{$id}] was added earlier in this Ux chain.");
-    }
-
-    public function in(string $slot): static
-    {
-        $this->current->slot = $slot;
-
-        return $this;
-    }
-
-    public function after(string $id): static
-    {
-        $this->current->after = $id;
-
-        return $this;
-    }
-
-    public function before(string $id): static
-    {
-        $this->current->before = $id;
-
-        return $this;
-    }
-
-    /** Pins this entry to the very front of its slot -- see `UxEntry::$first`. */
-    public function first(): static
-    {
-        $this->current->first = true;
-
-        return $this;
-    }
-
-    /** Marks this entry edge-to-edge -- see `UxEntry::$flush`. */
-    public function flush(): static
-    {
-        $this->current->flush = true;
-
-        return $this;
-    }
-
-    public function as(string $id): static
-    {
-        $this->current->id = $id;
-
-        return $this;
-    }
-
-    public function when(string $condition): static
-    {
-        $this->current->condition = $condition;
-
-        return $this;
     }
 
     /**

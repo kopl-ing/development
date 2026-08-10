@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Extensions\UxReplacer;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 
@@ -25,7 +26,7 @@ class Extension extends AbstractExtension implements ChangesUx
         return 'Replaces UxAdder\'s "widget" entry, for testing ChangesUx replace().';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->replace('tests-fixtures-ux-adder::widget', 'fixture::widget-v2', ['replaced' => true]);

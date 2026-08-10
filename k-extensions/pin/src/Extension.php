@@ -10,6 +10,7 @@ use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
@@ -83,7 +84,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * the slot entry itself, since visibility there is a per-pin/per-viewer question `Pin::
      * visibleFor()` already answers, not a capability check.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(ControlEntry::class)

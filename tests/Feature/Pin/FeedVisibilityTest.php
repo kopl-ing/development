@@ -6,6 +6,7 @@ use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
 use Kopling\Pin\Pin;
+use Symfony\Component\DomCrawler\Crawler;
 
 it('renders a pinned moment once, in the pinned section, decorated -- not duplicated in the regular feed', function () {
     $author = Person::create(['name' => 'Bob', 'email' => 'bob@example.test', 'password' => 'secret']);
@@ -17,8 +18,16 @@ it('renders a pinned moment once, in the pinned section, decorated -- not duplic
 
     $html = $this->get('/')->assertOk()->getContent();
 
-    expect(substr_count($html, 'Pinned One'))->toBe(1)
-        ->and(substr_count($html, 'Plain One'))->toBe(1)
+    // Scoped to card titles specifically (Card\Title's own `h2.card-title`), not raw text
+    // position -- a title is free-form and the pinned section renders its card via a plain
+    // `<x-k::card.card>` with no id of its own to anchor a check to instead (unlike the regular
+    // feed's own per-item `id="moment-{id}"`, see community/moment.blade.php).
+    $titles = array_count_values(
+        new Crawler($html)->filter('h2.card-title')->each(fn (Crawler $h2) => trim($h2->text()))
+    );
+
+    expect($titles['Pinned One'] ?? 0)->toBe(1)
+        ->and($titles['Plain One'] ?? 0)->toBe(1)
         ->and($html)->toContain('outline-info');
 });
 
@@ -36,6 +45,10 @@ it('shows a Groups-targeted pin as a normal, undecorated moment to a viewer outs
 
     // The Moment itself still shows -- Groups targeting scopes who sees it as *pinned*, not
     // whether the Moment exists in the feed at all -- but exactly once, and undecorated.
-    expect(substr_count($html, 'Targeted Pin'))->toBe(1)
+    $titles = array_count_values(
+        new Crawler($html)->filter('h2.card-title')->each(fn (Crawler $h2) => trim($h2->text()))
+    );
+
+    expect($titles['Targeted Pin'] ?? 0)->toBe(1)
         ->and($html)->not->toContain('outline-success');
 });

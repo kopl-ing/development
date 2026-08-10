@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
 use Kopling\Discussions\Reply;
+use Symfony\Component\DomCrawler\Crawler;
 
 /*
  * A reply renders through the exact same extensible Top/Body/Footer mechanism a Moment's own
@@ -60,20 +61,19 @@ it('shows a quote button for the reply itself, distinct from the OP\'s own', fun
 });
 
 it('never shows the reactions rail (a Moment-only footer entry) on a reply card', function () {
-    [$author, $moment] = createMomentWithReply();
+    [$author, $moment, , $reply] = createMomentWithReply();
 
     $html = $this->actingAs($author)
         ->get(route('kopling-core::community/discussions.show', $moment->id))
         ->assertOk()
         ->getContent();
+    $crawler = new Crawler($html);
 
     // The OP's own card still gets it (proving reactions is genuinely installed and rendering
     // on this exact page, not just globally absent) -- only the reply card must be free of it.
-    $railId = 'id="reactions-'.$moment->id.'"';
-    expect($html)->toContain($railId);
+    expect($crawler->filter('#reactions-'.$moment->id))->toHaveCount(1);
 
-    $replyCardStart = strpos($html, 'data-reply="');
-    $replyCardHtml = substr($html, $replyCardStart);
+    $replyCard = $crawler->filter('[data-reply="'.$reply->id.'"]');
 
-    expect($replyCardHtml)->not->toContain($railId);
+    expect($replyCard->filter('#reactions-'.$moment->id))->toHaveCount(0);
 });

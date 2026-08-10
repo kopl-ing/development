@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
 use Kopling\Tags\Tag;
+use Symfony\Component\DomCrawler\Crawler;
 
 it('always shows the upvote button before the downvote button, regardless of tag attach order', function () {
     $author = Person::create(['name' => 'Bob', 'email' => 'bob-order@example.test', 'password' => 'secret']);
@@ -18,7 +19,14 @@ it('always shows the upvote button before the downvote button, regardless of tag
 
     $html = $this->get('/')->assertOk()->getContent();
 
-    expect(strpos($html, '🔥'))->toBeLessThan(strpos($html, '👎'));
+    // Scoped to the vote widget's own emoji spans and their DOM order, not raw text position --
+    // an emoji is free-form content that could otherwise appear a second time elsewhere on the
+    // page before its own button. Not scoped to `button` specifically -- a guest (as here) gets
+    // the calm, non-interactive `<span>` variant instead (see vote.blade.php's own `$canVote`).
+    $emojiOrder = new Crawler($html)->filter('#votes-'.$moment->id.' span[aria-hidden]')
+        ->each(fn (Crawler $span) => trim($span->text()));
+
+    expect($emojiOrder)->toBe(['🔥', '👎']);
 });
 
 it('renders vote buttons as circular, direction-colored, and distinct from the rail', function () {
@@ -29,9 +37,9 @@ it('renders vote buttons as circular, direction-colored, and distinct from the r
     $moment->tags()->attach(Tag::where('slug', 'styling')->first()->id);
 
     $html = $this->get('/')->assertOk()->getContent();
+    $votes = new Crawler($html)->filter('#votes-'.$moment->id);
 
-    expect($html)->toContain('btn-circle')
-        ->and($html)->toContain('btn-outline btn-primary')
-        ->and($html)->toContain('btn-outline btn-secondary')
-        ->and($html)->toContain('indicator-item');
+    expect($votes->filter('.btn-circle.btn-outline.btn-primary'))->toHaveCount(1)
+        ->and($votes->filter('.btn-circle.btn-outline.btn-secondary'))->toHaveCount(1)
+        ->and($votes->filter('.indicator-item'))->toHaveCount(2);
 });

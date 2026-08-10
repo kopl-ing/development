@@ -8,6 +8,7 @@ use Kopling\Core\Content\Moment;
 use Kopling\Core\Extend\ModerationTarget;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
@@ -141,7 +142,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
      * `user-menu` in this portal's own topbar slot is the same avatar dropdown Community/Admin
      * render -- same registration Admin's own `Extension::ux()` uses for its own topbar slot.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(ReportControlEntry::class)

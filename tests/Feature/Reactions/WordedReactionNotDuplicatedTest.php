@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
+use Symfony\Component\DomCrawler\Crawler;
 
 /*
  * A worded reaction is one `reactions` row rendered in exactly one place -- its own chip
@@ -25,10 +26,12 @@ it('renders a solo worded reaction as only its chip -- no rail pill for that emo
 
     $html = $response->getContent();
 
-    // The visible chip emoji span, not a raw byte count -- the emoji legitimately also appears
+    // The visible chip emoji spans, not a raw byte count -- the emoji legitimately also appears
     // inside the chip's own remove button's `hx-vals` JSON attribute (unescaped Unicode), which
-    // is never rendered as visible content.
-    expect(substr_count($html, 'kop-rchip__emoji" aria-hidden="true">❤️<'))->toBe(1)
+    // Crawler never surfaces as element text since it isn't rendered content.
+    $chipEmojis = new Crawler($html)->filter('.kop-rchip__emoji')->each(fn (Crawler $span) => trim($span->text()));
+
+    expect($chipEmojis)->toBe(['❤️'])
         ->and($html)->not->toContain('React with ❤️')
         ->and($html)->toContain('big if true');
 });
@@ -45,8 +48,14 @@ it('still shows a plain rail badge for a wordless reaction, alongside an unrelat
         ->assertOk();
 
     $html = $response->getContent();
+    $rail = new Crawler($html)->filter('#reactions-'.$moment->id);
 
-    expect($html)->toContain('React with ❤️')
-        ->and($html)->toContain('>1<')
+    // The rail's own wordless pill for ❤️ (its emoji span, not the count badge's generic "1" --
+    // scoping to the rail avoids matching an unrelated "1" appearing elsewhere) alongside the
+    // unrelated worded chip.
+    $railEmojis = $rail->filter('button span.text-sm.leading-none')->each(fn (Crawler $s) => trim($s->text()));
+
+    expect($railEmojis)->toContain('❤️')
+        ->and($rail->filter('.badge.tabular-nums')->text())->toBe('1')
         ->and($html)->toContain('so true');
 });

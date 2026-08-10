@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Extensions\UxAdder;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 
@@ -28,7 +29,7 @@ class Extension extends AbstractExtension implements ChangesUx
         return 'Adds entries for testing ChangesUx add()/replace()/remove().';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add('fixture::widget')

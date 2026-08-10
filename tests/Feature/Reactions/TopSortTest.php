@@ -5,6 +5,20 @@ declare(strict_types=1);
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
 use Kopling\Tags\Tag;
+use Symfony\Component\DomCrawler\Crawler;
+
+/**
+ * The feed's actual render order, by each moment card's own `id="moment-{id}"` (see
+ * `community/moment.blade.php`) -- not each moment's title text, which is free-form and could in
+ * principle appear a second time elsewhere on the page (another card's teaser, a meta tag) before
+ * the card it actually belongs to, giving a false position.
+ *
+ * @return array<int, string>
+ */
+function feedMomentOrder(string $html): array
+{
+    return new Crawler($html)->filter('[id^="moment-"]')->each(fn (Crawler $card) => $card->attr('id'));
+}
 
 it('orders the feed by upvote count when sort=top is requested', function () {
     $author = Person::create(['name' => 'Bob', 'email' => 'bob-sort@example.test', 'password' => 'secret']);
@@ -28,8 +42,9 @@ it('orders the feed by upvote count when sort=top is requested', function () {
     $older->reactions()->create(['person_id' => $secondVoter->id, 'emoji' => '👍']);
 
     $html = $this->get('/?sort=top')->assertOk()->getContent();
+    $order = feedMomentOrder($html);
 
-    expect(strpos($html, 'Older Low Votes'))->toBeLessThan(strpos($html, 'Newer High Votes'));
+    expect(array_search('moment-'.$older->id, $order))->toBeLessThan(array_search('moment-'.$newer->id, $order));
 });
 
 it('stays chronological by default even when a tag configures voting', function () {
@@ -49,6 +64,7 @@ it('stays chronological by default even when a tag configures voting', function 
     $older->reactions()->create(['person_id' => $voter->id, 'emoji' => '👍']);
 
     $html = $this->get('/')->assertOk()->getContent();
+    $order = feedMomentOrder($html);
 
-    expect(strpos($html, 'Newer No Sort'))->toBeLessThan(strpos($html, 'Older No Sort'));
+    expect(array_search('moment-'.$newer->id, $order))->toBeLessThan(array_search('moment-'.$older->id, $order));
 });

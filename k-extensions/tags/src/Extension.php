@@ -9,6 +9,7 @@ use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
@@ -63,7 +64,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * update `modelValidationRules()` below's rule to match; the picker's own hint text and the
      * server-side enforcement have to agree.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add('kopling-tags::tags')

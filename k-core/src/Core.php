@@ -7,6 +7,7 @@ namespace Kopling\Core;
 use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\CannotBeDisabled;
 use Kopling\Core\Extension\Contract\ChangesEditor;
@@ -180,7 +181,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
      * A thin composition point, not a dumping ground -- each component declares its own
      * defaults on itself (see Top/Footer/Body's own `defaults()`); this just calls them.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         $ux = Ux::make();
 

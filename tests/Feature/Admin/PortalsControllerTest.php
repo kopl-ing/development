@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
 use Kopling\Core\Settings\Settings;
+use Symfony\Component\DomCrawler\Crawler;
 
 function personWithManageSettingsForPortals(): Person
 {
@@ -28,8 +29,12 @@ it('lists installed portals, including Core\'s own Community', function () {
         ->assertOk()
         ->getContent();
 
-    expect($html)->toContain('kopling-core::community')
-        ->and($html)->toContain('kopling-admin::admin');
+    // Matched against each row's own hidden `id` input, not page text -- the portal id could
+    // otherwise appear incidentally elsewhere (a route, an unrelated data attribute).
+    $crawler = new Crawler($html);
+
+    expect($crawler->filter('input[name="id"][value="kopling-core::community"]'))->toHaveCount(1)
+        ->and($crawler->filter('input[name="id"][value="kopling-admin::admin"]'))->toHaveCount(1);
 });
 
 it('overrides a portal\'s path', function () {

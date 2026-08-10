@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Extensions\UxRemover;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 
@@ -23,7 +24,7 @@ class Extension extends AbstractExtension implements ChangesUx
         return 'Removes UxAdder\'s "gadget" entry, for testing ChangesUx remove().';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()->remove('tests-fixtures-ux-adder::gadget');
     }

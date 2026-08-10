@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Kopling\Pages\Page;
 use Kopling\Pages\PageSectionTemplate;
+use Symfony\Component\DomCrawler\Crawler;
 
 it('404s when no page is set as the index and the portal root is requested', function () {
     $this->get('/pages')->assertNotFound();
@@ -62,6 +63,10 @@ it('lists published, show_in_nav pages in the topbar, ordered by nav_order', fun
 
     $html = $this->get('/pages')->assertOk()->getContent();
 
-    expect(strpos($html, 'Alpha'))->toBeLessThan(strpos($html, 'Zeta'))
-        ->and($html)->not->toContain('>Hidden<');
+    // Scoped to the topbar nav's own links and their DOM order, not raw text position -- a
+    // page's title is free-form and could in principle appear elsewhere on the page first.
+    $navLabels = new Crawler($html)->filter('nav a')->each(fn (Crawler $a) => trim($a->text()));
+
+    expect(array_search('Alpha', $navLabels))->toBeLessThan(array_search('Zeta', $navLabels))
+        ->and($navLabels)->not->toContain('Hidden');
 });

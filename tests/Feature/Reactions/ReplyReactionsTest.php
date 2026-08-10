@@ -6,6 +6,7 @@ use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
 use Kopling\Discussions\Reply;
 use Kopling\Reactions\Reaction;
+use Symfony\Component\DomCrawler\Crawler;
 
 /*
  * Proves the polymorphic side of reactions end to end: a Reply is reactable through the exact
@@ -52,7 +53,7 @@ it('renders the rail on the reply\'s own card, showing an applied reaction', fun
         ->getContent();
 
     expect($html)->toContain('🎉')
-        ->and($html)->toContain('id="reactions-'.$reply->id.'"');
+        ->and(new Crawler($html)->filter('#reactions-'.$reply->id))->toHaveCount(1);
 });
 
 it('adds a worded reaction to a reply through the generic word route', function () {
@@ -86,6 +87,8 @@ it('never registers vote on a reply -- voting stays moment-only, tag-configured'
 
     // The reply card renders (proving the page itself works), but carries no votes-{id} rail --
     // that component is only ever registered into the Moment footer, never the Reply one.
-    expect($html)->toContain('data-reply="'.$reply->id.'"')
-        ->and($html)->not->toContain('id="votes-'.$reply->id.'"');
+    $crawler = new Crawler($html);
+
+    expect($crawler->filter('[data-reply="'.$reply->id.'"]'))->toHaveCount(1)
+        ->and($crawler->filter('#votes-'.$reply->id))->toHaveCount(0);
 });

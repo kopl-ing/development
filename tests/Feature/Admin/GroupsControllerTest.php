@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
+use Symfony\Component\DomCrawler\Crawler;
 
 function personWithManagePeopleForGroups(): Person
 {
@@ -85,11 +86,11 @@ it('deletes a group and cascades its pivot rows', function () {
 
 it('does not show the Permissions button to a person without manage-permissions', function () {
     $operator = personWithManagePeopleForGroups();
-    Group::create(['name' => 'A Group']);
+    $group = Group::create(['name' => 'A Group']);
 
     $html = $this->actingAs($operator)->get('/admin/groups')->assertOk()->getContent();
 
-    expect($html)->not->toContain(__('kopling-admin::messages.manage_permissions'));
+    expect(new Crawler($html)->filter('#group-permissions-'.$group->id))->toHaveCount(0);
 });
 
 it('denies updating permissions for a person without manage-permissions, even with manage-people', function () {
@@ -104,11 +105,21 @@ it('denies updating permissions for a person without manage-permissions, even wi
 it('shows the Permissions button and pre-selects the group\'s currently granted permissions', function () {
     $operator = personWithManagePermissionsForGroups();
     $group = Group::create(['name' => 'A Group']);
-    $group->givePermissionTo('kopling-example::do-a-thing');
+    // A real, declared permission -- unlike this file's usual `kopling-example::do-a-thing`
+    // fixture string (see Group.php's own docblock), which `givePermissionTo()` happily accepts
+    // but `grantablePermissions()` never renders a checkbox for, since nothing actually declares
+    // it.
+    $group->givePermissionTo('kopling-core::manage-people');
 
     $html = $this->actingAs($operator)->get('/admin/groups')->assertOk()->getContent();
+    $modal = new Crawler($html)->filter('#group-permissions-'.$group->id);
 
-    expect($html)->toContain(__('kopling-admin::messages.manage_permissions'));
+    // The granted permission's own checkbox carries `checked`; an ungranted one (also real and
+    // grantable) doesn't -- proving this is actually selective, not every checkbox rendering
+    // checked regardless of what the group was given.
+    expect($modal)->toHaveCount(1)
+        ->and($modal->filter('input[value="kopling-core::manage-people"]')->attr('checked'))->not->toBeNull()
+        ->and($modal->filter('input[value="kopling-core::manage-permissions"]')->attr('checked'))->toBeNull();
 });
 
 it('replaces a group\'s permission grants with exactly the submitted set', function () {
@@ -139,10 +150,16 @@ it('excludes default and guest-only permissions from the grantable list -- grant
     Group::create(['name' => 'A Group']);
 
     $html = $this->actingAs($operator)->get('/admin/groups')->assertOk()->getContent();
+    $crawler = new Crawler($html);
 
     // access-community/guest are allowsGuests: true (Core::permissions()) -- never actually
     // decided by a Group grant, see GroupsController::grantablePermissions()'s own docblock.
-    expect($html)->not->toContain('kopling-core::access-community')
-        ->and($html)->not->toContain('kopling-core::guest')
-        ->and($html)->toContain('kopling-core::manage-permissions');
+    // Matched against the checkbox's own `value`, not page text -- the permission id could
+    // otherwise appear incidentally elsewhere (a hidden input, another group's own row). Not
+    // an exact count -- the operator's own "Permission Managers" group (from
+    // personWithManagePermissionsForGroups()) renders a second grantable-permissions fieldset
+    // alongside "A Group"'s, so a real, present option legitimately matches more than once.
+    expect($crawler->filter('input[value="kopling-core::access-community"]'))->toHaveCount(0)
+        ->and($crawler->filter('input[value="kopling-core::guest"]'))->toHaveCount(0)
+        ->and($crawler->filter('input[value="kopling-core::manage-permissions"]')->count())->toBeGreaterThan(0);
 });

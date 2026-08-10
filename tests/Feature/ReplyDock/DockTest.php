@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
+use Symfony\Component\DomCrawler\Crawler;
 
 it('renders no fake tool buttons in the dock -- kopling-reply-dock::dock.tools is empty by default', function () {
     $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
@@ -14,6 +15,8 @@ it('renders no fake tool buttons in the dock -- kopling-reply-dock::dock.tools i
         ->assertOk()
         ->getContent();
 
-    expect($html)->toContain('kop-dock__reply')
-        ->and(substr_count($html, 'class="kop-dock__tool"'))->toBe(0);
+    $crawler = new Crawler($html);
+
+    expect($crawler->filter('.kop-dock__reply'))->toHaveCount(1)
+        ->and($crawler->filter('.kop-dock__tool'))->toHaveCount(0);
 });

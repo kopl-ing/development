@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\Core\Extension\Contract;
 
-use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 
 /**
  * One contract for every UI surface an extension might want to place something into --
@@ -15,5 +15,5 @@ use Kopling\Core\Extend\Ux;
  */
 interface ChangesUx
 {
-    public function ux(): Ux;
+    public function ux(): ProvidesUxEntries;
 }

@@ -10,6 +10,7 @@ use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
@@ -63,7 +64,7 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
      * permission, same as `DiscussionController::show()`'s own `$this->authorize()` -- someone
      * who can't see a discussion page shouldn't see a tab listing what was said on one either.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add('kopling-discussions::teaser')

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
+use Symfony\Component\DomCrawler\Crawler;
 
 /*
  * `Community\Chrome`'s sidebar is now a generic slot every portal's own layout populates --
@@ -27,9 +28,11 @@ it('shows Admin\'s own sidebar nav items (Settings, People, Groups) via the reus
         ->assertOk()
         ->getContent();
 
-    expect($html)->toContain(__('kopling-admin::messages.settings'))
-        ->and($html)->toContain(__('kopling-admin::messages.people'))
-        ->and($html)->toContain(__('kopling-admin::messages.groups'));
+    $labels = new Crawler($html)->filter('#sidebar a')->each(fn (Crawler $a) => trim($a->text()));
+
+    expect($labels)->toContain(__('kopling-admin::messages.settings'))
+        ->and($labels)->toContain(__('kopling-admin::messages.people'))
+        ->and($labels)->toContain(__('kopling-admin::messages.groups'));
 });
 
 it('shows Style Guide\'s own section anchors via the reused Navigation component', function () {
@@ -44,10 +47,10 @@ it('shows Style Guide\'s own section anchors via the reused Navigation component
         ->assertOk()
         ->getContent();
 
-    expect($html)->toContain('href="#tokens"')
-        ->toContain(__('kopling-style-guide::messages.tokens'))
-        ->and($html)->toContain('href="#forms"')
-        ->and($html)->toContain('href="#actions"')
-        ->and($html)->toContain('href="#editor"')
-        ->and($html)->toContain('href="#card"');
+    $links = collect(new Crawler($html)->filter('#sidebar a')->each(
+        fn (Crawler $a) => [$a->attr('href') => trim($a->text())]
+    ))->collapse();
+
+    expect($links->get('#tokens'))->toBe(__('kopling-style-guide::messages.tokens'))
+        ->and($links->keys())->toContain('#forms', '#actions', '#editor', '#card');
 });

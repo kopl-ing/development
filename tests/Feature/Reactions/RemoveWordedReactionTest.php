@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
 use Kopling\Reactions\Reaction;
+use Symfony\Component\DomCrawler\Crawler;
 
 /*
  * A worded reaction's own chip *is* the remove control for its own author -- a real <button>,
@@ -48,7 +49,7 @@ it('renders someone else\'s worded reaction chip as a plain, non-clickable span'
     $html = $this->actingAs($viewer)->get('/')->assertOk()->getContent();
 
     expect($html)->toContain('so true')
-        ->and($html)->not->toContain('kop-rchip--mine');
+        ->and(new Crawler($html)->filter('.kop-rchip--mine'))->toHaveCount(0);
 });
 
 it('renders the viewer\'s own worded reaction chip as the clickable button variant', function () {
@@ -62,6 +63,6 @@ it('renders the viewer\'s own worded reaction chip as the clickable button varia
 
     $html = $this->actingAs($reactor)->get('/')->assertOk()->getContent();
 
-    expect($html)->toContain('kop-rchip--mine')
+    expect(new Crawler($html)->filter('.kop-rchip--mine'))->toHaveCount(1)
         ->and($html)->toContain('so true');
 });

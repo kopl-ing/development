@@ -9,6 +9,7 @@ use Kopling\Core\Content\Moment;
 use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Relation;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
@@ -144,7 +145,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * upvote/downvote emoji-picker pair -- `tags` never declares anything about voting itself,
      * see `modelValidationRules()` above for the matching validation half of the same split.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add('kopling-reactions::vote')

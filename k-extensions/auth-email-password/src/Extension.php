@@ -9,6 +9,7 @@ use Kopling\AuthEmailPassword\Listeners\AttemptPasswordRegistration;
 use Kopling\Core\Authentication\Event\AttemptLogin;
 use Kopling\Core\Authentication\Event\AttemptRegistration;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ListensToEvents;
@@ -26,7 +27,7 @@ class Extension extends AbstractExtension implements ChangesUx, ListensToEvents
         return "Email/password sign-in and registration -- built on Core's Validate/Attempt Login and Registration events.";
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(LoginForm::class)

@@ -7,6 +7,7 @@ namespace Kopling\Profile;
 use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
@@ -64,7 +65,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * ahead of whatever else registers there (discussions' `replies` tab, say), so the profile
      * page owns the ordering without every other extension having to `->before()` it by name.
      */
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(ProfileLink::class, [

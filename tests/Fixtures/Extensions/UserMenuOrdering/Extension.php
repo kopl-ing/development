@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Extensions\UserMenuOrdering;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Ux\Community\UserMenu;
@@ -27,7 +28,7 @@ class Extension extends AbstractExtension implements ChangesUx
         return 'Adds two entries to UserMenu::SLOT, one pinned first(), to test ordering.';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(Item::class, ['label' => 'Second Item', 'route' => 'kopling-core::community/community'])

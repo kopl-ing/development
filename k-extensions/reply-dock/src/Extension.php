@@ -6,6 +6,7 @@ namespace Kopling\ReplyDock;
 
 use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
@@ -40,7 +41,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
         return 'A sticky reply dock on discussion pages — a bar that morphs into a composer.';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add('kopling-reply-dock::dock')

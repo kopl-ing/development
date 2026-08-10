@@ -6,6 +6,7 @@ use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
 use Kopling\Core\Storage\Drive;
 use Kopling\Core\Storage\StorageMapping;
+use Symfony\Component\DomCrawler\Crawler;
 
 /*
  * Exercises against `kopling/example`'s own real, already-declared `avatars` StorageRequest
@@ -44,13 +45,14 @@ it('lists a declared storage request and only its capability-eligible drives', f
     // extension declares a storage request (kopling/docs's own "content" request, Private/
     // ReadOnly, has no restriction and legitimately lists every drive here, Private Drive
     // included).
-    $start = strpos($html, 'kopling-example::avatars');
-    $rowEnd = strpos($html, '</tr>', $start);
-    $row = substr($html, $start, $rowEnd - $start);
+    $row = new Crawler($html)->filter('table tbody tr')
+        ->reduce(fn (Crawler $tr) => str_contains($tr->text(), 'kopling-example::avatars'));
 
-    expect($row)->toContain('Public Drive')
-        ->not->toContain('Private Drive')
-        ->not->toContain('Read Only Drive');
+    $driveOptions = $row->filter('option')->each(fn (Crawler $option) => trim($option->text()));
+
+    expect($driveOptions)->toContain('Public Drive')
+        ->and($driveOptions)->not->toContain('Private Drive')
+        ->and($driveOptions)->not->toContain('Read Only Drive');
 });
 
 it('maps a declared request to an eligible drive', function () {

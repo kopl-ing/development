@@ -6,6 +6,7 @@ namespace Kopling\ThreadTitle;
 
 use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
@@ -32,7 +33,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
         return 'The moment title slides into the sticky topbar as you scroll a discussion.';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add('kopling-thread-title::sticky')

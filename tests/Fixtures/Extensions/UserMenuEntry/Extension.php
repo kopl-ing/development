@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Extensions\UserMenuEntry;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Ux\Community\UserMenu;
@@ -28,7 +29,7 @@ class Extension extends AbstractExtension implements ChangesUx
         return 'Adds one entry to UserMenu::SLOT for testing the user menu dropdown.';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->add(Item::class, ['label' => 'Fixture Item', 'route' => 'kopling-core::community/community'])

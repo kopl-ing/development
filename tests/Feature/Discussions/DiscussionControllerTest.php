@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
 use Kopling\Discussions\Reply;
+use Symfony\Component\DomCrawler\Crawler;
 
 it('stores a reply with the submitted document and a server-rendered body_html', function () {
     $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);
@@ -56,9 +57,9 @@ it('mounts exactly one editor for a signed-in person, even with a superseding co
         ->assertOk()
         ->getContent();
 
-    // Count real mount elements only -- editor.js's own selector string
-    // ('[data-tiptap-editor]', inside dock.blade.php's x-data) also contains the substring.
-    expect(substr_count($html, '<div data-tiptap-editor'))->toBe(1);
+    // Real mount elements only -- editor.js's own selector string ('[data-tiptap-editor]',
+    // inside dock.blade.php's x-data) is an attribute value, never a matching element itself.
+    expect(new Crawler($html)->filter('div[data-tiptap-editor]'))->toHaveCount(1);
 });
 
 it('shows a quote button for the OP in the card footer only on its own discussion page', function () {

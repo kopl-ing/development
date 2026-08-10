@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Extensions\EditorReplacer;
 
 use Kopling\Core\Extend\Ux;
+use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Ux\Card\Row;
@@ -28,7 +29,7 @@ class Extension extends AbstractExtension implements ChangesUx
         return 'Replaces the notion editor entry in Editor::SLOT, for testing ChangesUx replace() on it.';
     }
 
-    public function ux(): Ux
+    public function ux(): ProvidesUxEntries
     {
         return Ux::make()
             ->replace('kopling-core::notion', Row::class);
