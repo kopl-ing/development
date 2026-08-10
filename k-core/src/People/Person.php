@@ -28,6 +28,7 @@ class Person extends Authenticatable
         'name',
         'email',
         'password',
+        'origin',
     ];
 
     protected $hidden = [
@@ -94,6 +95,11 @@ class Person extends Authenticatable
     public function isLocal(): bool
     {
         return $this->origin === null;
+    }
+
+    public function isRemote(): bool
+    {
+        return ! $this->isLocal();
     }
 
     /**

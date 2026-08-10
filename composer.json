@@ -16,6 +16,7 @@
         }
     ],
     "require": {
+        "kopling/activitypub": "@dev",
         "kopling/admin": "@dev",
         "kopling/auth-email-password": "@dev",
         "kopling/composer": "@dev",

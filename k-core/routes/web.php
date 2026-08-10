@@ -10,7 +10,7 @@ $portals = $manager->portals();
 $portals
     ->each(function (Portal $portal) use ($manager) {
 
-        $middleware = ['web'];
+        $middleware = $portal->middleware ?? ['web'];
 
         if ($portal->permission) {
             $middleware[] = "can:$portal->permission";

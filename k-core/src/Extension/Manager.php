@@ -13,6 +13,8 @@ use Kopling\Core\Core;
 use Kopling\Core\Extension\Concerns\AggregatesAdminSettings;
 use Kopling\Core\Extension\Concerns\AggregatesCommands;
 use Kopling\Core\Extension\Concerns\AggregatesEditorNodes;
+use Kopling\Core\Extension\Concerns\AggregatesFederatedModels;
+use Kopling\Core\Extension\Concerns\AggregatesFederatedObjectContributions;
 use Kopling\Core\Extension\Concerns\AggregatesIcons;
 use Kopling\Core\Extension\Concerns\AggregatesModels;
 use Kopling\Core\Extension\Concerns\AggregatesModelValidation;
@@ -45,6 +47,8 @@ class Manager
     use AggregatesAdminSettings;
     use AggregatesCommands;
     use AggregatesEditorNodes;
+    use AggregatesFederatedModels;
+    use AggregatesFederatedObjectContributions;
     use AggregatesIcons;
     use AggregatesModels;
     use AggregatesModelValidation;

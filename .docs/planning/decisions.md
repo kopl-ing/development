@@ -1228,3 +1228,68 @@ scope later.
 `.docs/planning/moderation-extension-plan.md` are now built.
 
 ---
+
+## 2026-08-10 — Federation: AP-protocol columns live in `activitypub`'s own tables, never on `people`/`moments`/`replies`
+
+**Decision:** `.docs/planning/activitypub-federation-plan.md`'s Phase 0b originally proposed a
+`remote_id` column (plus `inbox_url`/`public_key`/etc.) directly on `people`, alongside the
+existing `origin` column. That conflicts with `people`'s own migration comment and charter D6,
+which say a federated ID reconstructs from `id` (UUIDv7) + `origin` — true only for Kopling's own
+*locally-minted* federated IDs, never for a remote actor's real AP URI (e.g. Mastodon assigns
+`https://mastodon.social/users/alice`, structurally unrelated to any Kopling UUID). Resolution:
+core keeps owning only `origin` (the generic local/remote fact, already on `people`, newly added
+to `moments`); `k-extensions/activitypub` owns two of its own tables carrying every
+AP-protocol-shaped fact instead — `activitypub_actors` (one-to-one with `people`: `remote_id`,
+`inbox_url`/`outbox_url`/`shared_inbox_url`, `public_key`/`private_key`, `fetched_at`) and
+`activitypub_objects` (polymorphic, one row per federated `Moment`/`Reply`: `remote_id`,
+`federated_at`). `moments`/`replies` gain only `origin` themselves.
+
+**Why:** keeps the extension-ownership rule (CLAUDE.md, "Feature ownership across extensions")
+honest for schema, not just PHP — ActivityPub is one possible federation protocol Kopling could
+speak; a column shaped by its specific mechanics (a `Signature`-header public key, an inbox URL)
+is `activitypub`'s own domain concept, not a fact about what a `Person`/`Moment`/`Reply`
+fundamentally *is*. Also means a second federation protocol later, or removing `activitypub`
+entirely, never touches core/discussions schema.
+
+**Status:** decided & implemented — `.docs/planning/activitypub-federation-plan.md`'s Phases 0-8
+are all built, tests included.
+
+---
+
+## 2026-08-10 — `ExtendsFederatedObjects`: a third extension can contribute to a federated object it doesn't own
+
+**Decision:** New `Kopling\Core\Extension\Contract\ExtendsFederatedObjects` (aggregated by
+`AggregatesFederatedObjectContributions`, the same *uncached, per-request* way `federatedModels()`
+already is): `federatedObjectContributions(): array<class-string, Closure>`, each closure
+`Closure(object $model): array` returning extra outbound fields — e.g. an image-gallery extension
+adding an `attachment` array to `Moment`'s own JSON-LD without `core`'s own
+`Extend\Federation(Moment::class)` registration knowing the gallery extension exists.
+`Federation\Manager::toActivityJson()` merges every registered model's contributions in after the
+owning registration's own `toActivity()`/`contentField()` output, then merges the envelope
+(`@context`/`id`/`type`/`attributedTo`) last — so neither a contribution nor `toActivity()` can
+override it, closing a latent gap the previous `array_merge($envelope, $body)` order left open.
+
+**Why:** the federation plan's own Phase 2 already lets any package register a *whole new*
+federatable model (`HasFederatedModels`); this is the missing other half — enriching a model
+someone *else* owns, the exact ownership shape `ValidatesModels` already solved for validation
+rules. Without it, an image/attachment-style extension would have had no way to appear in a
+Moment's federated output except by `core` reaching into its domain directly.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-08-10 — Federation: dropped the separate "federation enabled" admin toggle
+
+**Decision:** Reversed Phase 7's global on/off `Field` (`Federation\Manager::isEnabled()`, checked
+in every outbound/inbound entry point) — removed the setting, the lang strings, and every
+`isEnabled()` check. Only the remote-domain blocklist setting remains.
+
+**Why:** `kopling:extensions:enable kopling/activitypub` / `disable` already turns the whole
+capability off (Portal's routes stop registering, the listener stops firing) — a second toggle
+living behind the very admin surface that same disable would also remove wasn't a more surgical
+kill-switch, just a redundant one.
+
+**Status:** decided & implemented.
+
+---

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Kopling\Discussions;
 
+use Closure;
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Federation;
 use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Model;
 use Kopling\Core\Extend\Permission;
@@ -16,13 +18,15 @@ use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsModels;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\HasFederatedModels;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
+use Kopling\Core\People\Person;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Card\Accreditation;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
 
-class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasIcons, HasPermissions, ExtendsModels, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasFederatedModels, HasIcons, HasPermissions, ExtendsModels, ExtendsPortals
 {
     public static function name(): string
     {
@@ -140,6 +144,41 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             new Model(Moment::class)
                 ->relation((new Relation)->hasMany('replies', Reply::class)->eagerLoad())
                 ->linksTo('kopling-core::community/discussions.show'),
+        ];
+    }
+
+    /**
+     * `activitypub` only ever reads this (see the federation plan's Phase 6) -- discussions
+     * carries no dependency on it, since `Extend\Federation`/`HasFederatedModels` are plain core
+     * types. `fromActivity()`'s `content` arrives pre-sanitized (see
+     * `Federation\InboundHtmlSanitizer`), so it's trusted straight into `body_html`; `body`
+     * (this instance's own canonical ProseMirror JSON) stays empty for federated content -- there
+     * never was a Tiptap document, so nothing should fabricate one.
+     *
+     * @return array<Federation>
+     */
+    public function federatedModels(): array
+    {
+        return [
+            (new Federation(Reply::class))
+                ->apType('Note')
+                ->contentField('body_html')
+                ->attributedToRelation('person')
+                ->fromActivity(function (array $activity, Person $author, Closure $resolveObjectUri) {
+                    $inReplyTo = $activity['inReplyTo'] ?? null;
+                    $moment = is_string($inReplyTo) ? $resolveObjectUri($inReplyTo) : null;
+
+                    if (! $moment instanceof Moment) {
+                        return null;
+                    }
+
+                    return Reply::create([
+                        'moment_id' => $moment->id,
+                        'person_id' => $author->id,
+                        'body' => '',
+                        'body_html' => $activity['content'] ?? '',
+                    ]);
+                }),
         ];
     }
 

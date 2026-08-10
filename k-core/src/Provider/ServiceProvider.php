@@ -10,6 +10,7 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider as Provider;
 use Illuminate\Support\Str;
 use Kopling\Core\Console\Commands\CacheRegistrations;
@@ -64,6 +65,13 @@ class ServiceProvider extends Provider
 
     public function boot(Manager $manager): void
     {
+        // Without this, `route()`/`url()` resolve against the bound HTTP request's own host
+        // when one exists, but fall back to `http://localhost` in any context with none (a real
+        // `queue:work` worker process, an `artisan` command) -- silently wrong the moment
+        // anything outside a request needs to mint a URL, e.g. `activitypub`'s own queued
+        // delivery jobs signing a `/ap/people/{id}` URI meant to be publicly reachable.
+        URL::forceRootUrl(config('app.url'));
+
         $this->app->make(ExceptionHandler::class)->renderable(new RedirectUnauthenticated());
 
         /** @var Kernel|\Illuminate\Foundation\Http\Kernel $http */

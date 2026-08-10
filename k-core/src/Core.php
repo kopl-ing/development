@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kopling\Core;
 
+use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Federation;
 use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
@@ -14,6 +16,7 @@ use Kopling\Core\Extension\Contract\ChangesEditor;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasAdminSettings;
+use Kopling\Core\Extension\Contract\HasFederatedModels;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
@@ -38,7 +41,7 @@ use Kopling\Core\Ux\Form\TextArea;
  * Core's own declarations, made through the same contracts any extension would implement --
  * `Manager` always includes this as its first entry, not Composer-discovered like the rest.
  */
-class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor, ChangesUx, ExtendsPortals, HasAdminSettings, HasIcons, HasPermissions, HasPortals
+class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor, ChangesUx, ExtendsPortals, HasAdminSettings, HasFederatedModels, HasIcons, HasPermissions, HasPortals
 {
     public static function name(): string
     {
@@ -163,6 +166,25 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
             EditorNode::OrderedList,
             EditorNode::HardBreak,
             EditorNode::Link,
+        ];
+    }
+
+    /**
+     * Declared here rather than left for `activitypub` to reach in and register on Core's
+     * behalf -- `Moment` is core's own model, same reasoning `Reply::forMoment()` etc. living in
+     * `discussions` doesn't stop core from knowing its own relations. `activitypub` only ever
+     * reads this, never writes it. No `fromActivity` -- inbound Moment creation from a remote AP
+     * object is out of scope for v1 (see the federation plan's "Scope for v1").
+     *
+     * @return array<Federation>
+     */
+    public function federatedModels(): array
+    {
+        return [
+            (new Federation(Moment::class))
+                ->apType('Note')
+                ->contentField('body_html')
+                ->attributedToRelation('person'),
         ];
     }
 

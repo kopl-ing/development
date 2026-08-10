@@ -32,10 +32,11 @@ class Portal
         public string $id,
         public readonly string $label,
         public string $path,
-        public readonly string $layout,
+        public readonly ?string $layout,
         public readonly ?string $icon = null,
         public readonly ?string $description = null,
         public ?string $permission = null,
+        public readonly ?array $middleware = null,
     ) {
         $this->defaultPath = $path;
     }
@@ -51,6 +52,7 @@ class Portal
             'icon' => $this->icon,
             'description' => $this->description,
             'permission' => $this->permission,
+            'middleware' => $this->middleware,
         ];
     }
 
@@ -64,6 +66,7 @@ class Portal
             icon: $data['icon'],
             description: $data['description'],
             permission: $data['permission'],
+            middleware: $data['middleware'] ?? null,
         );
 
         $portal->path = $data['path'];
