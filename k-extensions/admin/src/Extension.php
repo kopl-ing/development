@@ -114,7 +114,9 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
      * now, replaced so a person browsing Admin gets the same consistent way back/around instead
      * of a single hardcoded link. `admin-link` (this portal's own entry inside that dropdown, on
      * every page that renders it) hides itself via `hideOnPortal` while already on the Admin
-     * portal -- no point linking to exactly where the viewer already is.
+     * portal -- no point linking to exactly where the viewer already is. `->priority(UserMenu::
+     * PRIORITY_TOP)` keeps it leading the dropdown alongside Moderation's/Style Guide's own
+     * Portal links, regardless of extension load order.
      *
      * `navigation-panel` reuses `Community\Navigation` (its own `$data['slot']` override pointed
      * at this portal's existing `admin.navigation` slot -- `settings`/`people`/`groups` below are
@@ -181,7 +183,7 @@ class Extension extends AbstractExtension implements CannotBeDisabled, ChangesUx
             ->in(UserMenu::SLOT)
             ->as('admin-link')
             ->when('access-admin')
-            ->first()
+            ->priority(UserMenu::PRIORITY_TOP)
             ->add(UserMenu::class)
             ->in('kopling-admin::admin.topbar')
             ->as('user-menu');

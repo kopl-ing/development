@@ -23,6 +23,18 @@ class UserMenu extends Component
 {
     public const SLOT = 'kopling-core::community.user-menu';
 
+    /**
+     * For an entry that should lead the dropdown regardless of what else registers here (a
+     * Portal's own link -- Admin, Moderation, Style Guide) -- see `UxEntry::$priority`.
+     */
+    public const PRIORITY_TOP = 100;
+
+    /**
+     * For an entry that should trail the dropdown regardless of what else registers here (Core's
+     * own "Log out") -- see `UxEntry::$priority`.
+     */
+    public const PRIORITY_BOTTOM = -100;
+
     public Context $context;
 
     /**
@@ -43,7 +55,9 @@ class UserMenu extends Component
 
     /**
      * `hideOnPortal` suppresses the community-link entry while already on that portal --
-     * checked against `$context->isPortal()`.
+     * checked against `$context->isPortal()`. "Log out" trails every other entry via
+     * `PRIORITY_BOTTOM`; a Portal's own link uses `PRIORITY_TOP` (see Admin/Moderation/Style
+     * Guide's own registrations) to lead regardless of extension load order.
      */
     public static function defaults(Ux $ux): void
     {
@@ -57,6 +71,10 @@ class UserMenu extends Component
                 'hideOnPortal' => 'kopling-core::community',
             ])
             ->in(self::SLOT)
-            ->as('community-link');
+            ->as('community-link')
+            ->add(LogoutItem::class)
+            ->in(self::SLOT)
+            ->as('logout')
+            ->priority(self::PRIORITY_BOTTOM);
     }
 }

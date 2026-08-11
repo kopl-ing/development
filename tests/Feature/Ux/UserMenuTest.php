@@ -71,3 +71,19 @@ it('pins a first() entry ahead of one registered without it, regardless of regis
 
     expect(strpos($html, 'Pinned Item'))->toBeLessThan(strpos($html, 'Second Item'));
 });
+
+it('sorts entries by priority (higher first), regardless of registration order', function () {
+    swapUserMenuEntries([
+        'tests-fixtures/user-menu-priority' => [
+            'namespace' => 'Tests\\Fixtures\\Extensions\\UserMenuPriority\\',
+            'path' => __DIR__.'/../../Fixtures/Extensions/UserMenuPriority',
+        ],
+    ]);
+
+    $person = Person::create(['name' => 'Ada Lovelace', 'email' => 'ada@example.test', 'password' => 'secret']);
+
+    $html = (string) $this->actingAs($person)->blade('<x-k::community.user-menu />');
+
+    expect(strpos($html, 'High Priority Item'))->toBeLessThan(strpos($html, 'Default Priority Item'))
+        ->and(strpos($html, 'Default Priority Item'))->toBeLessThan(strpos($html, 'Low Priority Item'));
+});

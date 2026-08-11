@@ -7,6 +7,7 @@ return [
     'home' => 'Community',
     'post_actions' => 'Post actions',
     'account_menu' => 'Account menu',
+    'logout' => 'Log out',
     'community' => 'Community',
     'open' => 'Open',
     'new_moments' => '{0}:count new moments — click to view|{1}:count new moment — click to view|[2,*]:count new moments — click to view',

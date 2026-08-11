@@ -105,20 +105,6 @@
 .kop-dock__composer { display: flex; align-items: flex-start; gap: 12px; }
 .kop-dock__field { flex: 1; min-width: 0; }
 
-/* canned replies */
-.kop-dock__canned { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.kop-dock__canned-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .4; }
-.kop-dock__chip {
-    font-size: 12px; font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--color-base-content, #1f2937) 6%, transparent);
-    border: 1px solid color-mix(in oklab, var(--color-base-content, #1f2937) 12%, transparent);
-    cursor: pointer; opacity: .85;
-}
-.kop-dock__chip:hover { opacity: 1; background: var(--color-base-200, #e5e7eb); }
-@media (max-width: 640px) { .kop-dock__canned { display: none; } }
-
 .kop-dock__actions {
     display: flex; align-items: center; gap: 8px;
     margin-top: 12px; padding-top: 8px;

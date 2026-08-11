@@ -27,4 +27,12 @@ abstract class UxEntryChaining extends UxChaining
 
         return $this;
     }
+
+    /** Sets this entry's ordering priority -- see `UxEntry::$priority`. */
+    public function priority(int $priority): static
+    {
+        $this->entry->priority = $priority;
+
+        return $this;
+    }
 }

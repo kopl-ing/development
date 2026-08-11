@@ -11,12 +11,5 @@ return [
     'quote' => '+ Quote',
     'unquote' => '− Quote',
     'scrub' => 'Drag to scrub the discussion',
-    'canned' => 'Canned',
-    'canned_items' => [
-        'Thanks for sharing! 🙏',
-        'Great point 👍',
-        'Could you elaborate?',
-        'Welcome to the community! 👋',
-    ],
     'to_post' => 'to post',
 ];

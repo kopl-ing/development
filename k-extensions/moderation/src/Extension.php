@@ -141,6 +141,8 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
      *
      * `user-menu` in this portal's own topbar slot is the same avatar dropdown Community/Admin
      * render -- same registration Admin's own `Extension::ux()` uses for its own topbar slot.
+     * `queue-link` uses `UserMenu::PRIORITY_TOP`, same as Admin's/Style Guide's own Portal links,
+     * so the three lead the dropdown regardless of extension load order.
      */
     public function ux(): ProvidesUxEntries
     {
@@ -179,6 +181,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ->in(UserMenu::SLOT)
             ->as('queue-link')
             ->when('moderate')
+            ->priority(UserMenu::PRIORITY_TOP)
             ->add(QueueNav::class)
             ->in('kopling-moderation::moderation.sidebar-panel')
             ->as('queue-nav')

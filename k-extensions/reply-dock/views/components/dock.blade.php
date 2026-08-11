@@ -36,7 +36,7 @@
     @endphp
     {{-- The "post scrubber" dock: a sticky pill with a reading-position counter, a draggable
          scrubber, an extensible tool row (see $toolEntries above) + Reply, that morphs into a
-         composer (quote blocks + canned replies). All logic is INLINE x-data (extension js can't
+         composer (quote blocks). All logic is INLINE x-data (extension js can't
          register an Alpine component before core's Alpine.start()); styling is css/app.css
          (extension utility classes aren't in core's compiled build). Store refs use `?.` so they
          survive the quotes store registering a beat late. --}}
@@ -197,15 +197,6 @@
                              it there like any other content. --}}
                         <div x-ref="editor">
                             <x-k::editor name="body" placeholder="{{ __('kopling-reply-dock::messages.placeholder') }}" />
-                        </div>
-
-                        {{-- canned replies --}}
-                        <div class="kop-dock__canned">
-                            <span class="kop-dock__canned-lbl">{{ __('kopling-reply-dock::messages.canned') }}</span>
-                            @foreach ((array) __('kopling-reply-dock::messages.canned_items') as $canned)
-                                <button type="button" class="kop-dock__chip"
-                                        @click="editorEl()?.kopEditor?.insertText(@js($canned))">{{ $canned }}</button>
-                            @endforeach
                         </div>
 
                         <div class="kop-dock__actions">

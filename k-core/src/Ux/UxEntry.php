@@ -41,6 +41,16 @@ class UxEntry
     public bool $flush = false;
 
     /**
+     * Coarse ordering bucket within a slot, applied by `SlotResolver::order()` as a stable sort
+     * (higher first) after any `after()`/`before()` repositioning -- entries sharing a priority
+     * (the default, 0) keep whatever relative order after()/before() already left them in, but a
+     * higher priority always wins over a lower one regardless of after()/before(). Lets an
+     * extension claim "the top" or "the bottom" of a slot without needing another entry's id to
+     * anchor against. `first` still wins over this outright, same as it already did.
+     */
+    public int $priority = 0;
+
+    /**
      * Set by `SlotResolver::resolve()` when the slot is bound to something (a Moment's Card,
      * say) -- `null` for page-level slots.
      */
@@ -74,6 +84,7 @@ class UxEntry
             'before' => $this->before,
             'first' => $this->first,
             'flush' => $this->flush,
+            'priority' => $this->priority,
             'condition' => $this->condition,
             'component' => $this->component,
             'data' => $this->data,
@@ -89,6 +100,7 @@ class UxEntry
         $entry->before = $data['before'];
         $entry->first = $data['first'] ?? false;
         $entry->flush = $data['flush'] ?? false;
+        $entry->priority = $data['priority'] ?? 0;
         $entry->condition = $data['condition'];
 
         return $entry;

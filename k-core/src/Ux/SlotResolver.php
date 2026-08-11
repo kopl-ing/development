@@ -9,10 +9,10 @@ use Illuminate\Support\Facades\Gate;
 
 /**
  * Turns the flat, unordered result of `Manager::ux()` into what one slot should actually
- * render: just its entries, positioned by `after`/`before`, with anything the current person
- * can't see already filtered out. An `after`/`before` referencing a missing entry (its
- * owning extension got removed, or it was simply never registered) is ignored rather than
- * an error -- outlets compose, they never break each other.
+ * render: just its entries, positioned by `after`/`before`/`priority`, with anything the
+ * current person can't see already filtered out. An `after`/`before` referencing a missing
+ * entry (its owning extension got removed, or it was simply never registered) is ignored
+ * rather than an error -- outlets compose, they never break each other.
  */
 class SlotResolver
 {
@@ -54,8 +54,14 @@ class SlotResolver
             }
         }
 
-        // `first` wins over after()/before() -- a stable partition, so multiple `first()`
-        // entries keep their relative order, all pushed ahead of everything else.
+        // A stable sort (PHP 8's usort guarantees this) -- entries sharing a priority (the
+        // default, 0) keep whatever relative order after()/before() just established, but a
+        // higher priority always wins over a lower one regardless of after()/before().
+        usort($entries, fn (UxEntry $a, UxEntry $b) => $b->priority <=> $a->priority);
+
+        // `first` wins over priority/after()/before() entirely -- a stable partition, so
+        // multiple `first()` entries keep their relative order, all pushed ahead of everything
+        // else.
         $pinned = array_values(array_filter($entries, fn (UxEntry $entry) => $entry->first));
         $rest = array_values(array_filter($entries, fn (UxEntry $entry) => ! $entry->first));
 

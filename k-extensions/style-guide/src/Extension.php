@@ -111,8 +111,9 @@ class Extension extends AbstractExtension implements HasPortals, ExtendsPortals,
      * itself just below, which already targets that same slot.
      *
      * `style-guide-link` in the community's own user menu (`UserMenu::SLOT`), gated by
-     * `access-style-guide` -- same shape as Admin's own `admin-link` entry there, just without
-     * `->first()`: nothing here needs to lead the menu the way "Admin panel" does.
+     * `access-style-guide` -- same shape as Admin's own `admin-link` entry there, including
+     * `UserMenu::PRIORITY_TOP` so the two (and Moderation's own Portal link) lead the dropdown
+     * together regardless of extension load order.
      *
      * `navigation-panel` reuses `Community\Navigation` (its own `$data['slot']` override pointed
      * at this portal's own new `style-guide.navigation` slot) as this portal's one entry in
@@ -142,6 +143,7 @@ class Extension extends AbstractExtension implements HasPortals, ExtendsPortals,
             ->in(UserMenu::SLOT)
             ->as('style-guide-link')
             ->when('access-style-guide')
+            ->priority(UserMenu::PRIORITY_TOP)
             ->add(Navigation::class, ['slot' => 'kopling-style-guide::style-guide.navigation'])
             ->in('kopling-style-guide::style-guide.sidebar-panel')
             ->as('navigation-panel')
