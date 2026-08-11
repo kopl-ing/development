@@ -11,14 +11,13 @@ use Kopling\Core\Ux\Context;
 use Kopling\Pin\Pin;
 
 /**
- * The single entry `Extension::ux()` registers into `Card\Control::SLOT` -- whether it renders
- * a "Pin" trigger or an "Edit pin" trigger plus an "Unpin" action depends on whether *this*
- * Moment currently has a pin, which is per-Moment state, not per-actor -- something `->when()`'s
- * permission gate can't express, so this component's own view decides instead. `Control`'s view
- * already wraps every entry in one `<li>`, so both actions render as siblings inside that same
- * `<li>`, not a second one.
+ * "Edit pin" -- only renders when this Moment currently has a pin (nothing when it doesn't, so
+ * this entry contributes no `<li>` at all for an unpinned Moment; see `Card\Control`'s own
+ * empty-entry skip). Split out from `PinControlEntry`'s own pin/unpin toggle so each is a
+ * single action in its own `<li>`, matching every other Control::SLOT entry, instead of both
+ * sharing one wrapper the way this used to render.
  */
-class ControlEntry extends Component
+class EditPinControlEntry extends Component
 {
     public function __construct(
         public array $data = [],
@@ -30,7 +29,7 @@ class ControlEntry extends Component
     {
         $moment = $this->context?->getSubject();
 
-        return view('kopling-pin::ux.control-entry', [
+        return view('kopling-pin::ux.edit-pin-control-entry', [
             'moment' => $moment,
             'pin' => $moment?->pin,
             'reasons' => collect(Pin::REASONS)

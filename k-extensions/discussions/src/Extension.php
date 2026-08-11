@@ -25,6 +25,7 @@ use Kopling\Core\People\Person;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Card\Accreditation;
 use Kopling\Discussions\Command\SeedDemoRepliesCommand;
+use Kopling\Discussions\Ux\EditControlEntry;
 
 class Extension extends AbstractExtension implements ChangesUx, HasCommands, HasFederatedModels, HasIcons, HasPermissions, ExtendsModels, ExtendsPortals
 {
@@ -95,6 +96,9 @@ class Extension extends AbstractExtension implements ChangesUx, HasCommands, Has
             ->add('kopling-discussions::quote-reply')
             ->in(Reply::FOOTER_SLOT)
             ->as('quote-reply')
+            ->add(EditControlEntry::class)
+            ->in(Reply::CONTROL_SLOT)
+            ->as('edit-control-entry')
             ->add('kopling-discussions::profile-replies-tab')
             ->in('kopling-profile::profile.tabs')
             ->as('profile-tab')

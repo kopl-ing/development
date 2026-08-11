@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\View\Component;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\Ux\Context;
 use Kopling\Core\Ux\SlotResolver;
 use Kopling\Core\Ux\UxEntry;
 
@@ -17,6 +18,12 @@ use Kopling\Core\Ux\UxEntry;
  * registers into it. `composer` registers its own default `text` entry here; `poll` (or any
  * future mode) registers alongside it via this real class constant, not a bare string pointing
  * at another extension.
+ *
+ * `$context` threads through to each mode's own entry (`$entry->context`, see the view) exactly
+ * like `Card\Body`/`Top`/`Footer` already do -- so a mode registered here can tell a fresh
+ * `Moment::draft()` (composing) apart from an existing, persisted one (editing) and prefill
+ * itself accordingly. `null` for a page that never binds one -- same default every other leaf
+ * `UxEntry` target uses.
  */
 class Modes extends Component
 {
@@ -27,9 +34,12 @@ class Modes extends Component
      */
     public Collection $entries;
 
-    public function __construct(Manager $manager)
-    {
-        $this->entries = SlotResolver::resolve(self::SLOT, $manager->ux());
+    public function __construct(
+        Manager $manager,
+        public array $data = [],
+        public ?Context $context = null,
+    ) {
+        $this->entries = SlotResolver::resolve(self::SLOT, $manager->ux(), $context);
     }
 
     public function render(): View

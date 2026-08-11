@@ -11,4 +11,7 @@ return [
     'someone' => 'Someone',
     'quote' => '+ Quote',
     'unquote' => '− Quote',
+    'edit' => 'Edit',
+    'save' => 'Save',
+    'cancel' => 'Cancel',
 ];

@@ -15,3 +15,18 @@ use Kopling\Composer\Controllers\ComposerController;
 Route::post('/_xhr/kopling-composer/compose', [ComposerController::class, 'store'])
     ->middleware('auth')
     ->name('compose.store');
+
+// `show`/`edit`/`update` back the edit-in-place flow (`ux/edit-control-entry.blade.php`) --
+// `update` is a plain POST with a URL suffix, not `Route::put()`/`@method('PUT')`, matching the
+// no-spoofed-verbs convention every other mutating action in this codebase already follows.
+Route::get('/_xhr/kopling-composer/compose/{moment}', [ComposerController::class, 'show'])
+    ->middleware('auth')
+    ->name('compose.show');
+
+Route::get('/_xhr/kopling-composer/compose/{moment}/edit', [ComposerController::class, 'edit'])
+    ->middleware('auth')
+    ->name('compose.edit');
+
+Route::post('/_xhr/kopling-composer/compose/{moment}/update', [ComposerController::class, 'update'])
+    ->middleware('auth')
+    ->name('compose.update');

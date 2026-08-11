@@ -15,6 +15,7 @@ use Kopling\Core\Ux\Context;
 use Kopling\Core\Ux\Editor\DocumentRenderer;
 use Kopling\Discussions\Reply;
 use Kopling\Discussions\Requests\StoreReplyRequest;
+use Kopling\Discussions\Requests\UpdateReplyRequest;
 
 class DiscussionController
 {
@@ -75,6 +76,51 @@ class DiscussionController
         if (! $request->header('HX-Request')) {
             return redirect()->route('kopling-core::community/discussions.show', $moment);
         }
+
+        return view('kopling-discussions::partials.reply', ['reply' => $reply]);
+    }
+
+    /**
+     * The edit form fragment, swapped in over the reply's own card
+     * (`hx-target="closest .card"`, see `ux/edit-control-entry.blade.php`) -- authorization is
+     * a plain ownership check, same as `UpdateReplyRequest::authorize()`.
+     */
+    public function editReply(Reply $reply): View
+    {
+        abort_unless($reply->person_id === Auth::id(), 403);
+
+        return view('kopling-discussions::partials.edit', ['reply' => $reply]);
+    }
+
+    /**
+     * `body_html` is re-rendered server-side from the validated `body` document here, at write
+     * time, exactly like `reply()` -- never trusted directly from the client.
+     */
+    public function updateReply(UpdateReplyRequest $request, Reply $reply, Manager $manager): View|RedirectResponse
+    {
+        $body = (string) $request->validated('body');
+
+        $reply->update([
+            'body' => $body,
+            'body_html' => DocumentRenderer::render($body, $manager->editorNodes()),
+        ]);
+
+        $reply->load('person');
+
+        if (! $request->header('HX-Request')) {
+            return redirect()->route('kopling-core::community/discussions.show', $reply->moment_id);
+        }
+
+        return view('kopling-discussions::partials.reply', ['reply' => $reply]);
+    }
+
+    /**
+     * The read-only card fragment, re-rendered to swap back over the edit form -- the "Cancel"
+     * target, same reasoning as `ComposerController::show()`.
+     */
+    public function showReply(Reply $reply): View
+    {
+        $reply->load('person');
 
         return view('kopling-discussions::partials.reply', ['reply' => $reply]);
     }

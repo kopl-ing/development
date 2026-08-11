@@ -8,4 +8,6 @@ return [
     'mode_text' => 'Write',
     'post' => 'Post',
     'cancel' => 'Cancel',
+    'edit' => 'Edit',
+    'save' => 'Save',
 ];

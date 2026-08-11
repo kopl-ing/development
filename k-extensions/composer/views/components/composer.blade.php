@@ -1,19 +1,24 @@
 @php
-    use Kopling\Composer\Extension;
     use Kopling\Core\Content\Moment;
     use Kopling\Core\Extension\Manager;
+    use Kopling\Core\Ux\Compose\Modes;
     use Kopling\Core\Ux\Context;
     use Kopling\Core\Ux\SlotResolver;
 @endphp
 @auth
     @php
         $context = new Context(subject: Moment::draft());
-        $fieldsEntries = SlotResolver::resolve('kopling-composer::compose.fields', app(Manager::class)->ux());
+        // Seeded here rather than left to `ux/compose/modes.blade.php`'s own `x-init` (a nested
+        // child element) to fill in -- Alpine reliably evaluates *this* element's own `x-data`
+        // literal the instant it binds it, page-load or htmx-swapped alike, with no dependency
+        // on a separate child element's `x-init` also having run yet. `partials/edit.blade.php`
+        // mirrors this exact computation for the same reason.
+        $defaultMode = SlotResolver::resolve(Modes::SLOT, app(Manager::class)->ux())->first()?->id;
     @endphp
     <div x-data="{
             open: false,
-            active: null,
-            defaultMode: null,
+            active: '{{ $defaultMode }}',
+            defaultMode: '{{ $defaultMode }}',
             dirty: {},
             reset() {
                 this.$refs.editor.querySelector('[data-tiptap-editor]')?.kopEditor?.clear();
@@ -32,16 +37,7 @@
             @csrf
             <input type="hidden" name="compose_mode" :value="active">
 
-            <x-k::card.top :context="$context" :slot="Extension::TOP_SLOT" :control-slot="Extension::CONTROL_SLOT" />
-            <x-k::card.body :context="$context" :slot="Extension::BODY_SLOT" />
-
-            @if ($fieldsEntries->isNotEmpty())
-                <div class="px-4 py-3 sm:px-6">
-                    <x-k::portal.slot name="kopling-composer::compose.fields" />
-                </div>
-            @endif
-
-            <x-k::card.footer :context="$context" :slot="Extension::FOOTER_SLOT" />
+            @include('kopling-composer::components.moment-fields', ['context' => $context])
         </form>
     </div>
 @endauth

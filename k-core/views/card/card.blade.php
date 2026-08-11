@@ -18,7 +18,7 @@
     outright. `outline-2 outline-offset-2 outline-transparent` on that div reserves the
     width/style/offset an `outline-{color}` contribution only sets the color for.
 --}}
-<div @class(['aura aura-glow aura-xs block w-full text-transparent transition-colors duration-300 hover:text-primary' => $url])>
+<div @class(['aura aura-glow aura-xs block w-full transition-colors duration-300 hover:text-primary' => $url])>
     <div
         {{ $attributes->merge(['class' => 'card bg-base-100 text-base-content'.($url ? ' group cursor-pointer' : '')]) }}
         @if ($url) data-href="{{ $url }}" @endif

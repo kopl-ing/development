@@ -2,7 +2,7 @@
     @foreach ($entries as $entry)
         <div x-show="active === '{{ $entry->id }}'" x-cloak
              @input="dirty['{{ $entry->id }}'] = true" @change="dirty['{{ $entry->id }}'] = true">
-            <x-dynamic-component :component="$entry->component" :data="$entry->data" />
+            <x-dynamic-component :component="$entry->component" :data="$entry->data" :context="$entry->context" />
         </div>
     @endforeach
 

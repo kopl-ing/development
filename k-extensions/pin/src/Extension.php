@@ -22,7 +22,8 @@ use Kopling\Core\Ux\Card\Control;
 use Kopling\Core\Ux\Card\Event\RenderingCard;
 use Kopling\Pin\Listeners\DecoratePinnedCard;
 use Kopling\Pin\Listeners\ExcludeVisiblePinnedMoments;
-use Kopling\Pin\Ux\ControlEntry;
+use Kopling\Pin\Ux\EditPinControlEntry;
+use Kopling\Pin\Ux\PinControlEntry;
 use Kopling\Pin\Ux\PinnedSection;
 
 class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, ExtendsPortals, HasPermissions, ListensToEvents
@@ -78,19 +79,27 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     }
 
     /**
-     * `ControlEntry` is the pin/edit-pin/unpin action in the card's own "⋮" menu, gated behind
-     * `pin-moments`. `PinnedSection` fills the community layout's already-existing
-     * `content-top` slot with whatever's currently pinned and visible -- no permission gate on
-     * the slot entry itself, since visibility there is a per-pin/per-viewer question `Pin::
-     * visibleFor()` already answers, not a capability check.
+     * `EditPinControlEntry`/`PinControlEntry` are the pin/edit-pin/unpin actions in the card's
+     * own "⋮" menu, gated behind `pin-moments` -- two entries, not one dual-state component, so
+     * each renders its own `<li>` (see `Card\Control`'s own view) instead of both actions
+     * sharing one wrapper the way this used to render. `->after()` keeps "Edit pin" ahead of
+     * "Unpin", the same visual order the old combined entry produced. `PinnedSection` fills the
+     * community layout's already-existing `content-top` slot with whatever's currently pinned
+     * and visible -- no permission gate on the slot entry itself, since visibility there is a
+     * per-pin/per-viewer question `Pin::visibleFor()` already answers, not a capability check.
      */
     public function ux(): ProvidesUxEntries
     {
         return Ux::make()
-            ->add(ControlEntry::class)
+            ->add(EditPinControlEntry::class)
             ->in(Control::SLOT)
-            ->as('control-entry')
+            ->as('edit-pin-control-entry')
             ->when('pin-moments')
+            ->add(PinControlEntry::class)
+            ->in(Control::SLOT)
+            ->as('pin-control-entry')
+            ->when('pin-moments')
+            ->after('kopling-pin::edit-pin-control-entry')
             ->add(PinnedSection::class)
             ->in('kopling-core::community.content-top')
             ->as('pinned-section');
