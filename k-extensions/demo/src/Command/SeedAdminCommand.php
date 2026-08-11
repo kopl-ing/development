@@ -20,15 +20,16 @@ use Kopling\Core\People\Person;
  */
 class SeedAdminCommand extends Command
 {
-    protected $signature = 'kopling:demo:seed-admin';
+    protected $signature = 'kopling:demo:seed-admin {email=admin@kopling.test} {password?}';
 
     protected $description = 'Seed (or reset) an admin@kopling.test account with every registered permission';
 
     public function handle(Manager $manager): int
     {
-        $password = Str::password(20, symbols: false);
+        $email = $this->argument('email') ?? 'admin@kopling.test';
+        $password = $this->argument('password') ?? Str::password(20, symbols: false);
 
-        $person = Person::query()->firstOrNew(['email' => 'admin@kopling.test']);
+        $person = Person::query()->firstOrNew(['email' => $email]);
         $person->name = $person->name ?? 'Admin';
         $person->password = $password;
         $person->save();
@@ -52,7 +53,7 @@ class SeedAdminCommand extends Command
 
         $this->components->info('Admin account ready.');
         $this->components->twoColumnDetail('Email', $person->email);
-        $this->components->twoColumnDetail('Password', $password);
+        $this->components->twoColumnDetail('Password', $this->argument('password') ? '****' : $password);
         $this->newLine();
         $this->line('  <fg=gray>Shown once, not stored anywhere in plain text -- re-run this command to reset it.</>');
 
