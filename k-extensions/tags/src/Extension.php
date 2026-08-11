@@ -147,7 +147,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     public function models(): array
     {
         return [
-            (new Model(Moment::class))
+            new Model(Moment::class)
                 ->relation((new Relation)->belongsToMany('tags', Tag::class, 'moment_tag')->eagerLoad())
                 ->saved(function (Moment $moment) {
                     if (! request()->has('tags')) {

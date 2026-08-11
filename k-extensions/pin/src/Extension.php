@@ -61,7 +61,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     public function models(): array
     {
         return [
-            (new Model(Moment::class))
+            new Model(Moment::class)
                 ->relation((new Relation)->hasOne('pin', Pin::class)->eagerLoad()),
         ];
     }

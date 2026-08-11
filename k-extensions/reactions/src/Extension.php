@@ -101,7 +101,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     public function models(): array
     {
         $models = [
-            (new Model(Moment::class))
+            new Model(Moment::class)
                 ->relation((new Relation)->morphMany('reactions', Reaction::class, 'reactable')->eagerLoad())
                 ->morphAlias('moment'),
         ];

@@ -157,7 +157,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     public function models(): array
     {
         return [
-            (new Model(Moment::class))
+            new Model(Moment::class)
                 ->relation((new Relation)->hasOne('poll', Poll::class)->eagerLoad())
                 ->saved(function (Moment $moment) {
                     if (! $this->attemptedPoll()) {
