@@ -13,7 +13,6 @@
                     @csrf
                     <x-k::form.input :data="['name' => 'label', 'label' => __('kopling-mail-client::messages.label'), 'description' => __('kopling-mail-client::messages.label_help'), 'value' => old('label')]" />
                     <x-k::form.input :data="['name' => 'email_address', 'label' => __('kopling-mail-client::messages.email_address'), 'type' => 'email', 'value' => old('email_address')]" />
-                    <x-k::form.select :data="['name' => 'protocol', 'label' => __('kopling-mail-client::messages.protocol'), 'options' => ['imap' => 'IMAP', 'pop3' => 'POP3'], 'value' => old('protocol', 'imap')]" />
 
                     <div class="divider my-0">{{ __('kopling-mail-client::messages.incoming_server') }}</div>
                     <x-k::form.input :data="['name' => 'incoming_host', 'label' => __('kopling-mail-client::messages.host'), 'value' => old('incoming_host')]" />
@@ -43,7 +42,7 @@
                     <tr>
                         <th>{{ __('kopling-mail-client::messages.label') }}</th>
                         <th>{{ __('kopling-mail-client::messages.email_address') }}</th>
-                        <th>{{ __('kopling-mail-client::messages.protocol') }}</th>
+                        <th>{{ __('kopling-mail-client::messages.status') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -57,7 +56,7 @@
                                 @endif
                             </td>
                             <td>{{ $account->email_address }}</td>
-                            <td><span class="badge badge-ghost">{{ strtoupper($account->protocol) }}</span></td>
+                            <td>@include('kopling-mail-client::accounts.status')</td>
                             <td>
                                 <form method="POST" action="{{ route('kopling-mail-client::mail/accounts.destroy', $account) }}"
                                       hx-boost="true" hx-confirm="{{ __('kopling-mail-client::messages.confirm_delete_account') }}">

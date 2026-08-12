@@ -35,6 +35,8 @@ class MailFolder extends Model
         'name',
         'path',
         'type',
+        'uidvalidity',
+        'message_count',
     ];
 
     public function account(): BelongsTo

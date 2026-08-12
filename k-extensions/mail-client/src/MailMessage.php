@@ -26,6 +26,8 @@ class MailMessage extends Model
         'cc',
         'bcc',
         'snippet',
+        'body_text',
+        'body_html',
         'sent_at',
         'has_attachments',
         'size',

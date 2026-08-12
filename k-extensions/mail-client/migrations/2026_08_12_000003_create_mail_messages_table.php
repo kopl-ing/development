@@ -24,6 +24,8 @@ return new class extends Migration
             $table->json('cc')->nullable();
             $table->json('bcc')->nullable();
             $table->text('snippet')->nullable();
+            $table->longText('body_text')->nullable();
+            $table->longText('body_html')->nullable();
             $table->timestamp('sent_at')->nullable();
             $table->boolean('has_attachments')->default(false);
             $table->unsignedInteger('size')->nullable();

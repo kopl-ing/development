@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
+use Kopling\MailClient\Jobs\SyncMailAccount;
 use Kopling\MailClient\MailAccount;
 
 /*
@@ -33,7 +35,6 @@ function mailAccountAttributes(array $overrides = []): array
 {
     return [
         'email_address' => 'ada@example.test',
-        'protocol' => 'imap',
         'incoming_host' => 'imap.example.test',
         'incoming_port' => 993,
         'incoming_encryption' => 'ssl',
@@ -65,7 +66,12 @@ it('shows the inbox for a person with access-mail', function () {
     $this->actingAs($person)->get('/mail')->assertOk();
 });
 
-it('connects a mailbox scoped to the signed-in person, with the password stored encrypted', function () {
+it('connects a mailbox scoped to the signed-in person, with the password stored encrypted, and dispatches a sync', function () {
+    // QUEUE_CONNECTION=sync in tests (phpunit.xml) means an unfaked dispatch runs inline, right
+    // here, attempting a real IMAP connection to the fake host below -- Queue::fake() keeps this
+    // test to just proving the dispatch happens, not actually reaching the network.
+    Queue::fake();
+
     $person = personWithAccessMail();
 
     $this->actingAs($person)
@@ -82,6 +88,8 @@ it('connects a mailbox scoped to the signed-in person, with the password stored 
     $raw = DB::table('mail_accounts')->where('id', $account->id)->value('password');
 
     expect($raw)->not->toBe('app-password');
+
+    Queue::assertPushed(SyncMailAccount::class, fn (SyncMailAccount $job) => $job->mailAccountId === $account->id);
 });
 
 it('does not let one person delete another person\'s mail account', function () {

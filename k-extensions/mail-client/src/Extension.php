@@ -10,15 +10,17 @@ use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Community\UserMenu;
 use Kopling\Core\Ux\Portal\Navigation\Item;
+use Kopling\MailClient\Console\SyncPendingCommand;
 use Kopling\MailClient\Ux\Sidebar;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasPermissions, HasPortals
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasPermissions, HasPortals
 {
     public static function name(): string
     {
@@ -97,5 +99,16 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ->add(Sidebar::class)
             ->in('kopling-mail-client::mail.sidebar-panel')
             ->as('sidebar');
+    }
+
+    /**
+     * The degraded-host fallback for hosts with no real queue worker -- see
+     * Console\SyncPendingCommand's own docblock.
+     *
+     * @return array<class-string>
+     */
+    public function commands(): array
+    {
+        return [SyncPendingCommand::class];
     }
 }

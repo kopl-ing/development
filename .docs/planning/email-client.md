@@ -1,7 +1,7 @@
 # Kopling Mail Portal — Project Brief
 
 ## What we're building
-A self-hosted webmail client as a "Portal" module inside **Kopling** (https://kopl.ing), a Laravel-based community platform (Laravel, Tailwind/daisyUI, htmx, Tiptap). The portal connects to any existing IMAP/POP3 mailbox — not a new mail provider, a better client for mailboxes people already have.
+A self-hosted webmail client as a "Portal" module inside **Kopling** (https://kopl.ing), a Laravel-based community platform (Laravel, Tailwind/daisyUI, htmx, Tiptap). The portal connects to any existing IMAP mailbox — not a new mail provider, a better client for mailboxes people already have. POP3 is not supported — its lack of real folder/flag semantics doesn't fit this client's model, and IMAP already covers effectively every real-world mailbox.
 
 A person can connect **multiple mailboxes** (unlimited on self-host — see Business model below) and reads them through a single **unified inbox**: one merged view across every connected account, not a per-account switcher. Folder/message-list views and reading pane always operate across the person's full set of connected accounts unless a specific account/folder is chosen.
 
@@ -10,25 +10,32 @@ Ships as `kopling/mail-client` — named for the client specifically (not just `
 ## Why
 - Existing open-source webmail (Roundcube, SnappyMail, Cypht, Mailpile, SOGo) is functional but dated in UX, and none combine modern UX with genuine privacy focus.
 - Privacy-leading providers (Proton, Tuta) have huge validated demand (Proton: 100M+ users) but deliberately break standard protocol compatibility — Tuta has no IMAP/SMTP support at all, Proton requires a Bridge app — creating vendor lock-in.
-- The gap: standards-compliant (works with any IMAP/POP3 box) + genuinely modern UX + real privacy/data-sovereignty engineering, all three at once. Nobody currently offers all three.
+- The gap: standards-compliant (works with any IMAP box) + genuinely modern UX + real privacy/data-sovereignty engineering, all three at once. Nobody currently offers all three.
 - Fits Kopling's existing positioning ("honors data sovereignty," "runs anywhere") and reuses its existing stack (queues, htmx, Tiptap, daisyUI) rather than requiring new infrastructure.
 
 ## v1 technical architecture
 
 **Sync model**
 - Polling-based sync via Laravel queue/scheduler (every 1–2 min per mailbox) — not IMAP IDLE. Must work on shared hosting, not just environments with persistent workers, consistent with Kopling's "runs anywhere" goal.
-- Store only headers, flags, and folder structure locally. Fetch message bodies from the IMAP server on demand with a short-lived Redis/file cache. Do not mirror full mailboxes locally.
+- Two-phase per folder, each chunked (via the IMAP library's own batch-fetch support) rather than one large blocking fetch — keeps each queue-job run short enough for shared-hosting cron/worker time limits:
+  1. **Headers pass** — headers-only fetch (skip body), walks every message in the folder to populate `mail_messages`' metadata (subject/from/to/sent_at/UID) fast. A cheap upfront folder-status call (no message fetch) gives the real total message count, so progress can show "X of Y" from the start rather than an indeterminate spinner.
+  2. **Body backfill pass** — walks messages still missing a body, fetching and storing each. Slower (the real IMAP body-fetch cost), runs after the headers pass so the message list/folder tree becomes usable immediately rather than waiting on bodies too.
+- Store headers, flags, folder structure, **and message bodies** (plain text + HTML) locally — reversed from the original "fetch on demand, mirror nothing" plan, specifically so full-text search (still deferred, see below) becomes "add an index over an existing column" later rather than a re-architecture. Attachments stay out of scope — not fetched, not stored.
+- Progress surfaced via htmx polling (`hx-trigger="every Ns"` against a small progress endpoint) — not a websocket/broadcast channel, consistent with "runs anywhere" (no persistent connection or Reverb/Pusher dependency assumed).
 - Each connected mailbox = its own isolated queue job; one broken mailbox must not stall others.
+- UIDVALIDITY checked per sync run (the IMAP library exposes the value but does no detection/handling itself) — a change means the server invalidated this folder's UID numbering, and that folder needs a full re-sync, not an incremental one.
 
 **Data model**
-- `mail_accounts` — one person to many accounts (no cap on self-host); connection details (host/port/encryption/protocol), credentials encrypted at rest (Laravel encrypter), never plaintext. One account per person flagged as the default "From" for new compositions (not replies — see UI below).
-- `mail_folders`, `mail_messages` (headers/metadata + IMAP UID + folder + owning `mail_account_id`, for re-fetching bodies and for the unified inbox to attribute/badge each message to its source account), `mail_message_flags` (bidirectional sync of read/flagged/etc).
+- `mail_accounts` — one person to many accounts (no cap on self-host); connection details (host/port/encryption — IMAP only), credentials encrypted at rest (Laravel encrypter), never plaintext. One account per person flagged as the default "From" for new compositions (not replies — see UI below).
+- `mail_folders` (adds `uidvalidity`, the last-seen value, to detect a server-side folder reset), `mail_messages` (headers/metadata + IMAP UID + folder + owning `mail_account_id`, **plus `body_text`/`body_html`** now stored locally rather than fetched on demand), `mail_message_flags` (bidirectional sync of read/flagged/etc).
 - Kept as its own linked module, not entangled into Kopling core tables — must be removable/optional.
 
 **Protocol layer**
-- IMAP via an actively maintained PHP library (e.g. `webklex/laravel-imap`) rather than raw `ext-imap`.
+- IMAP via `directorytree/imapengine` (Laravel wrapper: `directorytree/imapengine-laravel`) rather than raw `ext-imap` — chosen over the originally-named `webklex/laravel-imap` after checking actual maintenance activity: webklex's last real code push was ~15 months before this note (140 open issues on the underlying `php-imap`, including an unanswered Laravel 12/13 support question), while ImapEngine is under active commit as of this note and is functionally equivalent (chunked batch-fetch, headers-only fetch mode, cheap folder message-count + UIDVALIDITY). Also the package the ecosystem itself has converged on: `stevebauman/php-imap`, an older popular fork, abandoned itself in ImapEngine's favor.
+- No native fetch-progress API in the library — built from its chunked-fetch callback plus the cheap folder count as the denominator (see Sync model above).
 - SMTP sending via Laravel's existing Mailer (Symfony Mailer), but routed per-mailbox using the user's own SMTP credentials — not through Kopling's system mailer.
-- Auth: support both plain username/password (app passwords, self-hosted IMAP) and OAuth2 (Gmail/Outlook) — OAuth2 is more work but covers the largest share of real-world mailboxes.
+- Auth: support both plain username/password (app passwords, self-hosted IMAP) and OAuth2 (Gmail/Outlook) — OAuth2 is more work but covers the largest share of real-world mailboxes. Self-hoster registers and owns their own OAuth app credentials (Google/Microsoft's own developer console) — Kopling does not run a shared/central OAuth app on anyone's behalf. **Not yet built** — the sync layer currently ships password/app-password auth only; without OAuth2, Gmail/Outlook mailboxes can't actually connect (Gmail dropped plain password IMAP auth by default).
+- **`body_html` is stored but not rendered.** The reading pane shows `body_text` only. Email HTML is untrusted content — rendering it needs a real sanitizer (allowlisted tags/attributes, safe handling of tables/inline styles/images, the things real email HTML actually uses), which doesn't exist yet in this codebase (the only sanitizer here, ActivityPub's `InboundHtmlSanitizer`, is scoped too narrowly for email markup). Treated as its own deliberate follow-up, not a shortcut to rush.
 
 **UI**
 - htmx for folder/message-list navigation and inline actions (archive, flag, move) — partial-swap model.
@@ -39,7 +46,8 @@ Ships as `kopling/mail-client` — named for the client specifically (not just `
 
 **Explicitly out of scope for v1**
 - Federation (ActivityPub-style cross-instance interoperability) — a protocol-design problem, not a feature; revisit only once there's a validated user base and a clear definition of what "federation" should actually do here.
-- Full-text search across message bodies — v1 searches headers/subjects only; body search (via Meilisearch/Typesense) is a later addition once real demand is confirmed.
+- Full-text search across message bodies — still deferred, though cheaper now that bodies are stored locally (see Data model): a later addition is "index an existing column" (Meilisearch/Typesense, or Scout), not "also build the storage," once real demand is confirmed. v1 itself searches headers/subjects only.
+- Attachments — not fetched, not stored. A large enough scope on its own (storage quotas, malware scanning) to stay a deliberate later decision, not bundled into body storage by default.
 - Calendar/contacts — resist scope creep; a genuinely good mail experience alone is the whole v1.
 
 ## Business model & licensing

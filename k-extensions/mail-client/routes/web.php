@@ -19,3 +19,6 @@ Route::get('accounts', [AccountsController::class, 'index'])->name('accounts');
 Route::post('accounts', [AccountsController::class, 'store'])->name('accounts.store');
 // POST, not DELETE -- no method-spoofing, matches Admin's own drives/portals/groups destroy routes.
 Route::post('accounts/{account}/delete', [AccountsController::class, 'destroy'])->name('accounts.destroy');
+// Polled by accounts/status.blade.php while a sync is in progress; stops itself once the
+// fragment it swaps in no longer carries an hx-trigger (see that view).
+Route::get('accounts/{account}/status', [AccountsController::class, 'status'])->name('accounts.status');
