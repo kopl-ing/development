@@ -1,0 +1,19 @@
+{
+    "name": "kopling/mail-client",
+    "description": "A webmail Portal for Kopling -- connects to any existing IMAP/POP3 mailbox.",
+    "type": "kopling-extension",
+    "license": "Elastic-2.0",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\MailClient\\": "src/"
+        }
+    }
+}

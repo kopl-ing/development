@@ -1,0 +1,5 @@
+/* Scoped to this extension's own views only, per CLAUDE.md's "How extensions ship compiled
+   assets" -- source(none) plus an explicit @source, never the monorepo-wide scan. */
+@import "tailwindcss" source(none);
+@plugin "daisyui";
+@source "../../views/**/*.blade.php";

@@ -25,6 +25,7 @@
         "kopling/discussions": "@dev",
         "kopling/docs": "@dev",
         "kopling/example": "@dev",
+        "kopling/mail-client": "@dev",
         "kopling/moderation": "@dev",
         "kopling/pages": "@dev",
         "kopling/pin": "@dev",
