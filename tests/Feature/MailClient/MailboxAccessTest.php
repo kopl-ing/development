@@ -116,3 +116,41 @@ it('does not let one person view another person\'s folder', function () {
         ->get("/mail/accounts/{$account->id}/folders/{$folder->id}")
         ->assertForbidden();
 });
+
+it('shows every message in a thread when opening it via any one of its own messages', function () {
+    $person = personWithAccessMail();
+    $account = MailAccount::create([...mailAccountAttributes(), 'person_id' => $person->id]);
+    $folder = $account->folders()->create(['name' => 'Inbox', 'path' => 'INBOX', 'type' => 'inbox']);
+
+    $first = $folder->messages()->create([
+        'mail_account_id' => $account->id, 'uid' => 1, 'thread_id' => 'thread-xyz',
+        'subject' => 'Kickoff', 'sent_at' => now()->subHour(),
+    ]);
+    $second = $folder->messages()->create([
+        'mail_account_id' => $account->id, 'uid' => 2, 'thread_id' => 'thread-xyz',
+        'subject' => 'Re: Kickoff', 'sent_at' => now(),
+    ]);
+
+    $html = $this->actingAs($person)->get("/mail/messages/{$second->id}")->assertOk()->getContent();
+
+    // Only the thread's first message shows its subject as a heading (replies don't repeat it,
+    // same convention as a Moment + its Replies) -- both messages' own card wrapper ids are the
+    // reliable proof that the whole thread rendered, not just the one that was clicked.
+    expect($html)->toContain('Kickoff')
+        ->toContain("mail-message-{$first->id}")
+        ->toContain("mail-message-{$second->id}");
+});
+
+it('does not let a person open a thread via a message id belonging to someone else', function () {
+    $owner = personWithAccessMail('owner@example.test');
+    $intruder = personWithAccessMail('intruder@example.test');
+
+    $account = MailAccount::create([...mailAccountAttributes(), 'person_id' => $owner->id]);
+    $folder = $account->folders()->create(['name' => 'Inbox', 'path' => 'INBOX', 'type' => 'inbox']);
+    $message = $folder->messages()->create([
+        'mail_account_id' => $account->id, 'uid' => 1, 'thread_id' => 'thread-xyz',
+        'subject' => 'Private', 'sent_at' => now(),
+    ]);
+
+    $this->actingAs($intruder)->get("/mail/messages/{$message->id}")->assertForbidden();
+});

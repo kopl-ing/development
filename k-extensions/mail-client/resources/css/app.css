@@ -3,3 +3,23 @@
 @import "tailwindcss" source(none);
 @plugin "daisyui";
 @source "../../views/**/*.blade.php";
+
+/* The active-thread row in the message list -- toggled client-side (resources/js/app.js) since
+   selecting a thread only swaps the reading pane, not this list, so it can't be server-rendered
+   per click. A plain custom property + color-mix(), not @apply, so it reads correctly regardless
+   of whether this file happens to be served compiled or raw. */
+.kop-mail-thread-active {
+    background-color: color-mix(in srgb, var(--color-warning) 20%, transparent);
+}
+
+/* Never the bare `hidden` utility here: this extension gets its own separately-compiled Tailwind
+   build (per CLAUDE.md's "How extensions ship compiled assets"), scanning only this package's
+   own views -- it would regenerate `.hidden{display:none}` with no matching `.md:block`/`.lg:block`
+   responsive override (those strings only appear in Core's own templates, never scanned here).
+   Loaded after Core's own bundle in <head>, that duplicate -- same specificity, later in the
+   cascade -- would silently win over Core's own responsive utilities on ANY element carrying both
+   classes anywhere on the page, not just this one. A real bug this exact rule caused once
+   already: see the chevron toggle in messages/list.blade.php. */
+.kop-mail-chevron-hidden {
+    display: none;
+}

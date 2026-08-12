@@ -104,6 +104,8 @@ class SyncMailFolderHeaders implements ShouldQueue
                 'uid' => $attributes['uid'],
                 'message_id' => $attributes['message_id'],
                 'in_reply_to' => $attributes['in_reply_to'],
+                'references' => json_encode($attributes['references']),
+                'thread_id' => $attributes['thread_id'],
                 'subject' => $attributes['subject'],
                 'from_name' => $attributes['from_name'],
                 'from_address' => $attributes['from_address'],
@@ -120,7 +122,7 @@ class SyncMailFolderHeaders implements ShouldQueue
         // created_at deliberately excluded from the update list -- an existing row keeps its
         // original sync-first-seen timestamp rather than being reset on every re-sync.
         MailMessage::query()->upsert($rows, ['mail_folder_id', 'uid'], [
-            'message_id', 'in_reply_to', 'subject', 'from_name', 'from_address',
+            'message_id', 'in_reply_to', 'references', 'thread_id', 'subject', 'from_name', 'from_address',
             'to', 'cc', 'bcc', 'sent_at', 'size', 'updated_at',
         ]);
 

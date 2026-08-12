@@ -63,6 +63,13 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
     }
 
     /**
+     * `css()`/`js()` and `compiledAssets()` are two independent mechanisms (PortalExtension's
+     * own docblock) -- the former for a genuinely separate hand-written, unprocessed file, the
+     * latter for resources/css+js (Tailwind/daisyUI-processed). Only compiledAssets() here:
+     * pointing both at the same resources/ files (an earlier mistake) meant the raw, unprocessed
+     * copy -- literal `@import "tailwindcss"`/`@apply` text a browser can't parse -- rendered
+     * alongside the correctly-compiled one.
+     *
      * @return array<PortalExtension>
      */
     public function extendsPortals(): array
@@ -70,8 +77,6 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
         return [
             new PortalExtension('kopling-mail-client::mail')
                 ->routes(__DIR__.'/../routes/web.php')
-                ->css(__DIR__.'/../resources/css/app.css')
-                ->js(__DIR__.'/../resources/js/app.js')
                 ->compiledAssets(__DIR__.'/..'),
         ];
     }

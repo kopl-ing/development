@@ -59,9 +59,12 @@ class MailboxController
 
     private function render(string $activeView, Builder $messages, ?MailAccount $account = null, ?MailFolder $folder = null): View
     {
+        // One card per conversation, not per individual message -- see MailMessage::latestPerThread().
+        $threads = MailMessage::latestPerThread($messages)->with(['account', 'flags'])->orderByDesc('sent_at');
+
         // Shared with <x-k::page.pagination> below via the same Context instance, so paging and
         // listing don't run the count+select query twice -- see Context::getSubjectPaginator().
-        $context = new Context(subject: $messages->with(['account', 'flags'])->orderByDesc('sent_at'));
+        $context = new Context(subject: $threads);
 
         return view('kopling-mail-client::inbox', [
             'context' => $context,

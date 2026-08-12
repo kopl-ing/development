@@ -7,6 +7,8 @@ namespace Kopling\MailClient\Support;
 use DirectoryTree\ImapEngine\Address;
 use DirectoryTree\ImapEngine\Message;
 use Illuminate\Support\Str;
+use ZBateson\MailMimeParser\Header\HeaderConsts;
+use ZBateson\MailMimeParser\Header\IHeaderPart;
 
 /**
  * Pure translation from an ImapEngine `Message` to `mail_messages`/`mail_message_flags` column
@@ -25,11 +27,15 @@ class MessageMapper
     public function headerAttributes(Message $message): array
     {
         $from = $message->from();
+        $references = $this->references($message);
+        $inReplyTo = $message->inReplyTo()[0] ?? null;
 
         return [
             'uid' => $message->uid(),
             'message_id' => $message->messageId(),
-            'in_reply_to' => $message->inReplyTo()[0] ?? null,
+            'in_reply_to' => $inReplyTo,
+            'references' => $references,
+            'thread_id' => $this->threadId($message, $references, $inReplyTo),
             'subject' => $message->subject(),
             'from_name' => $from?->name(),
             'from_address' => $from?->email(),
@@ -83,5 +89,37 @@ class MessageMapper
             fn (Address $address) => ['name' => $address->name(), 'email' => $address->email()],
             $addresses,
         );
+    }
+
+    /**
+     * Not exposed by ImapEngine's own Message accessors (only In-Reply-To is) -- read the same
+     * way the library reads In-Reply-To internally (HasParsedMessage::inReplyTo()), since
+     * References shares the exact same id-list header grammar.
+     *
+     * @return array<int, string>
+     */
+    private function references(Message $message): array
+    {
+        $parts = $message->header(HeaderConsts::REFERENCES)?->getParts() ?? [];
+
+        $values = array_map(fn (IHeaderPart $part) => $part->getValue(), $parts);
+
+        return array_values(array_filter($values));
+    }
+
+    /**
+     * The stable grouping key threads are queried by (MailMessage::latestPerThread()/inThread())
+     * -- not itself guaranteed to be a message that exists locally, just a shared identifier.
+     * References[0] is the thread's root ancestor per RFC 5322 3.6.4's oldest-first ordering;
+     * In-Reply-To is the best guess when a client skipped References entirely; this message's
+     * own Message-ID (or, in the rare case even that's missing -- non-compliant mail, but it
+     * happens -- its UID) means an isolated message still gets a stable, if unshared, thread of
+     * its own rather than an empty grouping key.
+     *
+     * @param  array<int, string>  $references
+     */
+    private function threadId(Message $message, array $references, ?string $inReplyTo): string
+    {
+        return $references[0] ?? $inReplyTo ?? $message->messageId() ?? (string) $message->uid();
     }
 }

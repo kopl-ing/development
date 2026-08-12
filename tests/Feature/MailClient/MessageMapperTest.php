@@ -28,6 +28,7 @@ it('maps header attributes from a parsed message', function () {
         'Date: Mon, 1 Jan 2024 12:00:00 +0000',
         'Message-ID: <abc123@example.test>',
         'In-Reply-To: <parent456@example.test>',
+        'References: <root000@example.test> <parent456@example.test>',
         'Content-Type: text/plain; charset=utf-8',
     ]);
 
@@ -41,7 +42,29 @@ it('maps header attributes from a parsed message', function () {
         ->and($attributes['cc'])->toBe([['name' => 'Charlie Babbage', 'email' => 'charlie@example.test']])
         ->and($attributes['message_id'])->toContain('abc123@example.test')
         ->and($attributes['in_reply_to'])->toContain('parent456@example.test')
+        ->and($attributes['references'])->toHaveCount(2)
+        ->and($attributes['references'][0])->toContain('root000@example.test')
+        // thread_id = references[0] (the root ancestor), not in_reply_to or this message's own id.
+        ->and($attributes['thread_id'])->toContain('root000@example.test')
         ->and($attributes['sent_at'])->not->toBeNull();
+});
+
+it('falls back to in_reply_to, then to its own message_id, for the thread_id when references is absent', function () {
+    $withInReplyToOnly = imapMessage(implode("\r\n", [
+        'From: Ada <ada@example.test>',
+        'Message-ID: <child@example.test>',
+        'In-Reply-To: <parent456@example.test>',
+    ]));
+
+    $withNeither = imapMessage(implode("\r\n", [
+        'From: Ada <ada@example.test>',
+        'Message-ID: <standalone@example.test>',
+    ]));
+
+    $mapper = new MessageMapper;
+
+    expect($mapper->headerAttributes($withInReplyToOnly)['thread_id'])->toContain('parent456@example.test')
+        ->and($mapper->headerAttributes($withNeither)['thread_id'])->toContain('standalone@example.test');
 });
 
 it('maps body attributes, including a length-capped snippet', function () {

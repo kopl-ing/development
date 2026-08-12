@@ -6,11 +6,23 @@
             <h1 class="text-2xl font-bold">{{ __('kopling-mail-client::messages.accounts') }}</h1>
             <x-k::modal id="account-create" label="{{ __('kopling-mail-client::messages.connect_mailbox') }}">
                 <x-slot:trigger>{{ __('kopling-mail-client::messages.connect_mailbox') }}</x-slot:trigger>
-                @if ($errors->any())
+                @if ($errors->any() && old('_form') === 'account-create')
                     <div class="alert alert-error mb-4">{{ $errors->first() }}</div>
                 @endif
-                <form method="POST" action="{{ route('kopling-mail-client::mail/accounts.store') }}" hx-boost="true" class="flex flex-col gap-4">
+                {{--
+                    hx-boost with no explicit hx-target swaps document.body on a successful
+                    redirect (CLAUDE.md gotcha), which should close this dialog as a side effect
+                    of the old node being replaced -- but relying on that implicitly, for a native
+                    <dialog> opened via showModal(), is exactly the kind of swap-timing edge case
+                    worth not trusting blindly. Closing it explicitly on a successful response is
+                    the same fix regardless of the precise reason the implicit close wasn't
+                    visually reliable.
+                --}}
+                <form method="POST" action="{{ route('kopling-mail-client::mail/accounts.store') }}" hx-boost="true"
+                      hx-on:htmx:after:request="if (event.detail.successful) document.getElementById('account-create').close()"
+                      class="flex flex-col gap-4">
                     @csrf
+                    <input type="hidden" name="_form" value="account-create">
                     <x-k::form.input :data="['name' => 'label', 'label' => __('kopling-mail-client::messages.label'), 'description' => __('kopling-mail-client::messages.label_help'), 'value' => old('label')]" />
                     <x-k::form.input :data="['name' => 'email_address', 'label' => __('kopling-mail-client::messages.email_address'), 'type' => 'email', 'value' => old('email_address')]" />
 
