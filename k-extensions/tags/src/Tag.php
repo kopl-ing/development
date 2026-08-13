@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\Database\Model;
+use Kopling\Core\People\Group;
+use Kopling\Core\People\Person;
 
 /**
  * A tag. Mirrors core's own models (`HasUuids`, explicit `$fillable`); the `moments()`
@@ -32,11 +35,64 @@ class Tag extends Model
         'color',
         'icon',
         'description',
+        'restricted',
     ];
+
+    protected function casts(): array
+    {
+        return ['restricted' => 'boolean'];
+    }
 
     public function moments(): BelongsToMany
     {
         return $this->belongsToMany(Moment::class, 'moment_tag');
+    }
+
+    /**
+     * Which Groups may post into this tag when `restricted` is true -- see `isPostableBy()`.
+     * Mirrors Pin's own `groups()` (`group_pin`) exactly, just the other direction (Pin uses it
+     * to gate visibility, this gates posting).
+     */
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class);
+    }
+
+    /**
+     * Whether $person may attach this tag to a new moment -- the flat `kopling-tags::post-in-tag`
+     * baseline (granted to everyone by default) narrowed further by this tag's own
+     * `restricted`+`groups`, same shape as `Pin::isVisibleTo()`. Consulted from `Extension::
+     * models()`'s `authorize('create', ...)` hook on `Moment`, and from the tag-search endpoint
+     * so a person is never even offered a tag they'd be rejected for on submit. A thin wrapper
+     * over `isAllowedBy()` fixed to this tag's own creation-time permission.
+     */
+    public function isPostableBy(?Person $person): bool
+    {
+        return $this->isAllowedBy($person, 'kopling-tags::post-in-tag');
+    }
+
+    /**
+     * The general form `isPostableBy()` wraps -- $permission is always one of *this extension's
+     * own* declared permission ids (see `Extension::permissions()`), never anything belonging to
+     * whichever other extension's ability triggered the check. `Extension::models()`'s `reply`
+     * hook on `Moment` calls this directly with `kopling-tags::reply-in-tag` instead of getting
+     * its own `isReplyableBy()`-style method -- tags doesn't need a method named after another
+     * extension's verb just because one of its own permissions happens to describe when it
+     * applies; it needs exactly one generic predicate ("is $person allowed under this permission
+     * of mine"), parameterized by which of its own permissions is in play.
+     */
+    public function isAllowedBy(?Person $person, string $permission): bool
+    {
+        if (! Gate::forUser($person)->allows($permission)) {
+            return false;
+        }
+
+        if (! $this->restricted) {
+            return true;
+        }
+
+        return $person !== null
+            && $person->groups->pluck('id')->intersect($this->groups->pluck('id'))->isNotEmpty();
     }
 
     /**

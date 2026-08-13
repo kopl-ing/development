@@ -59,6 +59,15 @@ class DiscussionController
      */
     public function reply(StoreReplyRequest $request, Moment $moment, Manager $manager): View|RedirectResponse
     {
+        $this->authorize('kopling-discussions::reply');
+
+        // Model-scoped -- e.g. tags' own per-tag reply restriction, checked against $moment's
+        // already-attached tags rather than anything this request submits (see `ServiceProvider`'s
+        // `Gate::before()` and tags' own `Extension::models()`). This extension never learns tags
+        // exists either way -- `reply` is just a Gate ability name on `Moment`, the same shared,
+        // extension-agnostic surface `create` already is for `composer`.
+        $this->authorize('reply', $moment);
+
         $person = Auth::user();
 
         $body = (string) $request->validated('body');

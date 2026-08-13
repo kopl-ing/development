@@ -70,7 +70,7 @@ class ServiceProvider extends Provider
         // `queue:work` worker process, an `artisan` command) -- silently wrong the moment
         // anything outside a request needs to mint a URL, e.g. `activitypub`'s own queued
         // delivery jobs signing a `/ap/people/{id}` URI meant to be publicly reachable.
-        URL::forceRootUrl(config('app.url'));
+        URL::useOrigin(config('app.url'));
 
         $this->app->make(ExceptionHandler::class)->renderable(new RedirectUnauthenticated());
 
@@ -156,5 +156,34 @@ class ServiceProvider extends Provider
                 return $person->hasPermission($permission->id);
             });
         }
+
+        // The generic, per-model-instance authorization layer: any extension can register a
+        // rule for any model+ability via `Extend\Model::authorize()`, without owning that model
+        // (mirrors how `creating`/`saving` hooks already let an extension reach into a model it
+        // doesn't own). A plain `Gate::policy()` can't do this -- it's one policy class per
+        // model, so a second extension wanting to gate the same model would have nowhere to
+        // register. `Gate::before()` runs ahead of every check instead: it only ever intervenes
+        // when the call actually names a model instance (`$this->authorize('reply', $moment)`,
+        // never the bare `$this->authorize('kopling-ext::permission')` form every existing check
+        // in this codebase already uses) *and* at least one extension registered a rule for that
+        // exact model+ability -- returning `null` in every other case defers to the normal flat
+        // `Gate::define()` resolution above, untouched. `?Person $person` (typed, nullable) is
+        // what lets this closure run for a guest at all -- Gate's own guest-reflection check
+        // requires exactly this shape (see `Gate::parameterAllowsGuests()`).
+        Gate::before(function (?Person $person, string $ability, array $arguments = []) use ($manager) {
+            if (! isset($arguments[0]) || ! is_object($arguments[0])) {
+                return null;
+            }
+
+            $rules = $manager->authorizationRules($arguments[0]::class, $ability);
+
+            if ($rules === []) {
+                return null;
+            }
+
+            $person ??= new Guest();
+
+            return array_all($rules, fn($rule) => $rule($person, ...$arguments));
+        });
     }
 }

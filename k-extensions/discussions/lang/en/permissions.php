@@ -10,5 +10,5 @@ return [
     'reply' => [
         'label' => 'Reply',
         'description' => 'Allows replying to moments.',
-    ]
+    ],
 ];

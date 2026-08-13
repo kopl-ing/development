@@ -35,6 +35,8 @@
                     <x-k::form.input :data="['name' => 'color', 'label' => __('kopling-tags::messages.color'), 'value' => $reopening === 'modal-tag-create' ? old('color') : '']" />
                     <x-k::form.icon-picker :data="['name' => 'icon', 'label' => __('kopling-tags::messages.icon'), 'value' => $reopening === 'modal-tag-create' ? old('icon') : null, 'color' => $reopening === 'modal-tag-create' ? old('color') : null]" />
                     <x-k::form.text-area :data="['name' => 'description', 'label' => __('kopling-tags::messages.description'), 'value' => $reopening === 'modal-tag-create' ? old('description') : '']" />
+                    <x-k::form.toggle :data="['name' => 'restricted', 'label' => __('kopling-tags::messages.restricted'), 'description' => __('kopling-tags::messages.restricted_description'), 'value' => $reopening === 'modal-tag-create' ? old('restricted') : false]" />
+                    <x-k::form.multi-select :data="['name' => 'groups', 'label' => __('kopling-tags::messages.restricted_groups'), 'options' => $groups, 'value' => $reopening === 'modal-tag-create' ? old('groups', []) : []]" />
                     {{-- No :context on create -- Context::getSubject() requires a real subject
                          or a query Builder, neither of which exists yet for a brand new tag.
                          Omitting :context leaves every resolved entry's own $context null, and
@@ -86,6 +88,8 @@
                                         <x-k::form.input :data="['name' => 'color', 'label' => __('kopling-tags::messages.color'), 'value' => $reopening === $modalId ? old('color') : $tag->color]" />
                                         <x-k::form.icon-picker :data="['name' => 'icon', 'label' => __('kopling-tags::messages.icon'), 'value' => $reopening === $modalId ? old('icon') : $tag->icon, 'color' => $reopening === $modalId ? old('color') : $tag->color]" />
                                         <x-k::form.text-area :data="['name' => 'description', 'label' => __('kopling-tags::messages.description'), 'value' => $reopening === $modalId ? old('description') : $tag->description]" />
+                                        <x-k::form.toggle :data="['name' => 'restricted', 'label' => __('kopling-tags::messages.restricted'), 'description' => __('kopling-tags::messages.restricted_description'), 'value' => $reopening === $modalId ? old('restricted') : $tag->restricted]" />
+                                        <x-k::form.multi-select :data="['name' => 'groups', 'label' => __('kopling-tags::messages.restricted_groups'), 'options' => $groups, 'value' => $reopening === $modalId ? old('groups', []) : $tag->groups->pluck('id')]" />
                                         <x-k::portal.slot name="kopling-tags::admin.tag-form" :context="new Context(subject: $tag)" />
                                         @if ($reopening === $modalId && $errors->any())
                                             <p class="text-error text-sm">{{ $errors->first() }}</p>

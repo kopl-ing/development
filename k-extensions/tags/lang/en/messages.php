@@ -20,4 +20,7 @@ return [
     'description' => 'Description',
     'no_tags' => 'No tags yet.',
     'confirm_delete_tag' => 'Delete this tag? This cannot be undone.',
+    'restricted' => 'Restrict posting',
+    'restricted_description' => 'Only the groups selected below may attach this tag or reply to moments tagged with it.',
+    'restricted_groups' => 'Allowed groups',
 ];

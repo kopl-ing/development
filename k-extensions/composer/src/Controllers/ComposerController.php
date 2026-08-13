@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Composer\Controllers;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Kopling\Composer\Requests\StoreMomentRequest;
@@ -15,6 +16,8 @@ use Kopling\Core\Ux\Editor\DocumentRenderer;
 
 class ComposerController
 {
+    use AuthorizesRequests;
+
     /**
      * Post a moment, then return just the new moment rendered through core's own card so htmx
      * can prepend it to the feed (hx-swap="afterbegin") — the same card component the feed and
@@ -27,6 +30,12 @@ class ComposerController
     public function store(StoreMomentRequest $request, Manager $manager): View|RedirectResponse
     {
         $person = Auth::user();
+
+        // Model-scoped, e.g. tags' own per-tag posting restriction (see `ServiceProvider`'s
+        // `Gate::before()`) -- `Moment::draft()` stands in for the not-yet-created moment so the
+        // check has a real instance to resolve against, matching its own documented purpose.
+        $this->authorize('create', Moment::draft());
+
         $body = $request->validated('body');
 
         /** @var Moment $moment */

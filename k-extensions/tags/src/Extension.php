@@ -17,6 +17,7 @@ use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\ValidatesModels;
+use Kopling\Core\People\Person;
 use Kopling\Core\Portal\PortalExtension;
 use Kopling\Core\Ux\Card\Badges;
 use Kopling\Core\Ux\Portal\Navigation\Item;
@@ -44,6 +45,28 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
                 id: 'manage-tags',
                 label: __('kopling-tags::permissions.manage-tags.label'),
                 description: __('kopling-tags::permissions.manage-tags.description'),
+            ),
+            // The baseline every `Tag::isAllowedBy()` check starts from -- `default: true` so
+            // both stay open unless an admin deliberately narrows one (see ServiceProvider's
+            // `Gate::define()` loop: `default` short-circuits to always-true, independent of any
+            // Group grant). A restricted tag's own `groups` (see `Tag::groups()`) narrows
+            // further, per-tag, on top of whichever of these applies -- the two compose, they
+            // don't replace each other. Two separate ids -- not one shared "post-in-tag" -- so
+            // an admin can configure who may start a new tagged moment independently of who may
+            // join the discussion on one; both stay entirely tags' own (see `Extension::
+            // models()`'s own `create`/`reply` hooks below -- `discussions` never declares or
+            // checks either).
+            new Permission(
+                id: 'post-in-tag',
+                label: __('kopling-tags::permissions.post-in-tag.label'),
+                description: __('kopling-tags::permissions.post-in-tag.description'),
+                default: true,
+            ),
+            new Permission(
+                id: 'reply-in-tag',
+                label: __('kopling-tags::permissions.reply-in-tag.label'),
+                description: __('kopling-tags::permissions.reply-in-tag.description'),
+                default: true,
             ),
         ];
     }
@@ -142,6 +165,22 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
      * would still be technically correct, but only a *second* request (a real page reload) would
      * ever see the freshly-synced tags; the one response that actually needs them wouldn't.
      *
+     * `authorize('create', ...)`/`authorize('reply', ...)` are what `ComposerController::store()`
+     * /`DiscussionController::reply()` trigger via `$this->authorize(...)` (see `ServiceProvider`'s
+     * `Gate::before()`) -- `create` and `reply` are both plain Gate ability names on `Moment`, no
+     * different in kind from `create`/`update`/`delete` being Laravel's own generic CRUD verbs:
+     * registering a rule for one is not the same as reimplementing whatever extension happens to
+     * trigger it (`discussions`, for `reply`) -- tags never references `Reply`, never checks
+     * `discussions`' own `kopling-discussions::reply` permission, and `discussions` never learns
+     * tags exists either way (compare `composer`, which also never learns it, for `create`). Both
+     * hooks check `Tag::isAllowedBy()` -- `create` against the tags being newly attached
+     * (`request()->input('tags')`, same field `saved()` below reads), `reply` against the tags
+     * already on the moment being replied to (nothing in the reply request names a tag at all) --
+     * against two different permissions of tags' own (`post-in-tag`/`reply-in-tag` above), not
+     * two differently-named methods: `Tag` doesn't need a method named after `reply` just because
+     * one of its own permissions describes when it applies. `whereIn('id', [])` and an empty
+     * `$moment->tags` both vacuously pass `every()`, so an untagged moment is never blocked.
+     *
      * @return array<Model>
      */
     public function models(): array
@@ -149,6 +188,13 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
         return [
             new Model(Moment::class)
                 ->relation((new Relation)->belongsToMany('tags', Tag::class, 'moment_tag')->eagerLoad())
+                ->authorize('create', function (?Person $person) {
+                    return Tag::whereIn('id', request()->input('tags', []))->get()
+                        ->every(fn (Tag $tag) => $tag->isAllowedBy($person, 'kopling-tags::post-in-tag'));
+                })
+                ->authorize('reply', function (?Person $person, Moment $moment) {
+                    return $moment->tags->every(fn (Tag $tag) => $tag->isAllowedBy($person, 'kopling-tags::reply-in-tag'));
+                })
                 ->saved(function (Moment $moment) {
                     if (! request()->has('tags')) {
                         return;

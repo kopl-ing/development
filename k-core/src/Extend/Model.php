@@ -33,6 +33,11 @@ class Model
 
     public ?Closure $saved = null;
 
+    /**
+     * @var array<string, Closure>
+     */
+    public array $authorizations = [];
+
     public ?string $morphAlias = null;
 
     public ?int $perPage = null;
@@ -101,6 +106,22 @@ class Model
     public function saved(Closure $callback): self
     {
         $this->saved = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Registers a rule for `$ability` on this model, consulted by the `Gate::before()` callback
+     * `ServiceProvider::boot()` wires up -- every extension that registers one for the same
+     * model+ability must pass (AND-composed); a model+ability nobody registers a rule for is
+     * unrestricted by default. `$callback` receives `(?Person $person, $model, ...$extra)`,
+     * `$extra` being whatever else was passed to `authorize()`/`Gate::authorize()` alongside the
+     * subject (e.g. `$this->authorize('reply', $moment)` passes just the moment; `$this->
+     * authorize('create', [$reply, $moment])` passes the moment as `$extra[0]`).
+     */
+    public function authorize(string $ability, Closure $callback): self
+    {
+        $this->authorizations[$ability] = $callback;
 
         return $this;
     }

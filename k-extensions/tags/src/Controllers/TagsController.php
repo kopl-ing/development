@@ -7,8 +7,10 @@ namespace Kopling\Tags\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Kopling\Core\Extension\Manager;
+use Kopling\Core\People\Group;
 use Kopling\Tags\Tag;
 
 /**
@@ -27,20 +29,29 @@ class TagsController
     public function index(): View
     {
         return view('kopling-tags::admin.index', [
-            'tags' => Tag::orderBy('name')->get(),
+            'tags' => Tag::with('groups')->orderBy('name')->get(),
+            'groups' => Group::pluck('name', 'id'),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        Tag::forceCreate($this->validated($request));
+        $validated = $this->validated($request);
+        $groups = Arr::pull($validated, 'groups', []);
+
+        $tag = Tag::forceCreate($validated);
+        $tag->groups()->sync($groups);
 
         return redirect()->route('kopling-admin::admin/tags');
     }
 
     public function update(Request $request, Tag $tag): RedirectResponse
     {
-        $tag->forceFill($this->validated($request, $tag))->save();
+        $validated = $this->validated($request, $tag);
+        $groups = Arr::pull($validated, 'groups', []);
+
+        $tag->forceFill($validated)->save();
+        $tag->groups()->sync($groups);
 
         return redirect()->route('kopling-admin::admin/tags');
     }
@@ -72,6 +83,9 @@ class TagsController
             'color' => ['nullable', 'string', 'max:32'],
             'icon' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'restricted' => ['boolean'],
+            'groups' => ['array'],
+            'groups.*' => ['exists:groups,id'],
         ]);
 
         return $request->validate($merged['rules'], $merged['messages']);

@@ -1279,6 +1279,59 @@ Moment's federated output except by `core` reaching into its domain directly.
 
 ---
 
+## 2026-08-11 — `Extend\Model::authorize()`: a generic, `Gate::before()`-backed layer for per-instance authorization on a model an extension doesn't own
+
+**Decision:** `Extend\Model` gets a new `authorize(string $ability, Closure $callback)`, alongside
+its existing `creating`/`saving`/`saved` hooks. `Manager::authorizationRules($modelClass,
+$ability)` aggregates every extension's registered closure for that pair (same declared-array,
+Manager-aggregates shape as `ValidatesModels`). A single `Gate::before()` in `ServiceProvider::
+boot()` is the only wiring: it intervenes only when a check names a real model/instance argument
+(`$this->authorize('create', Moment::draft())`/`$this->authorize('reply', $moment)`, never the bare
+`$this->authorize('kopling-ext::permission')` form every flat check in this codebase uses) *and* at
+least one extension registered a rule for that exact model+ability, AND-composing every registered
+closure and returning `null` (defer to the normal flat `Gate::define()` resolution) in every other
+case. `create` and `reply` are both plain Gate ability names on core's `Moment` — no different in
+kind from Laravel's own generic CRUD verbs (`create`/`update`/`delete`); registering a rule for one
+is not the same as reimplementing whatever extension happens to trigger it.
+
+Consumer: `tags`' own per-tag restriction (`Tag.restricted` + `group_tag`, `Tag::isAllowedBy()`),
+registered on `Moment` for **both** the `create` (composer) and `reply` (discussions) abilities,
+entirely from within `tags`' own `Extension::models()` — gated by two of tags' own permissions
+(`kopling-tags::post-in-tag`/`reply-in-tag`) so an admin can configure who may start a new tagged
+moment independently of who may join the discussion on one. Neither `composer` nor `discussions`
+ever declares or checks anything about tags — this mechanism earns its keep specifically because
+neither is allowed to know tags exists (see tags' own `ux()` docblock for `composer`'s side); tags
+has no other way to make itself known to either flow.
+
+An earlier version of this had `discussions` own a `reply-in-tag` permission and check it itself,
+softly reaching into tags via `class_exists(Tag::class)` to read whether the moment had any tags at
+all — reverted for not scaling: every extension that might ever want to restrict replying (tags
+today, a hypothetical poll or premium-content extension tomorrow, any third-party one) would need
+its own pairwise `class_exists()` block inside `discussions`, which a third-party extension can
+never add in advance. An even earlier version had `tags` register `authorize('reply', ...)` via a
+bespoke `Tag::isReplyableBy()` method — also reverted, for a different reason: it baked
+`discussions`' own verb ("replying") into a method name and mirrored it as tags' own concept, the
+same shape of mistake as the 2026-07-18 upvote/downvote-in-`tags` incident. The settled shape keeps
+both properties: tags reaching into a *shared, core-owned* model by a *generic ability name* (fine
+— same as `create`) without ever growing a verb-specific method or reaching into `Reply` itself
+(the actual mistake, not the reach into `Moment` at all).
+
+**Why:** a plain `Gate::policy()` is one policy class per model, so a second extension wanting to
+gate a model it doesn't own (tags gating core's `Moment`) would have nowhere to register — this
+codebase's existing flat permissions also only ever receive `?Person`, never a subject. `Gate::
+before()` was chosen over a generic dispatcher `Policy` class resolved via `Gate::
+guessPolicyNamesUsing()`: Laravel's own `callPolicyMethod()` strips a leading class-string
+argument before invoking the policy method (assuming a real per-model policy already knows its
+own model), which silently loses the model identity a *generic* policy needs; separately, Gate's
+guest-reflection check (`parameterAllowsGuests()`) reflects a policy's real method signature and
+always fails for a magic `__call`-based dispatcher, denying every guest before the rule even runs.
+A plain closure passed to `Gate::before()` has neither problem — its own reflected signature
+(`?Person $person`, nullable) is exactly what Gate's guest check expects.
+
+**Status:** decided & implemented.
+
+---
+
 ## 2026-08-10 — Federation: dropped the separate "federation enabled" admin toggle
 
 **Decision:** Reversed Phase 7's global on/off `Field` (`Federation\Manager::isEnabled()`, checked

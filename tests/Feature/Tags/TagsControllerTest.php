@@ -174,6 +174,44 @@ it('updates a tag\'s icon and description', function () {
         ->and($tag->description)->toBe('Updated description.');
 });
 
+it('creates a restricted tag with allowed groups', function () {
+    $operator = personWithManageTags();
+    $group = Group::create(['name' => 'Allowed Posters']);
+
+    $this->actingAs($operator)
+        ->post('/admin/tags', [
+            '_form' => 'modal-tag-create',
+            'name' => 'Staff Only',
+            'slug' => 'staff-only',
+            'restricted' => '1',
+            'groups' => [$group->id],
+        ])
+        ->assertRedirect('/admin/tags');
+
+    $tag = Tag::where('slug', 'staff-only')->firstOrFail();
+    expect($tag->restricted)->toBeTrue()
+        ->and($tag->groups->pluck('id')->all())->toBe([$group->id]);
+});
+
+it('updates a tag\'s restricted groups', function () {
+    $operator = personWithManageTags();
+    $tag = Tag::create(['name' => 'Old', 'slug' => 'old-restricted', 'restricted' => true]);
+    $tag->groups()->attach(Group::create(['name' => 'Original Group']));
+    $newGroup = Group::create(['name' => 'New Group']);
+
+    $this->actingAs($operator)
+        ->post("/admin/tags/{$tag->id}", [
+            '_form' => 'modal-tag-edit-'.$tag->id,
+            'name' => 'Old',
+            'slug' => 'old-restricted',
+            'restricted' => '1',
+            'groups' => [$newGroup->id],
+        ])
+        ->assertRedirect('/admin/tags');
+
+    expect($tag->refresh()->groups->pluck('id')->all())->toBe([$newGroup->id]);
+});
+
 it('deletes a tag and cascades its moment_tag rows', function () {
     $operator = personWithManageTags();
     $tag = Tag::create(['name' => 'Doomed', 'slug' => 'doomed']);

@@ -2,10 +2,27 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Gate;
 use Kopling\Core\Content\Moment;
 use Kopling\Core\People\Person;
 use Kopling\Discussions\Reply;
 use Symfony\Component\DomCrawler\Crawler;
+
+it('denies replying when the base reply permission is revoked', function () {
+    $author = Person::create(['name' => 'Ada', 'email' => 'ada-reply-perm@example.test', 'password' => 'secret']);
+    $moment = Moment::create(['person_id' => $author->id, 'title' => 'Hello', 'body' => 'World']);
+
+    Gate::define('kopling-discussions::reply', fn () => false);
+
+    $replier = Person::create(['name' => 'Bob', 'email' => 'bob-reply-perm@example.test', 'password' => 'secret']);
+    $body = editorDoc([['type' => 'paragraph', 'content' => [editorText('Nope')]]]);
+
+    $this->actingAs($replier)
+        ->post(route('kopling-core::community/discussions.reply', $moment->id), ['body' => $body])
+        ->assertForbidden();
+
+    expect(Reply::count())->toBe(0);
+});
 
 it('stores a reply with the submitted document and a server-rendered body_html', function () {
     $author = Person::create(['name' => 'Ada', 'email' => 'ada@example.test', 'password' => 'secret']);

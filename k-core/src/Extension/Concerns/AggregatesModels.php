@@ -87,4 +87,20 @@ trait AggregatesModels
 
         return $declared;
     }
+
+    /**
+     * Every extension-registered `Extend\Model::authorize()` closure for `$modelClass`+`$ability`
+     * -- read by the `Gate::before()` callback `ServiceProvider::boot()` wires up. Empty when
+     * nobody has an opinion, which that callback treats as unrestricted rather than denied.
+     *
+     * @return array<int, \Closure>
+     */
+    public function authorizationRules(string $modelClass, string $ability): array
+    {
+        return $this->models()
+            ->filter(fn (ExtendModel $model) => $model->model === $modelClass && isset($model->authorizations[$ability]))
+            ->map(fn (ExtendModel $model) => $model->authorizations[$ability])
+            ->values()
+            ->all();
+    }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Kopling\Core\Ux\Form\IconSearch\IconRenderer;
 use Kopling\Tags\Tag;
@@ -36,11 +37,19 @@ Route::get('/tag/{slug}', function (string $slug) {
 Route::middleware('auth')->get('/_xhr/kopling-tags/search', function () {
     $query = trim((string) request()->query('q', ''));
 
+    // Over-fetched, then filtered down to 5 in PHP via Tag::isPostableBy() -- a restricted tag
+    // the current person can't post into must never appear here at all (never offering it beats
+    // offering it and rejecting the submit, see Extension::models()'s own authorize() hooks).
+    // `with('groups')` avoids an isPostableBy() query per row; tags are curated/rare by nature
+    // (same assumption Pin::visibleFor() already makes), so this stays a plain PHP filter.
     $tags = Tag::query()
+        ->with('groups')
         ->when($query !== '', fn ($builder) => $builder->where('name', 'like', '%'.$query.'%'))
         ->orderBy('name')
-        ->limit(5)
-        ->get();
+        ->limit(25)
+        ->get()
+        ->filter(fn (Tag $tag) => $tag->isPostableBy(Auth::user()))
+        ->take(5);
 
     return response()->json($tags->map(fn (Tag $tag) => [
         'id' => $tag->id,
