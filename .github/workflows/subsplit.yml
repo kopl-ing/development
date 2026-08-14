@@ -6,6 +6,8 @@ on:
     branches:
       - 'main'
     paths:
+      - .github/workflows/subsplit.yml
+      - .github/subsplit-config.json
       - k-core/**
       - k-extensions/**
     # Tag push events should be ignored, they will be handled with the create event below.

@@ -6,6 +6,11 @@
             "target": "git@github.com:kopl-ing/core.git"
         },
         {
+            "name": "activitypub",
+            "directory": "k-extensions/activitypub",
+            "target": "git@github.com:kopl-ing/activitypub.git"
+        },
+        {
             "name": "admin",
             "directory": "k-extensions/admin",
             "target": "git@github.com:kopl-ing/admin.git"
@@ -29,6 +34,16 @@
             "name": "discussions",
             "directory": "k-extensions/discussions",
             "target": "git@github.com:kopl-ing/discussions.git"
+        },
+        {
+            "name": "mail-client",
+            "directory": "k-extensions/mail-client",
+            "target": "git@github.com:kopl-ing/mail-client.git"
+        },
+        {
+            "name": "moderation",
+            "directory": "k-extensions/moderation",
+            "target": "git@github.com:kopl-ing/moderation.git"
         },
         {
             "name": "pin",
