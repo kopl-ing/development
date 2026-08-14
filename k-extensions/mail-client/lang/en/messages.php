@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'mail' => 'Mail',
+    'mail' => 'Mail client',
     'mailboxes' => 'Mailboxes',
     'all_inboxes' => 'All Inboxes',
     'flagged' => 'Flagged',

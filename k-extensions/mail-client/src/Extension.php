@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kopling\MailClient;
 
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extend\Ux\ProvidesUxEntries;
@@ -11,6 +12,7 @@ use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Portal\Portal;
@@ -20,7 +22,7 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
 use Kopling\MailClient\Console\SyncPendingCommand;
 use Kopling\MailClient\Ux\Sidebar;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasPermissions, HasPortals
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasIcons, HasPermissions, HasPortals
 {
     public static function name(): string
     {
@@ -93,6 +95,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ->add(Item::class, [
                 'label' => __('kopling-mail-client::messages.mail'),
                 'route' => 'kopling-mail-client::mail/index',
+                'icon' => 'kopling-mail-client::mail-client',
                 'hideOnPortal' => 'kopling-mail-client::mail',
             ])
             ->in(UserMenu::SLOT)
@@ -115,5 +118,16 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
     public function commands(): array
     {
         return [SyncPendingCommand::class];
+    }
+
+    public function icons(): array
+    {
+        return [
+            new Icon(
+                id: 'mail-client',
+                label: __('kopling-mail-client::messages.mail'),
+                default: 'fas-envelope',
+            )
+        ];
     }
 }

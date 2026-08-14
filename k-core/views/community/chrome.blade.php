@@ -19,7 +19,14 @@
 
         <div class="flex flex-1 pb-16 md:pb-0">
             <div class="flex w-full max-w-7xl mx-auto">
-                <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0 hidden md:block" id="sidebar">
+                {{-- `!` forces `!important` on the responsive override: an extension with its own
+                     separately-compiled CSS bundle (CLAUDE.md "How extensions ship compiled
+                     assets") can end up emitting its own `.hidden{display:none}` purely by
+                     incidental text match (e.g. a literal `type="hidden"` input) with no matching
+                     `.md:block` of its own to counter it -- loaded after Core's own bundle, that
+                     same-specificity rule would otherwise silently win the cascade and keep this
+                     hidden past the breakpoint regardless of which responsive variant is used. --}}
+                <aside class="w-64 bg-base-100 border-r border-base-300 shrink-0 hidden md:block!" id="sidebar">
                     <x-k::portal.slot :name="$sidebarSlot" />
                 </aside>
 
@@ -31,7 +38,7 @@
                 </main>
 
                 @if ($railSlot)
-                    <aside class="w-72 border-l border-base-300 p-4 hidden xl:block" id="rail">
+                    <aside class="w-72 border-l border-base-300 p-4 hidden xl:block!" id="rail">
                         {{-- The current route's bound "moment" param, null on every other page. --}}
                         <x-k::portal.slot :name="$railSlot"
                             :context="new Context(subject: request()->route('moment'))" />

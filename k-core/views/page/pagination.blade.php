@@ -23,7 +23,7 @@
 @endphp
 @if ($paginator->hasPages())
     <nav
-        {{ $attributes->merge(array_merge(['class' => 'flex justify-center'], $htmxAttributes)) }}
+        {{ $attributes->merge(array_merge(['class' => 'flex justify-center max-w-full overflow-x-auto'], $htmxAttributes)) }}
         aria-label="{{ __('kopling-core::ux.pagination_navigation') }}"
     >
         <div class="join">

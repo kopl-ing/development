@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kopling\Moderation;
 
 use Kopling\Core\Content\Moment;
+use Kopling\Core\Extend\Icon;
 use Kopling\Core\Extend\ModerationTarget;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
@@ -13,6 +14,7 @@ use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasCommands;
+use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
 use Kopling\Core\Extension\Contract\RegistersModerationTargets;
@@ -28,7 +30,7 @@ use Kopling\Moderation\Ux\HideControlEntry;
 use Kopling\Moderation\Ux\QueueNav;
 use Kopling\Moderation\Ux\ReportControlEntry;
 
-class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasPermissions, HasPortals, RegistersModerationTargets
+class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, HasCommands, HasIcons, HasPermissions, HasPortals, RegistersModerationTargets
 {
     public static function name(): string
     {
@@ -174,8 +176,9 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
             ->when('moderate')
             ->after('kopling-moderation::reply-hide-control-entry')
             ->add(Item::class, [
-                'label' => 'Moderation',
+                'label' => __('kopling-moderation::messages.portal_label'),
                 'route' => 'kopling-moderation::moderation/queue.index',
+                'icon' => 'kopling-moderation::moderation',
                 'hideOnPortal' => 'kopling-moderation::moderation',
             ])
             ->in(UserMenu::SLOT)
@@ -196,5 +199,12 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
     public function commands(): array
     {
         return [SeedModeratorsCommand::class];
+    }
+
+    public function icons(): array
+    {
+        return [
+            new Icon(id: 'moderation', label: __('kopling-moderation::messages.portal_label'), default: 'fas-handcuffs'),
+        ];
     }
 }

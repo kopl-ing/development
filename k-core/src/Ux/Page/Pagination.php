@@ -30,7 +30,12 @@ class Pagination extends Component
 
     public function __construct(public Context $context, public ?string $target = null)
     {
-        $this->paginator = $context->getSubjectPaginator();
+        // Laravel's own window math (UrlWindow) always surrounds the slider with a 2-page start
+        // and a 2-page end -- onEachSide only controls the middle, so it takes 0 (not 1) to keep
+        // the worst case (prev/next + start(2) + ellipsis + current + ellipsis + end(2), or every
+        // page number below the small-slider threshold) at a predictable 9 join-items, narrow
+        // enough for a constrained column (e.g. mail-client's message list, w-96).
+        $this->paginator = $context->getSubjectPaginator()->onEachSide(0);
     }
 
     public function render(): View
