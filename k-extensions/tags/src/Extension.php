@@ -32,7 +32,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
 
     public static function description(): string
     {
-        return 'Categorise moments with tags and browse everything under one.';
+        return 'Categorise moments with tags, browse everything under one, and optionally restrict who can post or reply within a tag.';
     }
 
     /**

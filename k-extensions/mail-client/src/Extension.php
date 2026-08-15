@@ -31,7 +31,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals, 
 
     public static function description(): string
     {
-        return 'A webmail Portal connecting to any existing IMAP/POP3 mailbox.';
+        return 'A webmail Portal connecting to any existing IMAP mailbox.';
     }
 
     /**

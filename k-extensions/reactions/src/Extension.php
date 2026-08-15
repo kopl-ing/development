@@ -30,7 +30,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
 
     public static function description(): string
     {
-        return 'Emoji and worded reactions for moments and replies.';
+        return 'Emoji and worded reactions for moments and replies, with optional tag-configured upvote/downvote and Latest/Top sorting.';
     }
 
     /**

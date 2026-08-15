@@ -1,6 +1,6 @@
 {
     "name": "kopling/mail-client",
-    "description": "A webmail Portal for Kopling -- connects to any existing IMAP/POP3 mailbox.",
+    "description": "A webmail Portal for Kopling -- connects to any existing IMAP mailbox.",
     "type": "kopling-extension",
     "license": "Elastic-2.0",
     "authors": [

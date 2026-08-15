@@ -14,9 +14,9 @@ use Kopling\Widgets\Ux\PulseWidget;
 use Kopling\Widgets\Ux\TagsWidget;
 
 /**
- * Rail widgets for the community: a "pulse" (a few live counts) and, when the tags extension
- * is installed, a "popular tags" cloud. Registers into the (otherwise empty) right-rail slot
- * `kopling-core::community.rail`, which the chrome renders on wide screens across the feed and
+ * Sidebar widgets for the community: a "pulse" (a few live counts) and, when the tags extension
+ * is installed, a "popular tags" cloud. Registers into the (otherwise empty) left-sidebar slot
+ * `kopling-core::community.sidebar`, which the chrome renders on wide screens across the feed and
  * discussion pages. Pure server-rendered daisyUI -- each widget self-hides when it has nothing
  * to show, and the tags one no-ops entirely without the tags extension.
  */
@@ -29,7 +29,7 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsPortals
 
     public static function description(): string
     {
-        return 'Community pulse and popular tags in the feed rail.';
+        return 'Community pulse and popular tags in the sidebar.';
     }
 
     public function ux(): ProvidesUxEntries
