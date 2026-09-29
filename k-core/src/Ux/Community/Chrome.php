@@ -30,10 +30,12 @@ class Chrome extends Component
         Manager $manager,
         public string $portalId = 'kopling-core::community',
         public string $topbarSlot = 'kopling-core::community.topbar',
-        public string $sidebarSlot = 'kopling-core::community.sidebar-panel',
+        public ?string $topbarStartSlot = null,
+        public ?string $sidebarSlot = 'kopling-core::community.sidebar-panel',
         public ?string $railSlot = 'kopling-core::community.rail',
         public ?string $composerSlot = 'kopling-core::community.composer',
         public bool $mobileDock = true,
+        public bool $showLabel = true,
         public string $mainClass = 'max-w-2xl mx-auto',
     ) {
         $this->portal = $manager->portals()->firstWhere('id', $this->portalId);

@@ -71,6 +71,11 @@
             "target": "git@github.com:kopl-ing/reply-dock.git"
         },
         {
+            "name": "sports-management",
+            "directory": "k-extensions/sports-management",
+            "target": "git@github.com:kopl-ing/sports-management.git"
+        },
+        {
             "name": "style-guide",
             "directory": "k-extensions/style-guide",
             "target": "git@github.com:kopl-ing/style-guide.git"

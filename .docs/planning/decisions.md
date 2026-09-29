@@ -1346,3 +1346,148 @@ kill-switch, just a redundant one.
 **Status:** decided & implemented.
 
 ---
+
+## 2026-09-21 — New extension: `kopling/soccer-management`, Phase 1 (teams, staff, roster)
+
+**Decision:** `k-extensions/soccer-management` (`Kopling\SoccerManagement`), own Portal
+(id/path `soccer-management`, i.e. `kopling-soccer-management::soccer-management` at URL
+`/soccer-management`). Every table this extension owns is `sm_`-prefixed (`sm_teams`,
+`sm_team_staff`, `sm_team_format_presets`, `sm_team_members`) — a distinct, collision-proof
+package/table identity, since this is meant for private use rather than something upstreamed.
+The rename went all the way through: the portal-gate permission is `access-soccer-management`
+(matching the `access-admin`/`access-mail` convention — named after the extension itself), and
+every route/view/lang file that named the extension's own Portal was renamed too. Domain
+vocabulary that names the actual concept, not the extension (the `Team`/`TeamMember` classes,
+"Teams" UI copy, the `manage-teams` permission — matching `manage-tags`/`manage-people`'s own
+domain-word convention), correctly stays "team". A roster member is a real `Person` row plus
+this extension's own
+one-to-one `sm_team_members` satellite table — the same shape as `activitypub_actors`,
+deliberately *not* reusing `people.origin` (that column means federation origin domain
+specifically, not a generic "no login" flag). `sm_team_format_presets` holds only KNVB category
+name + players-on-field + rules URL — round length/number of rounds are excluded on purpose,
+tracked as freely-correctable live events in a later phase instead of a fixed preset schedule.
+`sm_team_staff` is a plain many-to-many pivot; with no per-instance authorization mechanism in
+this codebase (see the pin entry above), this extension's own controllers check
+`Team::isStaffedBy()` directly alongside the `manage-teams` Gate permission, rather than core
+growing a general ownership concept for it. Full design log:
+`.docs/planning/team-management-extension-plan.md`.
+
+**Why:** matches an existing precedent (`activitypub`) instead of inventing a new "virtual
+person" mechanism, keeps match-day tracking (a later phase) from inheriting a rigid round/break
+schedule that real coaching feedback flagged as a genuine usability failure in prior tooling, and
+the `sm_` prefix keeps this private extension's tables unambiguous should this database ever be
+inspected or shared alongside a standard Kopling install.
+
+**Status:** Phase 1 (teams/staff/roster CRUD) decided & implemented. Match planning (Phase 2)
+and match tracking (Phase 3) not started.
+
+---
+
+## 2026-09-28 — `soccer-management` Phase 2: match planning, read/write permission split
+
+**Decision:** Viewing a team or match needs only the Portal's `access-soccer-management` plus
+`Team::isStaffedBy()`; `manage-teams` and `manage-matches` gate only writes. Matches live in
+`sm_matches` (model `TeamMatch`, since `match` is reserved in PHP), with nullable
+`format_preset_id` meaning "inherit the team's preset". Availability is saved as a full-state
+submit — a roster member left out of the payload has their status cleared.
+
+**Why:** staff holding only one of the two domain permissions (e.g. an assistant planning
+matches) still need to read the rest of the team they staff.
+
+**Status:** decided & implemented. Phase 3 (match tracking) not started.
+
+---
+
+## 2026-09-28 — `soccer-management` Phase 3: match tracking on a per-period clock
+
+**Decision:** Periods store `started_at` (live only) plus `duration_seconds` (null while
+running); every substitution/goal stores `period_id` + `offset_seconds` within that period.
+Score, match state (planned/live/ended), who's on the field, and time played are all derived by
+`MatchTimeline` from those events — nothing is stored. Goals carry an explicit `opponent` flag
+rather than treating a null scorer as the opponent's. Removing a roster member or a team never
+deletes the underlying `Person` row.
+
+**Why:** the same event shape works live ("now") and entered afterwards from notes ("period 2,
+minute 5"), and a wrong period length or missed break is fixed by editing one row.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-09-29 — `<x-k::person.avatar>` takes an `indicators` slot
+
+**Decision:** The avatar accepts an optional named `indicators` slot of daisyUI `indicator-item`s;
+when present, it wraps itself in daisyUI's `indicator`, otherwise it renders exactly as before.
+Caller-specific badges (e.g. minutes played) go through this slot. Icons an extension wants on
+*every* avatar (roles) will come through a `RenderingAvatar` event, same shape as `RenderingCard`,
+once a first real use needs it.
+
+**Why:** daisyUI's `indicator` already places any number of badges around an element, so one
+slot covers a single badge today and several role icons later without another contract change.
+
+**Status:** slot decided & implemented; `RenderingAvatar` deferred until needed.
+
+---
+
+## 2026-09-29 — `sports-management`: field zones and a stored lineup
+
+**Decision:** Every "on" substitution carries a `zone` (K/D/M/F, the same `Position` enum as the
+roster); moving a player between zones is another "on" event, dropping a bench player onto a field
+player is an "off" + "on" into that zone. The pre-kick-off lineup lives in `sm_match_lineups`
+(`manage-matches`) and becomes period 1's starting "on" events at kick-off; after that, field
+changes are substitution events (`track-matches`). Drag and tap-to-move share one delegated,
+dependency-free script on pointer events.
+
+**Why:** zones stay derived from the same event log as time played, and a lineup can be set the
+night before without a period existing. Native HTML5 drag-and-drop is unreliable on touch, and
+this is used on a phone at the sideline.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-09-29 — `sports-management`: one match clock, periods become internal
+
+**Decision:** Live tracking is Kick off → Break / Continue (any number of times) → End match; each
+press still opens or closes a play/break period server-side, but periods are no longer something
+the user manages. The match clock counts play time only, and events are shown and entered by match
+minute, mapped onto a (period, offset) by `MatchTimeline::momentAt()`. Action times are stamped
+by the server on arrival.
+
+**Why:** matches how a coach thinks about a match, without changing the stored event log.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-09-29 — Chrome's sidebar is optional, like the rail and composer
+
+**Decision:** `Community\Chrome`'s `sidebarSlot` is nullable; `null` renders no sidebar column, same
+as `railSlot`/`composerSlot`. A portal layout can let one page turn it off through `@extends`
+data (e.g. `@extends('kopling-sports-management::layouts.sports-management', ['sidebar' => false])`)
+instead of needing a second layout. The same goes for the portal name in the top bar
+(`showLabel`, e.g. `['label' => false]`). The top bar also has an optional left-hand slot,
+`topbarStartSlot` (null by default), for page-level controls, so the right-hand `topbarSlot` stays
+the user's own navigation. The mobile dock's bottom padding now only applies when
+the dock is rendered.
+
+**Why:** full-screen pages (the match screen) need the width, and the rail/composer already set
+the pattern for switching chrome regions off.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-09-29 — `soccer-management` renamed to `sports-management`, and subsplit
+
+**Decision:** The extension is `kopling/sports-management` (`k-extensions/sports-management`,
+`Kopling\SportsManagement`, Portal and permissions `sports-management`), split to the read-only
+repository `kopl-ing/sports-management`. Tables keep the `sm_` prefix. Supersedes the naming in the
+2026-09-21 and 2026-09-28 entries; the subsplit reverses the plan's earlier "not for now".
+
+**Why:** the extension is meant to be installable on its own, and its name shouldn't tie it to one
+sport.
+
+**Status:** decided & implemented.
+
+---
