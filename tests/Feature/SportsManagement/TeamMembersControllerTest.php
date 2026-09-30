@@ -100,3 +100,15 @@ it('rejects an unknown position', function () {
         ->post("/sports-management/{$team->id}/members", ['name' => 'Jip', 'positions' => ['X']])
         ->assertSessionHasErrors('positions.0');
 });
+
+it('sorts permanent players before guests, each by name, naturally and case-insensitively', function () {
+    $team = staffedTeam(coach());
+    $guest = rosterMember($team, 'Aad');
+    $guest->update(['guest' => true]);
+    rosterMember($team, 'speler 10');
+    rosterMember($team, 'Speler 2');
+    rosterMember($team, 'bram');
+
+    expect(TeamMember::sorted($team->members()->with('person')->get())->map(fn ($member) => $member->person->name)->all())
+        ->toBe(['bram', 'Speler 2', 'speler 10', 'Aad']);
+});

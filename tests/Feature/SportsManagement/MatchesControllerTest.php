@@ -220,3 +220,50 @@ it('lets a manage-matches-only staff member view the roster without editing it',
         ->post("/sports-management/{$team->id}/members", ['name' => 'Someone'])
         ->assertForbidden();
 });
+
+it('offers availability as three icon buttons, with no answer shown as none selected', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $jip = rosterMember($team, 'Jip');
+    $match = plannedMatch($team);
+
+    $html = $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")->assertOk()->getContent();
+
+    expect(substr_count($html, 'name="availability['.$jip->id.']"'))->toBe(3)
+        ->and($html)->not->toContain('name="availability['.$jip->id.']" value=""')
+        ->and($html)->not->toMatch('/name="availability\[[^"]+\]"[^>]*checked/')
+        ->and(substr_count($html, 'join-item btn btn-sm btn-square'))->toBe(3)
+        ->and($html)->toContain(svg('fas-check', '', ['width' => '1em', 'height' => '1em'])->toHtml());
+});
+
+it('shows the available count in red until enough players are available, maybe and absent not counting', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO7', 'players_on_field' => 2])->id]);
+    $jip = rosterMember($team, 'Jip');
+    $sam = rosterMember($team, 'Sam');
+    $match = plannedMatch($team);
+    $url = "/sports-management/{$team->id}/matches/{$match->id}";
+
+    $this->actingAs($coach)->post("{$url}/availability", ['availability' => [$jip->id => 'available', $sam->id => 'maybe']]);
+    $this->actingAs($coach)->get($url)->assertSee('badge badge-error', false)->assertDontSee('badge badge-success', false);
+
+    $this->actingAs($coach)->post("{$url}/availability", ['availability' => [$jip->id => 'available', $sam->id => 'available']]);
+    $this->actingAs($coach)->get($url)->assertSee('badge badge-success', false)->assertDontSee('badge badge-error', false);
+});
+
+it('keeps track and edit above the match details, and delete at the bottom of the match page', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $match = plannedMatch($team, ['location_address' => 'Sportpark Noord']);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")
+        ->assertSeeInOrder([
+            __('kopling-sports-management::messages.track_match'),
+            __('kopling-sports-management::messages.edit_match'),
+            'FC Rivals JO11-1',
+            'Sportpark Noord',
+            __('kopling-sports-management::messages.availability'),
+            __('kopling-sports-management::messages.delete_match'),
+        ]);
+});

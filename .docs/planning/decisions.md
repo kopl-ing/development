@@ -1378,8 +1378,7 @@ schedule that real coaching feedback flagged as a genuine usability failure in p
 the `sm_` prefix keeps this private extension's tables unambiguous should this database ever be
 inspected or shared alongside a standard Kopling install.
 
-**Status:** Phase 1 (teams/staff/roster CRUD) decided & implemented. Match planning (Phase 2)
-and match tracking (Phase 3) not started.
+**Status:** Phase 1 (teams/staff/roster CRUD) decided & implemented; Phases 2 and 3 below.
 
 ---
 
@@ -1394,7 +1393,7 @@ submit — a roster member left out of the payload has their status cleared.
 **Why:** staff holding only one of the two domain permissions (e.g. an assistant planning
 matches) still need to read the rest of the team they staff.
 
-**Status:** decided & implemented. Phase 3 (match tracking) not started.
+**Status:** decided & implemented.
 
 ---
 

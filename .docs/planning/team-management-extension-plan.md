@@ -7,14 +7,11 @@ Kick off / Break / Continue / End match / Resume. Package `kopling/sports-manage
 (`k-extensions/sports-management`), own Portal `sports-management`, every table `sm_`-prefixed.
 See decisions.md, 2026-09-21, 2026-09-28 (×2) and 2026-09-29 (×3).
 
-## Where we left off (2026-09-29)
+## Where we left off (2026-09-30)
 
-The extension's tests (53) and the full suite pass. **Nothing is committed yet**:
-`k-extensions/sports-management/`, `tests/Feature/SportsManagement/`, this file, the
-`decisions.md` entries, the root `composer.json` require, the core avatar change
-(`k-core/views/person/avatar.blade.php`), its style-guide example and `tests/Feature/Ux/AvatarTest.php`
-are all still in the working tree. Migrations were edited in place (pre-production); the dev
-database was patched to match, a fresh install needs nothing extra.
+The extension's tests (61) pass. 2026-09-29 work is committed (`0b6532b`); 2026-09-30 changes are not.
+Migrations were edited in place (pre-production); the dev database was patched to match, a fresh
+install needs nothing extra.
 
 ### Changes 2026-09-29
 - **Roster:** positions are zero or more of K/D/M/F (`Position` enum, JSON `positions` column,
@@ -69,7 +66,28 @@ database was patched to match, a fresh install needs nothing extra.
     enforced by the server for both lineup and field, and checked in the browser first. No limit
     without a format preset. D/M/F are not limited.
 
+### Changes 2026-09-30
+- **One player order** everywhere (`TeamMember::sorted()`): permanent players before guests, each
+  by name (natural, case-insensitive). The roster now lists guests last too.
+- **Back leaves the match screen:** its actions replace the history entry instead of pushing one
+  (`hx-replace-url:inherited` on the page and the top-bar controls).
+- **Minutes badges tinted** against the squad shown: fewest amber (`warning`), around the middle
+  plain, most blue (`info`), via `color-mix` on daisyUI's `--badge-color`. Set on each server
+  render; a player only changes shade after the next action or reload.
+- **Match page buttons equal size:** `x-k::modal` takes the trigger's classes from
+  `<x-slot:trigger class="...">` when given (core change, default unchanged).
+- `decisions.md`: outdated "not started" statuses corrected.
+- **Availability buttons are icons** (check / question / cross, declared via `HasIcons`) on one row
+  with the name, which truncates. The "Unknown" button is gone: no answer is shown as none
+  selected, still stored as no row, and read-only viewers still see "Unknown".
+- **Available count badge** is green once the format's players-on-field is reached, red below it;
+  only "available" counts. No format preset: stays neutral.
+- **Match page header:** back link + Track / Edit on one row, opponent, date, format and address
+  below; Delete match moved to the bottom (same as Delete team).
+
 ### Still to check visually
+- 2026-09-30 changes: Back from the match screen, badge tints in light/dark, match page buttons,
+  availability icon buttons on a phone.
 - The match screen on a phone: two-tap goal, undo toast, instant moves, refused drop (red flash)
   for a second keeper or one player too many, screen staying awake, the ⋯ menu, tabs, and whether
   field + bench + Goal button fit under the top bar (height `calc(100dvh - 10rem)` is a guess).
@@ -85,16 +103,12 @@ database was patched to match, a fresh install needs nothing extra.
 
 ### Open
 - **Later:** a second person operating the phone; preparing substitutions ahead and applying
-  them together; tinting minute badges relative to the team average.
+  them together.
 - **Editing format presets:** still no screen for them; the seed leaves `rules_url` empty, so the
   "Rules" link never shows. Undecided: admin CRUD (recommended: in the admin portal), fill URLs in
   the seed only, or defer.
-- **Stale statuses in `decisions.md`:** the 2026-09-21 entry says Phases 2 and 3 "not started", the
-  first 2026-09-28 entry says Phase 3 "not started". Not yet corrected.
 - **No signal on the sideline:** an action sent without a connection fails; queuing offline
   actions was left out on purpose.
-- **Other pages' player lists** (match page availability, tracking selects) are not sorted by the
-  same name rule as the roster.
 - **Avatar icons from extensions** (e.g. roles): a `RenderingAvatar` event, same shape as
   `RenderingCard`, deferred until a first real use.
 

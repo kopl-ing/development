@@ -80,3 +80,10 @@ it('does not reopen a modal whose id does not match the flashed _form value', fu
 
     expect($html)->not->toContain('showModal()');
 });
+
+it('lets the trigger slot replace the default trigger classes', function () {
+    $html = (string) $this->blade('<x-k::modal label="Edit"><x-slot:trigger class="btn">Edit</x-slot:trigger><p>Body</p></x-k::modal>');
+
+    expect($html)->toContain('class="btn"')
+        ->and($html)->not->toContain('btn-sm');
+});

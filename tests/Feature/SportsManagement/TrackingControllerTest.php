@@ -493,3 +493,27 @@ it('lists report events latest first', function () {
     $this->actingAs($coach)->get(trackUrl($match))
         ->assertSeeInOrder(['Period 2', "30'", 'Sam', 'Period 1', "5'", 'Jip']);
 });
+
+it('tints minutes-played badges from fewest (warning) to most (info) within the squad', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $anna = rosterMember($team, 'Anna');
+    rosterMember($team, 'Zoe');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$anna->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+    Carbon::setTestNow('2026-10-10 09:40:00');
+
+    $this->actingAs($coach)->get(trackUrl($match))
+        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', 'var(--color-info) 100%'], false)
+        ->assertSee('var(--color-warning) 100%', false);
+});
+
+it('replaces the history entry instead of pushing one for every match screen action', function () {
+    $coach = coach();
+    $match = plannedMatch(staffedTeam($coach));
+
+    $this->actingAs($coach)->get(trackUrl($match))
+        ->assertSeeInOrder(['data-sm-controls hx-replace-url:inherited="true"', 'hx-replace-url:inherited="true"', 'data-sm-field'], false);
+});
