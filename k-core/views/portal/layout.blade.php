@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="kopling">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="kopling">
 <head>
     @include('kopling-core::layouts.partials.head')
 </head>

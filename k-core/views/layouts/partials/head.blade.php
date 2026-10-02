@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-@if ($description = Settings::get('kopling-core::community-description'))
+@if ($description = trim($__env->yieldContent('description')) ?: Settings::get('kopling-core::community-description'))
     <meta name="description" content="{{ $description }}">
 @endif
 <title>@yield('title', Settings::get('kopling-core::community-name', 'Kopling'))</title>
@@ -25,6 +25,7 @@
     {!! Manager::viteOrDist(app(Manager::class)->path('kopling/core'), $coreBundle) !!}
 @endforeach
 <style>{!! Theme::css() !!}</style>
+@stack('head')
 {{-- Every extension's css/js attached to the Portal this request resolved to -- hand-written
      (css/js) and compiled (compiledAssets(), via Manager::viteOrDist()) are two independent
      mechanisms, see PortalExtension's own docblock. --}}
