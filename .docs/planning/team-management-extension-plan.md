@@ -76,7 +76,6 @@ install needs nothing extra.
   render; a player only changes shade after the next action or reload.
 - **Match page buttons equal size:** `x-k::modal` takes the trigger's classes from
   `<x-slot:trigger class="...">` when given (core change, default unchanged).
-- `decisions.md`: outdated "not started" statuses corrected.
 - **Availability buttons are icons** (check / question / cross, declared via `HasIcons`) on one row
   with the name, which truncates. The "Unknown" button is gone: no answer is shown as none
   selected, still stored as no row, and read-only viewers still see "Unknown".
@@ -84,10 +83,13 @@ install needs nothing extra.
   only "available" counts. No format preset: stays neutral.
 - **Match page header:** back link + Track / Edit on one row, opponent, date, format and address
   below; Delete match moved to the bottom (same as Delete team).
+- `decisions.md`: outdated "not started" statuses corrected (names left as-is, the 2026-09-29
+  rename entry explains them).
 
 ### Still to check visually
-- 2026-09-30 changes: Back from the match screen, badge tints in light/dark, match page buttons,
-  availability icon buttons on a phone.
+- 2026-09-30 changes: one Back from the match screen returns to the match page, badge tints in
+  light and dark, the match page on a phone (header row fits, availability icons on one row with
+  the name, their colors when selected, red/green count badge), guests listed last on the roster.
 - The match screen on a phone: two-tap goal, undo toast, instant moves, refused drop (red flash)
   for a second keeper or one player too many, screen staying awake, the ⋯ menu, tabs, and whether
   field + bench + Goal button fit under the top bar (height `calc(100dvh - 10rem)` is a guess).
@@ -98,8 +100,10 @@ install needs nothing extra.
 - Break timer ticking (fixed 2026-09-29: an inherited `$ticking` suppressed it), match clock
   standing still during a break, **Resume match** confirmation.
 - Team page cards, the positions multi-select and roster counts.
-- Earlier items not yet confirmed: availability radio colors, edit controls hidden for staff
-  missing a permission.
+- Earlier item not yet confirmed: edit controls hidden for staff missing a permission.
+
+### Next
+Visual pass on a phone (list above), then decide format presets (below).
 
 ### Open
 - **Later:** a second person operating the phone; preparing substitutions ahead and applying
@@ -113,6 +117,7 @@ install needs nothing extra.
   `RenderingCard`, deferred until a first real use.
 
 ### Settled, no action needed
+- **Edit team button** on the team page keeps the modal's default small trigger; looked fine.
 - **Subsplit:** split to the read-only repository `kopl-ing/sports-management`
   (`.github/subsplit-config.json`), since 2026-09-29.
 
