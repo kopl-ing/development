@@ -4,23 +4,26 @@ Status: renamed from `kopling/soccer-management` to `kopling/sports-management` 
 decisions.md). All three phases built, plus a reworked tracking page (2026-09-29): a field with K/D/M/F
 zones and a bench of avatars, a stored pre-kick-off lineup, and a single match clock driven by
 Kick off / Break / Continue / End match / Resume. Since 2026-10-02 format presets carry total play
-minutes, used to mark a player's fair share of play time. Package `kopling/sports-management`
+minutes, used to mark a player's fair share of play time, and a moderation/abuse pass added team
+owners, staff invitations and moderation-portal tooling (see "Moderation & abuse" below). Package `kopling/sports-management`
 (`k-extensions/sports-management`), own Portal `sports-management`, every table `sm_`-prefixed.
-See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3) and 2026-10-02.
+See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3) and 2026-10-02 (×5).
 
 ## Where we left off (2026-10-02)
 
-The extension's tests (63) pass. Work up to 2026-09-30 is committed (`0b6532b`, `0c819ea`);
-2026-10-02 changes are not. Migrations up to 2026-09-30 were edited in place (pre-production);
-play minutes arrive as a new migration (`2026_10_02_000011`). After migrating, run
-`kopling:sports-management:seed-knvb-presets` to fill them in.
+The extension's tests (81) pass. Everything up to `a319864` is committed; the moderation &
+abuse work (below) is not. Migrations up to 2026-09-30 were edited in place (pre-production);
+later ones are new: play minutes (`2026_10_02_000011`, then run
+`kopling:sports-management:seed-knvb-presets`), team owners + invitations (`000012`, backfills
+the earliest staff member of each existing team as owner) and team soft deletes (`000013`).
 
 ### Changes 2026-09-29
 - **Roster:** positions are zero or more of K/D/M/F (`Position` enum, JSON `positions` column,
   `x-k::form.multi-select`); birth year removed. Roster sorted by name; its heading shows a count
   of permanent players and, separately, guests.
 - **Team page:** Roster, Matches and Staff each in a daisyUI card (`card card-border`), in that
-  order, team info + edit on top, a confirmed **Delete team** at the bottom (keeps `Person` rows).
+  order, team info + edit on top, a confirmed **Delete team** at the bottom (kept `Person` rows;
+  reversed 2026-10-02, see "Moderation & abuse").
 - **Tracking page, field:** the top of the screen is a field in four zones (F, M, D, K), the bottom
   a bench. Players are core avatars (`<x-k::person.avatar>`, round) with one initial, or first + last
   initial when another player shares the first letter (`TeamMember::shortInitials()`).
@@ -105,8 +108,15 @@ play minutes arrive as a new migration (`2026_10_02_000011`). After migrating, r
   is `md:` and up) and on the match screen.
 - **Team page order:** Matches above Roster; Matches hidden until the team has a roster (or
   already has matches), so a new team starts at its roster.
+- **Time played** (Report tab) sorted by most minutes played, no longer by who is on the field.
+- **Bench avatars** centered in the bench card.
+- **KNVB seed** now also has JO14 and JO16; values per category are `[players on field, play minutes]`.
+- **Dutch translations** (`lang/nl/messages.php`, `lang/nl/permissions.php`). Core, alongside:
+  the portal layout's `<html lang>` follows the app locale, and `head.blade.php` takes a
+  `@section('description')` override and a `@stack('head')`.
 
 ### Still to check visually
+- Dutch copy read-through on the match screen (longer words in the top bar and badges).
 - 2026-10-02 changes: stop button size next to Break, scorer prompt position over the tabs,
   green badge turning on live, play minutes field on the match form.
 - 2026-09-30 changes: one Back from the match screen returns to the match page, badge tints in
@@ -125,7 +135,8 @@ play minutes arrive as a new migration (`2026_10_02_000011`). After migrating, r
 - Earlier item not yet confirmed: edit controls hidden for staff missing a permission.
 
 ### Next
-Visual pass on a phone (list above), then decide format presets (below).
+Visual pass on a phone (list above) and of the moderation & abuse screens (see that section),
+then decide the communication block and format presets.
 
 ### Open
 - **Later:** a second person operating the phone; preparing substitutions ahead and applying
@@ -142,6 +153,52 @@ Visual pass on a phone (list above), then decide format presets (below).
 - **Edit team button** on the team page keeps the modal's default small trigger; looked fine.
 - **Subsplit:** split to the read-only repository `kopl-ing/sports-management`
   (`.github/subsplit-config.json`), since 2026-09-29.
+
+## Moderation & abuse (2026-10-02)
+
+Team data is private to its staff and holds children's names, so a report-driven queue alone
+catches little. Moderators get team metadata by default and roster/match detail only once a team
+is reported. Everything sits in this extension on existing hooks; `moderation` is unchanged.
+
+### Findings (fixed)
+| Issue | Fix |
+| --- | --- |
+| Adding staff by email attached any account without consent, and the "no account found" error revealed whether an email had an account | Email invitations (`sm_team_invitations`), keyed by the typed email; same response either way; the invitee accepts or declines on their Teams page; staff can revoke |
+| Any staff member could remove any other, including the creator; anyone with `manage-teams` could delete the team | `sm_team_staff.owner`: creator is owner, owners can promote others. Only owners delete the team or remove non-owner staff; anyone may leave, except the last owner |
+| Roster members (children) had a public profile at `/p/{person}` | `profile` 404s unless `Gate::allows('view', $person)`; this extension denies `view` for roster members |
+| Deleting a member or team kept its `Person` rows | A member's login-less `Person` (no email, password or identity) is deleted with it; team delete is permanent and goes per member |
+| No rate limit on creating teams, roster members or invitations | `throttle` per account: teams 10/hour, members 60/hour, invitations 20/hour |
+
+Checked and not an issue: ActivityPub only exposes a Person with an `activitypub_actors` row and a
+handle, which roster members never get.
+
+### Built
+- **Team is a moderation target** (`RegistersModerationTargets`), with `SoftDeletes` +
+  `deleted_by`/`deleted_reason`. Moderation's Hide freezes a team (its staff get a 404),
+  Unhide restores it, Delete removes it for good. Required anyway: the queue treats a
+  non-soft-deletable target as a Person and would render the sanction form for a Team.
+- **Report** from the team page, next to Delete team: moderation's `ReportControlEntry` in this extension's own
+  `kopling-sports-management::team.control` slot (`Extension::TEAM_CONTROL_SLOT`),
+  `class_exists`-guarded.
+- **Queue preview** (`moderation.team-preview`): team details, staff with owner badge and a
+  Sanction button each, roster and matches in collapsed sections. The only place moderators see
+  names from a roster.
+- **Teams overview** in the Moderation portal (`/moderation/sports-management`, sidebar entry
+  `Ux\ModerationNav`): every team including hidden ones, with club, season, format, staff,
+  roster and match counts, created date, sortable by newest / largest roster / most matches,
+  with Hide/Unhide/Delete. No roster names. Gated by the Moderation portal's own `moderate`
+  permission (no raw cross-extension permission string in this extension).
+
+### Open
+- **Communication block:** a moderation sanction's communication block isn't read anywhere yet
+  (core or here). Undecided whether it should stop writes in this extension, since only co-staff
+  see them.
+- **Invitations by mail:** the invitee only sees an invitation once signed in; no email is sent.
+  Invitations don't expire.
+- **Admin people list** still lists roster members (admins only); their profile link there 404s.
+- **Visual check:** Report button next to Delete team at the bottom of the team page, staff list with Owner/Make owner/
+  Leave, invitations card on the Teams page, the Teams overview and team preview in the
+  Moderation portal.
 
 ## Context
 
@@ -184,7 +241,8 @@ credentials. No new "is virtual" column needed on `people` itself.
 - **Teams, not single-team.** A `sm_teams` table: `name`, `club` (plain string for now — no
   `clubs` entity, no club-level multi-team management; that's explicitly excluded from v1),
   `season` (plain string, e.g. `"2026/2027"`), `format_preset_id`.
-- **Staff is many-to-many, per-team.** An account (`Person`) can staff multiple teams; a team can
+- **Staff is many-to-many, per-team** (since 2026-10-02 with owners and invitations, see
+  "Moderation & abuse"). An account (`Person`) can staff multiple teams; a team can
   have multiple staff accounts. A `sm_team_staff` pivot (`team_id`, `person_id`). Per pin's own
   precedent (`decisions.md`, 2026-07-16 — "no per-instance/ownership policy exists in this
   codebase"), this doesn't need a new core mechanism: it's this extension's own table, and its own
@@ -271,8 +329,9 @@ All tables below are `kopling/sports-management`'s own, `sm_`-prefixed — nothi
 columns), not migration code — confirm the shape before Phases 2-3 turn it into real migrations.
 
 - **`sm_teams`** — `name`, `club` (string), `season` (string, e.g. `"2026/2027"`),
-  `format_preset_id` (FK, nullable).
-- **`sm_team_staff`** — pivot: `team_id`, `person_id`.
+  `format_preset_id` (FK, nullable), `deleted_at`/`deleted_by`/`deleted_reason` (moderation hide).
+- **`sm_team_staff`** — pivot: `team_id`, `person_id`, `owner` (bool).
+- **`sm_team_invitations`** — `team_id`, `email` (lowercased, unique per team), `invited_by`.
 - **`sm_team_format_presets`** — `name` (e.g. `"JO11"`), `players_on_field`, `play_minutes`
   (total, nullable), `rules_url`. A small
   seeded set of KNVB categories, editable like any other admin-managed data (not a config file,

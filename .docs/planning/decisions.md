@@ -1503,3 +1503,59 @@ play time; periods stay freely tracked live, so the original concern doesn't app
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-02 — Sports-management team staff: owners and email invitations
+
+**Decision:** `sm_team_staff.owner` marks a team's owners (the creator, plus anyone an owner
+promotes). Only owners delete the team or remove other staff, and never another owner; anyone may
+leave, except the last owner. Staff are added through `sm_team_invitations`, keyed by the typed
+email and accepted by the account signed in with it — never attached directly.
+
+**Why:** any staff member could remove the team's creator and take it over, and adding staff by
+email attached accounts without consent while revealing whether an email had an account.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-10-02 — An extension can keep a Person off public pages via a `view` rule
+
+**Decision:** `profile` registers a base `authorize('view', fn () => true)` on `Person` and 404s
+`/p/{person}` unless `Gate::allows('view', $person)`. An extension holding people who aren't
+community members narrows it with its own `view` rule (`sports-management`: roster members).
+
+**Why:** roster members are children's records stored as plain `Person` rows and had a public
+profile page. The existing `Extend\Model::authorize()` rules (AND-composed) cover this without a
+new contract; the base rule is what keeps "no rule registered" from denying everyone.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-10-02 — A roster member's login-less Person is deleted with it
+
+**Decision:** Deleting a `TeamMember` deletes its `Person` when that Person has no email, password
+or identity; deleting a team does this per member. Reverses the 2026-09-29 "Delete team keeps
+`Person` rows".
+
+**Why:** those rows only exist for the roster, and keeping them left children's names behind with
+nothing referring to them.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-10-02 — Teams are a moderation target; moderators see roster details only on a report
+
+**Decision:** `Team` uses `SoftDeletes` (+ `deleted_by`/`deleted_reason`) and is registered via
+`RegistersModerationTargets`, so moderation's Hide/Unhide/Delete work unchanged (Hide freezes the
+team for its staff). Sports-management adds a Teams overview to the Moderation portal (metadata
+only) and puts moderation's Report entry into its own `team.control` slot, `class_exists`-guarded.
+Roster names and matches appear only in a reported team's queue preview.
+
+**Why:** team data is private to its staff and holds children's names, so moderators get what
+they need to act on abuse without browsing every roster.
+
+**Status:** decided & implemented.
+
+---

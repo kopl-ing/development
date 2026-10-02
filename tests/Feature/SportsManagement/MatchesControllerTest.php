@@ -14,7 +14,7 @@ use Kopling\SportsManagement\TeamMember;
 function staffedTeam(Person $coach): Team
 {
     $team = Team::create(['name' => 'JO11-2', 'club' => 'A', 'season' => '2026/2027']);
-    $team->staff()->attach($coach);
+    $team->staff()->attach($coach, ['owner' => true]);
 
     return $team;
 }

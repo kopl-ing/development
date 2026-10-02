@@ -50,7 +50,7 @@ it('creates a team and attaches the creator as staff', function () {
     $team = Team::where('name', 'JO11-2')->firstOrFail();
     expect($team->club)->toBe('SV Testers')
         ->and($team->season)->toBe('2026/2027')
-        ->and($team->isStaffedBy($person))->toBeTrue();
+        ->and($team->isOwnedBy($person))->toBeTrue();
 });
 
 it('only lists teams the acting person actually staffs', function () {
@@ -78,46 +78,10 @@ it('forbids viewing a team the acting person does not staff', function () {
     $this->actingAs($mine)->get("/sports-management/{$otherTeam->id}")->assertForbidden();
 });
 
-it('adds an existing account as staff by email', function () {
-    $owner = coach('Owner', 'owner@example.test');
-    $newStaff = coach('New Staff', 'new-staff@example.test');
-
-    $team = Team::create(['name' => 'JO9-1', 'club' => 'A', 'season' => '2026/2027']);
-    $team->staff()->attach($owner);
-
-    $this->actingAs($owner)
-        ->post("/sports-management/{$team->id}/staff", ['email' => 'new-staff@example.test'])
-        ->assertRedirect();
-
-    expect($team->isStaffedBy($newStaff))->toBeTrue();
-});
-
-it('rejects adding staff for an email with no account', function () {
-    $owner = coach('Owner', 'owner2@example.test');
-    $team = Team::create(['name' => 'JO9-1', 'club' => 'A', 'season' => '2026/2027']);
-    $team->staff()->attach($owner);
-
-    $this->actingAs($owner)
-        ->post("/sports-management/{$team->id}/staff", ['email' => 'nobody@example.test'])
-        ->assertSessionHasErrors('email');
-});
-
-it('refuses to remove the last remaining staff member', function () {
-    $owner = coach('Owner', 'owner3@example.test');
-    $team = Team::create(['name' => 'JO9-1', 'club' => 'A', 'season' => '2026/2027']);
-    $team->staff()->attach($owner);
-
-    $this->actingAs($owner)
-        ->post("/sports-management/{$team->id}/staff/{$owner->id}/remove")
-        ->assertSessionHasErrors('staff');
-
-    expect($team->isStaffedBy($owner))->toBeTrue();
-});
-
 it('renders the team page with a roster member holding positions', function () {
     $coach = coach();
     $team = Team::create(['name' => 'JO11-2', 'club' => 'A', 'season' => '2026/2027']);
-    $team->staff()->attach($coach);
+    $team->staff()->attach($coach, ['owner' => true]);
     $person = Person::create(['name' => 'Jip']);
     TeamMember::create(['team_id' => $team->id, 'person_id' => $person->id, 'positions' => ['K', 'D'], 'jersey_number' => '7']);
 
@@ -128,20 +92,47 @@ it('renders the team page with a roster member holding positions', function () {
         ->assertSee(__('kopling-sports-management::messages.delete_team'));
 });
 
-it('deletes a team without deleting its roster members\' Person rows', function () {
+it('deletes a team for good, including roster Person rows that have no login', function () {
     $coach = coach();
     $team = Team::create(['name' => 'JO11-2', 'club' => 'A', 'season' => '2026/2027']);
-    $team->staff()->attach($coach);
-    $person = Person::create(['name' => 'Jip']);
-    TeamMember::create(['team_id' => $team->id, 'person_id' => $person->id]);
+    $team->staff()->attach($coach, ['owner' => true]);
+    $player = Person::create(['name' => 'Jip']);
+    TeamMember::create(['team_id' => $team->id, 'person_id' => $player->id]);
+    $account = Person::create(['name' => 'Sem', 'email' => 'sem@example.test', 'password' => 'secret']);
+    TeamMember::create(['team_id' => $team->id, 'person_id' => $account->id]);
 
     $this->actingAs($coach)
         ->post("/sports-management/{$team->id}/delete")
         ->assertRedirect('/sports-management');
 
-    expect(Team::find($team->id))->toBeNull()
-        ->and(TeamMember::where('person_id', $person->id)->exists())->toBeFalse()
-        ->and(Person::find($person->id))->not->toBeNull();
+    expect(Team::withTrashed()->find($team->id))->toBeNull()
+        ->and(TeamMember::where('team_id', $team->id)->exists())->toBeFalse()
+        ->and(Person::find($player->id))->toBeNull()
+        ->and(Person::find($account->id))->not->toBeNull();
+});
+
+it('lets only an owner delete the team', function () {
+    $owner = coach('Owner', 'owner@example.test');
+    $staff = coach('Staff', 'staff@example.test');
+    $team = Team::create(['name' => 'JO11-2', 'club' => 'A', 'season' => '2026/2027']);
+    $team->staff()->attach($owner, ['owner' => true]);
+    $team->staff()->attach($staff);
+
+    $this->actingAs($staff)->get("/sports-management/{$team->id}")
+        ->assertDontSee(__('kopling-sports-management::messages.delete_team'));
+    $this->actingAs($staff)->post("/sports-management/{$team->id}/delete")->assertForbidden();
+
+    expect(Team::find($team->id))->not->toBeNull();
+});
+
+it('rate-limits creating teams', function () {
+    $coach = coach();
+
+    foreach (range(1, 10) as $number) {
+        $this->actingAs($coach)->post('/sports-management', ['name' => "Team $number", 'club' => 'A', 'season' => '2026/2027'])->assertRedirect();
+    }
+
+    $this->actingAs($coach)->post('/sports-management', ['name' => 'One too many', 'club' => 'A', 'season' => '2026/2027'])->assertTooManyRequests();
 });
 
 it('counts permanent players and guests separately on the roster', function () {

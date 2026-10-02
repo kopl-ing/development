@@ -34,8 +34,10 @@ class Extension extends AbstractExtension implements ChangesUx, ExtendsModels, E
     public function models(): array
     {
         return [
+            // A base rule, so other extensions' `view` rules on Person narrow it rather than deny by default.
             new Model(Person::class)
-                ->linksTo('kopling-core::community/profile.show'),
+                ->linksTo('kopling-core::community/profile.show')
+                ->authorize('view', fn () => true),
         ];
     }
 

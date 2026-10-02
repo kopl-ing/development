@@ -63,7 +63,7 @@ it('updates a roster member, including the underlying Person name', function () 
         ->and($member->refresh()->jersey_number)->toBe('10');
 });
 
-it('deletes a roster member but keeps its underlying Person', function () {
+it('deletes a roster member together with its login-less Person', function () {
     $coach = coach('Coach', 'delete-coach@example.test');
     $team = Team::create(['name' => 'JO11-2', 'club' => 'A', 'season' => '2026/2027']);
     $team->staff()->attach($coach);
@@ -76,7 +76,7 @@ it('deletes a roster member but keeps its underlying Person', function () {
         ->assertRedirect();
 
     expect(TeamMember::find($member->id))->toBeNull()
-        ->and(Person::find($person->id))->not->toBeNull();
+        ->and(Person::find($person->id))->toBeNull();
 });
 
 it('forbids managing the roster of a team the acting person does not staff', function () {
