@@ -446,6 +446,25 @@ it('lists the bench by fewest minutes played once the match is on', function () 
         ->assertSeeInOrder(['data-sm-bench', 'data-sm-player="'.$zoe->id.'"', 'data-sm-player="'.$anna->id.'"'], false);
 });
 
+it('lists time played from most to least minutes, not by who is on the field', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    rosterMember($team, 'Anna');
+    $bob = rosterMember($team, 'Bob');
+    $zoe = rosterMember($team, 'Zoe');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$zoe->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+    Carbon::setTestNow('2026-10-10 09:40:00');
+    $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $bob->id, 'replace_team_member_id' => $zoe->id])
+        ->assertSessionHasNoErrors();
+    Carbon::setTestNow('2026-10-10 09:42:00');
+
+    $this->actingAs($coach)->get(trackUrl($match))
+        ->assertSeeInOrder(['Time played', 'Zoe', 'Bob', 'Anna', 'Enter afterwards']);
+});
+
 it('puts the match controls in the portal top bar and drops the sidebar on the match screen only', function () {
     $coach = coach();
     $team = staffedTeam($coach);

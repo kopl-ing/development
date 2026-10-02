@@ -171,3 +171,18 @@ it('lists the roster sorted by name', function () {
         ->get("/sports-management/{$team->id}")
         ->assertSeeInOrder(['anna', 'Jip', 'Sem']);
 });
+
+it('hides matches until the team has a roster, then shows them above it', function () {
+    $coach = coach();
+    $team = Team::create(['name' => 'JO11-2', 'club' => 'A', 'season' => '2026/2027']);
+    $team->staff()->attach($coach);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")
+        ->assertSee('Add member')
+        ->assertDontSee('Plan match');
+
+    TeamMember::create(['team_id' => $team->id, 'person_id' => Person::create(['name' => 'Jip'])->id]);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")
+        ->assertSeeInOrder(['Plan match', 'Add member']);
+});

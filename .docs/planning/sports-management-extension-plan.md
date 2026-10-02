@@ -97,6 +97,8 @@ play minutes arrive as a new migration (`2026_10_02_000011`). After migrating, r
 - **Fair-share badge:** a minutes badge turns green once the player reached play minutes ×
   players-on-field ÷ squad shown (absent players excluded); switches live while ticking. No
   format or play minutes: no green.
+- **Team page order:** Matches above Roster; Matches hidden until the team has a roster (or
+  already has matches), so a new team starts at its roster.
 
 ### Still to check visually
 - 2026-10-02 changes: stop button size next to Break, scorer prompt position over the tabs,
