@@ -9,6 +9,7 @@ use Kopling\SportsManagement\MatchState;
 use Kopling\SportsManagement\PeriodType;
 use Kopling\SportsManagement\Position;
 use Kopling\SportsManagement\SubstitutionDirection;
+use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMatch;
 
 function trackUrl(TeamMatch $match, string $path = ''): string
@@ -508,6 +509,22 @@ it('tints minutes-played badges from fewest (warning) to most (info) within the 
     $this->actingAs($coach)->get(trackUrl($match))
         ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', 'var(--color-info) 100%'], false)
         ->assertSee('var(--color-warning) 100%', false);
+});
+
+it('turns a minutes-played badge green once the player reached their fair share of play time', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO7', 'players_on_field' => 1, 'play_minutes' => 20])->id]);
+    $anna = rosterMember($team, 'Anna');
+    $zoe = rosterMember($team, 'Zoe');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$anna->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+    Carbon::setTestNow('2026-10-10 09:40:00');
+
+    $this->actingAs($coach)->get(trackUrl($match))
+        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', '--badge-color: var(--color-success)', 'data-sm-player="'.$zoe->id.'"', 'var(--color-warning) 100%'], false);
 });
 
 it('replaces the history entry instead of pushing one for every match screen action', function () {

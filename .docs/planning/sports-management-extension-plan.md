@@ -1,17 +1,19 @@
-# Plan: a Dutch youth soccer team management extension
+# Plan: `sports-management`, a Dutch youth soccer team management extension
 
 Status: renamed from `kopling/soccer-management` to `kopling/sports-management` (2026-09-29, see
 decisions.md). All three phases built, plus a reworked tracking page (2026-09-29): a field with K/D/M/F
 zones and a bench of avatars, a stored pre-kick-off lineup, and a single match clock driven by
-Kick off / Break / Continue / End match / Resume. Package `kopling/sports-management`
+Kick off / Break / Continue / End match / Resume. Since 2026-10-02 format presets carry total play
+minutes, used to mark a player's fair share of play time. Package `kopling/sports-management`
 (`k-extensions/sports-management`), own Portal `sports-management`, every table `sm_`-prefixed.
-See decisions.md, 2026-09-21, 2026-09-28 (×2) and 2026-09-29 (×3).
+See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3) and 2026-10-02.
 
-## Where we left off (2026-09-30)
+## Where we left off (2026-10-02)
 
-The extension's tests (61) pass. 2026-09-29 work is committed (`0b6532b`); 2026-09-30 changes are not.
-Migrations were edited in place (pre-production); the dev database was patched to match, a fresh
-install needs nothing extra.
+The extension's tests (63) pass. Work up to 2026-09-30 is committed (`0b6532b`, `0c819ea`);
+2026-10-02 changes are not. Migrations up to 2026-09-30 were edited in place (pre-production);
+play minutes arrive as a new migration (`2026_10_02_000011`). After migrating, run
+`kopling:sports-management:seed-knvb-presets` to fill them in.
 
 ### Changes 2026-09-29
 - **Roster:** positions are zero or more of K/D/M/F (`Position` enum, JSON `positions` column,
@@ -51,8 +53,8 @@ install needs nothing extra.
     event log, time played, "Enter afterwards", Delete match). The chosen tab survives reloads.
   - Match controls live in the portal's top bar, in the left-hand `topbar-start` slot
     (`Ux\MatchControls`, renders only on the tracking route; the user menu keeps the right side): score, opponent **+1**, match clock, break timer, one main
-    button (Kick off / Break / Continue), and a ⋯ menu (core `x-k::dropdown`) holding End match /
-    Resume match. The match screen drops the left sidebar (`@extends(..., ['sidebar' => false])`).
+    button (Kick off / Break / Continue), a stop button for End match (since 2026-10-02), and,
+    once ended, a ⋯ menu (core `x-k::dropdown`) holding Resume match. The match screen drops the left sidebar (`@extends(..., ['sidebar' => false])`).
   - **Goal in two taps:** Goal → tap the scorer → tap the assist or Skip. Goal dropdowns only
     remain in "Enter afterwards".
   - **Undo** for 10 seconds after a field change or goal (daisyUI `toast`); the server remembers
@@ -86,7 +88,19 @@ install needs nothing extra.
 - `decisions.md`: outdated "not started" statuses corrected (names left as-is, the 2026-09-29
   rename entry explains them).
 
+### Changes 2026-10-02
+- **End match** is an icon-only stop button (confirmed) next to Break/Continue; the ⋯ menu only
+  remains after the match ended, for Resume match.
+- **"Tap the scorer" prompt** sits over the "On field" row and the tabs instead of the field.
+- **Play minutes:** format presets carry total play time (KNVB seed, upserted by name on every run),
+  overridable per match. Still no round/break schedule.
+- **Fair-share badge:** a minutes badge turns green once the player reached play minutes ×
+  players-on-field ÷ squad shown (absent players excluded); switches live while ticking. No
+  format or play minutes: no green.
+
 ### Still to check visually
+- 2026-10-02 changes: stop button size next to Break, scorer prompt position over the tabs,
+  green badge turning on live, play minutes field on the match form.
 - 2026-09-30 changes: one Back from the match screen returns to the match page, badge tints in
   light and dark, the match page on a phone (header row fits, availability icons on one row with
   the name, their colors when selected, red/green count badge), guests listed last on the roster.
@@ -179,9 +193,10 @@ credentials. No new "is virtual" column needed on `people` itself.
   their own device, live or after the fact. No multi-viewer live-updating requirement, so this
   needs nothing beyond normal htmx form posts — `k-extensions/realtime` (still just a plan, not
   built) isn't a dependency here.
-- **Format preset: KNVB categories, players-on-field only.** A small fixed set of presets
-  (JO7 4v4, JO9 6v6, JO11 8v8, JO13/15/17/19 11v11, etc.) — each just a name, a players-on-field
-  count, and a rules-link URL. **Round length and number of rounds are deliberately excluded from
+- **Format preset: KNVB categories, players-on-field and total play minutes.** A small fixed set
+  of presets (JO7 through JO19 and Senioren) — each a name, a players-on-field count, total play
+  minutes (added 2026-10-02, overridable per match), and a rules-link URL. The seed upserts by name,
+  so re-running it applies changed KNVB values. **Round length and number of rounds are deliberately excluded from
   the preset.** Feedback from prior tooling: a fixed round/break schedule baked into the preset
   gave no way to amend a forgotten or early break marker during a live match. Instead, periods
   (halves/thirds/quarters, breaks) are tracked as their own start/end events during match
@@ -250,7 +265,8 @@ columns), not migration code — confirm the shape before Phases 2-3 turn it int
 - **`sm_teams`** — `name`, `club` (string), `season` (string, e.g. `"2026/2027"`),
   `format_preset_id` (FK, nullable).
 - **`sm_team_staff`** — pivot: `team_id`, `person_id`.
-- **`sm_team_format_presets`** — `name` (e.g. `"JO11"`), `players_on_field`, `rules_url`. A small
+- **`sm_team_format_presets`** — `name` (e.g. `"JO11"`), `players_on_field`, `play_minutes`
+  (total, nullable), `rules_url`. A small
   seeded set of KNVB categories, editable like any other admin-managed data (not a config file,
   per CLAUDE.md's "avoid config files").
 - **`sm_team_members`** — one-to-one satellite on a `Person` (`person_id`, unique), `team_id`,
@@ -259,7 +275,8 @@ columns), not migration code — confirm the shape before Phases 2-3 turn it int
   columns — coach/staff manage the roster directly, no guardian-on-behalf-of-player concept yet.
 - **`sm_matches`** (Phase 2, built) — `team_id`, `opponent_name`, `home_away` (enum),
   `location_address` (text), `format_preset_id` (nullable FK — defaults from
-  `team.format_preset_id`, overridable per match), `scheduled_at`. No stored result/state column
+  `team.format_preset_id`, overridable per match), `play_minutes` (nullable — falls back to the
+  effective preset's), `scheduled_at`. No stored result/state column
   — final score and planned/in-progress/final state are both derived from
   `sm_match_goals`/`sm_match_periods` (one source of truth, can't drift out of sync with the
   event log).

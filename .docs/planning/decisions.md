@@ -1370,7 +1370,7 @@ tracked as freely-correctable live events in a later phase instead of a fixed pr
 this codebase (see the pin entry above), this extension's own controllers check
 `Team::isStaffedBy()` directly alongside the `manage-teams` Gate permission, rather than core
 growing a general ownership concept for it. Full design log:
-`.docs/planning/team-management-extension-plan.md`.
+`.docs/planning/sports-management-extension-plan.md`.
 
 **Why:** matches an existing precedent (`activitypub`) instead of inventing a new "virtual
 person" mechanism, keeps match-day tracking (a later phase) from inheriting a rigid round/break
@@ -1486,6 +1486,19 @@ repository `kopl-ing/sports-management`. Tables keep the `sm_` prefix. Supersede
 
 **Why:** the extension is meant to be installable on its own, and its name shouldn't tie it to one
 sport.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-10-02 — Format presets carry total play minutes
+
+**Decision:** `sm_team_format_presets.play_minutes` (KNVB seed values), overridable by
+`sm_matches.play_minutes`. Amends the 2026-09-21 entry's "round length excluded from the preset":
+only the total is stored, never a round/break schedule.
+
+**Why:** the match screen needs the expected total to mark when a player reached a fair share of
+play time; periods stay freely tracked live, so the original concern doesn't apply.
 
 **Status:** decided & implemented.
 

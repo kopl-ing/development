@@ -77,6 +77,18 @@ it('inherits the team format preset unless the match overrides it', function () 
         ->and(plannedMatch($team, ['format_preset_id' => $jo13->id])->effectiveFormatPreset()->is($jo13))->toBeTrue();
 });
 
+it('takes play minutes from the match, falling back to the format, and shares them over the squad', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO11', 'players_on_field' => 8, 'play_minutes' => 60])->id]);
+    $overridden = plannedMatch($team, ['play_minutes' => 50]);
+
+    expect(plannedMatch($team)->fairShareSeconds(10))->toBe(48 * 60)
+        ->and($overridden->effectivePlayMinutes())->toBe(50)
+        ->and($overridden->fairShareSeconds(6))->toBe(50 * 60)
+        ->and(plannedMatch(staffedTeam($coach), ['play_minutes' => 60])->fairShareSeconds(10))->toBeNull();
+});
+
 it('updates and deletes a match', function () {
     $coach = coach();
     $team = staffedTeam($coach);
