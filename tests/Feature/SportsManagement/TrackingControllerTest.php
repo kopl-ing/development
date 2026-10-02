@@ -527,6 +527,31 @@ it('turns a minutes-played badge green once the player reached their fair share 
         ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', '--badge-color: var(--color-success)', 'data-sm-player="'.$zoe->id.'"', 'var(--color-warning) 100%'], false);
 });
 
+it('leaves players marked absent out of the squad the fair share is divided over', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 50])->id]);
+    $anna = rosterMember($team, 'Anna');
+    foreach (range(2, 9) as $number) {
+        rosterMember($team, "Player $number");
+    }
+    $absent = rosterMember($team, 'Absent');
+    $match = plannedMatch($team);
+    $match->availabilities()->create(['team_member_id' => $absent->id, 'status' => 'absent']);
+    lineup($this, $coach, $match, [$anna->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(1999));
+    $this->actingAs($coach)->get(trackUrl($match))
+        ->assertDontSee('style="--badge-color: var(--color-success)', false)
+        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', '>= 2000'], false);
+
+    Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(2000));
+    $this->actingAs($coach)->get(trackUrl($match))
+        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', 'style="--badge-color: var(--color-success)'], false);
+});
+
 it('replaces the history entry instead of pushing one for every match screen action', function () {
     $coach = coach();
     $match = plannedMatch(staffedTeam($coach));
