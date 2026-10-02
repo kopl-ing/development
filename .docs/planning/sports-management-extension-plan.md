@@ -97,6 +97,12 @@ play minutes arrive as a new migration (`2026_10_02_000011`). After migrating, r
 - **Fair-share badge:** a minutes badge turns green once the player reached play minutes ×
   players-on-field ÷ squad shown (absent players excluded); switches live while ticking. No
   format or play minutes: no green.
+- **Fair share on the bench card:** a faint "Fair share 33'" corner label (same style as the zone
+  letters), whole minutes; hidden before kick-off and without play minutes.
+- **Sidebar** (`Ux\TeamsNav` in the portal's `sidebar-panel` slot): the teams you staff, and, when
+  that's at most 3, the next 3 not-yet-ended matches from today on (live ones marked, linking
+  to tracking; team name shown only with more than one team). Hidden on phones (the core sidebar
+  is `md:` and up) and on the match screen.
 - **Team page order:** Matches above Roster; Matches hidden until the team has a roster (or
   already has matches), so a new team starts at its roster.
 

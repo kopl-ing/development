@@ -559,6 +559,7 @@ it('leaves players marked absent out of the squad the fair share is divided over
     $match = plannedMatch($team);
     $match->availabilities()->create(['team_member_id' => $absent->id, 'status' => 'absent']);
     lineup($this, $coach, $match, [$anna->id => 'F']);
+    $this->actingAs($coach)->get(trackUrl($match))->assertDontSee('Fair share');
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
 
     Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(1999));
@@ -568,7 +569,8 @@ it('leaves players marked absent out of the squad the fair share is divided over
 
     Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(2000));
     $this->actingAs($coach)->get(trackUrl($match))
-        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', 'style="--badge-color: var(--color-success)'], false);
+        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', 'style="--badge-color: var(--color-success)'], false)
+        ->assertSeeInOrder(['data-sm-bench', "Fair share 33'"]);
 });
 
 it('replaces the history entry instead of pushing one for every match screen action', function () {
