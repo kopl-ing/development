@@ -580,3 +580,16 @@ it('replaces the history entry instead of pushing one for every match screen act
     $this->actingAs($coach)->get(trackUrl($match))
         ->assertSeeInOrder(['data-sm-controls hx-replace-url:inherited="true"', 'hx-replace-url:inherited="true"', 'data-sm-field'], false);
 });
+
+it('names the position a player was moved onto in the event log', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $anna = rosterMember($team, 'Anna');
+    $match = plannedMatch($team);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $anna->id, 'zone' => 'M'])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertSee('Anna to Midfield');
+});
