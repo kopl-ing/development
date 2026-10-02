@@ -56,3 +56,17 @@ it('memoizes extensions(false) and extensions(true) independently on the same Ma
     expect($manager->extensions())->toHaveKey('tests-fixtures/disableable')
         ->and($manager->extensions(includeDisabled: true))->toHaveKey('tests-fixtures/disableable');
 });
+
+it('keeps a disabled extension\'s migrations, so its tables exist whatever any later process sees as enabled', function () {
+    EnabledExtensions::disable('tests-fixtures-disableable', ['tests-fixtures-disableable', 'tests-fixtures-pinned']);
+
+    $manager = fakeManager([
+        'tests-fixtures/disableable' => [
+            'namespace' => 'Tests\\Fixtures\\Extensions\\Disableable\\',
+            'path' => dirname(__DIR__, 2).'/Fixtures/Extensions/Disableable',
+        ],
+    ]);
+
+    expect($manager->extensions())->not->toHaveKey('tests-fixtures/disableable')
+        ->and($manager->migrationPaths())->toContain(realpath(dirname(__DIR__, 2).'/Fixtures/Extensions/Disableable/migrations'));
+});

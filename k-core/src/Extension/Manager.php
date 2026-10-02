@@ -147,6 +147,20 @@ class Manager
         return $conventions;
     }
 
+    /**
+     * Every installed extension's migrations, enabled or not: a process seeing a different enabled set must never meet missing tables.
+     *
+     * @return array<int, string>
+     */
+    public function migrationPaths(): array
+    {
+        return collect(array_keys($this->extensions(includeDisabled: true)))
+            ->map(fn (string $package) => $this->conventions($package)['migrations'] ?? null)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     public function path(string $package): ?string
     {
         return match ($package) {

@@ -108,16 +108,14 @@ class ServiceProvider extends Provider
         $manager->listeners();
         $manager->models();
 
+        $this->loadMigrationsFrom($manager->migrationPaths());
+
         foreach ($manager->extensions() as $package => $extension) {
             $id = $manager->id($package);
             $conventions = $manager->conventions($package);
 
             if ($package !== 'kopling/core') {
                 Blade::componentNamespace(Str::beforeLast($extension::class, '\\'), $id);
-            }
-
-            if (isset($conventions['migrations'])) {
-                $this->loadMigrationsFrom($conventions['migrations']);
             }
 
             if (isset($conventions['views'])) {

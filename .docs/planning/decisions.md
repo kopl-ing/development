@@ -1576,3 +1576,16 @@ it already fills other pages' slots.
 **Status:** decided & implemented (scaffold: name only).
 
 ---
+
+## 2026-10-02 — Migrations load for every installed extension, enabled or not
+
+**Decision:** `Manager::migrationPaths()` returns every installed extension's `migrations/`,
+including disabled ones; `ServiceProvider` loads those instead of only the enabled extensions'.
+
+**Why:** the enabled set can differ between processes (a wiped `settings` table means "everything
+enabled"), so a `migrate` that skipped a disabled extension left the next process querying
+tables that were never created; enabling an extension also never ran its migrations.
+
+**Status:** decided & implemented.
+
+---
