@@ -266,8 +266,9 @@ that switch, and a second one living behind the same admin surface it would also
 redundant kill-switch, not a more surgical one.
 
 **Known gap, decided out of scope for this plan (2026-08-10):** setting a Person's own
-`handle`/`federation_enabled` (Phase 2) needs a per-person settings page, which doesn't exist
-anywhere in this codebase yet (`HasAdminSettings` is explicitly admin-only — its own docblock
+`handle`/`federation_enabled` (Phase 2) needs a per-person settings section. Since 2026-10-02 core
+has a `/settings` page that extensions add sections to (decisions.md); activitypub's own section
+isn't built. Originally: no per-person settings page existed (`HasAdminSettings` is explicitly admin-only — its own docblock
 reserves the name `HasSettings` for a future per-person contract that was never built). Building
 that page is its own project, not this plan's. Until it exists, setting a `handle` is a manual
 `ActivitypubActor::create()`/tinker step — every route/job in this plan that reads `handle`/

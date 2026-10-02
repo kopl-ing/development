@@ -72,6 +72,13 @@ class UserMenu extends Component
             ])
             ->in(self::SLOT)
             ->as('community-link')
+            ->add(Item::class, [
+                'label' => __('kopling-core::community.settings'),
+                'route' => 'kopling-core::community/settings',
+                'icon' => 'kopling-core::settings',
+            ])
+            ->in(self::SLOT)
+            ->as('settings-link')
             ->add(LogoutItem::class)
             ->in(self::SLOT)
             ->as('logout')

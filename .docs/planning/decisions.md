@@ -1559,3 +1559,20 @@ they need to act on abuse without browsing every roster.
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-02 — Per-person settings page in core, extensions add sections via a slot
+
+**Decision:** Core owns `/settings` (Community portal, signed-in local people only: a non-null
+`origin` gets a 404, since that person is edited on their own instance), linked from the account
+menu, with the one field core owns: the person's name. Extensions add their own section (a card
+with its own form, route and persistence) to `AccountSettingsController::SECTIONS_SLOT`, bound
+to the signed-in Person. No declarative per-person settings contract yet; the name `HasSettings`
+stays reserved for one.
+
+**Why:** what people will edit there (password, an ActivityPub handle) lives in the owning
+extension's own columns or tables, so each extension keeps its form and storage, the same way
+it already fills other pages' slots.
+
+**Status:** decided & implemented (scaffold: name only).
+
+---

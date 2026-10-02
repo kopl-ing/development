@@ -35,3 +35,8 @@ Route::middleware('guest')->group(function () {
 Route::post('logout', [LoginController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::get('settings', [AccountSettingsController::class, 'edit'])->name('settings');
+    Route::post('settings', [AccountSettingsController::class, 'update'])->name('settings.update');
+});
