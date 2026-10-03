@@ -720,3 +720,27 @@ it('ignores a remembered slot once the player is in another zone', function () {
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()
         ->assertSeeInOrder(['data-sm-zone="F"', 'data-sm-player="'.$anna->id.'"', 'data-sm-player="'.$bram->id.'"', 'data-sm-zone="M"'], false);
 });
+
+it('records an own goal by the opponent as ours, without a scorer', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $jip = rosterMember($team, 'Jip');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()->assertSee('data-sm-goal-own', false)->assertSee('name="own_goal"', false);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['own_goal' => '1'])->assertRedirect(trackUrl($match));
+    $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['own_goal' => '1', 'scorer_team_member_id' => $jip->id])->assertSessionHasErrors('scorer_team_member_id');
+    $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['opponent' => '1', 'own_goal' => '1'])->assertRedirect(trackUrl($match));
+
+    $timeline = $match->fresh()->timeline();
+    expect($timeline->score())->toBe(['us' => 1, 'them' => 1])
+        ->and($timeline->contributions())->toBe([])
+        ->and(MatchGoal::where('opponent', true)->value('own_goal'))->toBeFalse();
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}/report")->assertOk()
+        ->assertSee('Own goal by FC Rivals JO11-1')
+        ->assertSeeInOrder(['Goals and assists', 'No goals or assists yet.']);
+});

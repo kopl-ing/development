@@ -120,8 +120,8 @@ the earliest staff member of each existing team as owner) and team soft deletes 
   keeps "on".
 - **Sidebar icons:** teams and upcoming matches carry an icon, declared as overridable
   `kopling-sports-management::team` (default `fas-user-group`) and `::match` (default
-  `fas-futbol`). The requested `user-group-simple` / `court-sport` are Font Awesome Pro and not in
-  the installed free set.
+  `fas-futbol`). The requested `user-group-simple` / `court-sport` are Font Awesome Pro, so they
+  can't be the defaults; see the Pro item under open points.
 - **Report** moved from the team header to the bottom row, next to Delete team (see
   "Moderation & abuse").
 - **Nightly deploy failure** after these migrations (`activitypub_actors` missing) was core's,
@@ -163,8 +163,9 @@ then decide the communication block and format presets.
   actions was left out on purpose.
 - **Avatar icons from extensions** (e.g. roles): a `RenderingAvatar` event, same shape as
   `RenderingCard`, deferred until a first real use.
-- **Font Awesome Pro icons** (`user-group-simple`, `court-sport`) for the sidebar: only possible
-  with a Pro icon set installed; until then the free defaults stay, overridable per icon.
+- **Font Awesome Pro icons** (`user-group-simple`, `court-sport`) for the sidebar: a site can now
+  install Pro with its own token (`kopling:icons:pro`, see decisions.md, 2026-10-03) and override
+  these two icons; the defaults stay free, since most sites won't have Pro.
 - **Roster members as accounts:** core now has a `/settings` page for a person's own name, with
   a slot for extension sections. Nothing here uses it yet; it becomes relevant once a roster
   member's `Person` can log in (the "real accounts later" path).

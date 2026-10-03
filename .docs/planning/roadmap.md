@@ -103,6 +103,10 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   - real Portal-scoping inside `UxEntry`/`SlotResolver` (e.g. requiring/validating a Portal id
     alongside the slot name) is a larger change touching every extension's `ux()` method and
     isn't designed yet.
+- Font Awesome Pro styles in the tag icon picker — postponed. A site can install Pro with
+  `kopling:icons:pro` (see decisions.md, 2026-10-03), but tags still store a bare id rendered as
+  solid (`IconRenderer::svg()` prefixes `fas-`). Needs: store the style with the id (`fal-star`;
+  a bare id keeps meaning solid) and a style choice in the picker, offering only installed styles.
 
 ### Content model / Moments
 - A Moment can't currently be "feature-only" (an image, a poll, a product — with no title/body
