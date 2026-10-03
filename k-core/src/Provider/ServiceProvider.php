@@ -17,6 +17,7 @@ use Kopling\Core\Console\Commands\CacheRegistrations;
 use Kopling\Core\Console\Commands\DisableExtension;
 use Kopling\Core\Console\Commands\DiscoverExtensions;
 use Kopling\Core\Console\Commands\EnableExtension;
+use Kopling\Core\Console\Commands\FontAwesomeProIcons;
 use Kopling\Core\Console\Commands\ListExtensionRegistrations;
 use Kopling\Core\Console\Commands\ListExtensions;
 use Kopling\Core\Extension\Manager;
@@ -27,6 +28,7 @@ use Kopling\Core\Http\Middleware\EnforceSanctions;
 use Kopling\Core\Http\Middleware\InjectPortal;
 use Kopling\Core\People\Guest;
 use Kopling\Core\People\Person;
+use Kopling\Core\Ux\FontAwesomePro;
 
 class ServiceProvider extends Provider
 {
@@ -50,6 +52,8 @@ class ServiceProvider extends Provider
 
         $this->app->singleton(Manager::class);
 
+        FontAwesomePro::boot($this->app);
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 DiscoverExtensions::class,
@@ -58,6 +62,7 @@ class ServiceProvider extends Provider
                 ListExtensions::class,
                 EnableExtension::class,
                 DisableExtension::class,
+                FontAwesomeProIcons::class,
                 ...$this->app->make(Manager::class)->commands(),
             ]);
         }

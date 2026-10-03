@@ -1602,3 +1602,16 @@ while the player is still in the zone it was set for, so no other code path has 
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-03 — Font Awesome Pro is downloaded per site with the owner's own token
+
+**Decision:** `kopling:icons:pro` downloads Font Awesome Pro 7.x from `npm.fontawesome.com` over plain
+HTTP with the site owner's package token into `storage/app/kopling/fontawesome-pro`, stores the token
+encrypted in Settings for re-runs, and core points blade-fontawesome's sets at those files.
+
+**Why:** Kopling is FOSS and can't ship Pro SVGs; this keeps them out of the monorepo and subsplits,
+and needs no Node on the host. Extension icon defaults stay Free-only, since most sites won't have Pro.
+
+**Status:** decided & implemented.
+
+---
