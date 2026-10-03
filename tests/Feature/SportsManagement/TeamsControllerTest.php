@@ -241,3 +241,22 @@ it('preselects the sport stored in the session when creating a team', function (
     $this->actingAs($person)->withSession([Sport::SESSION_KEY => 'curling'])->get('/sports-management')->assertOk()
         ->assertSee('<option value="football" selected>', false);
 });
+
+it('deletes a team, roster included, once its last staff member is deleted', function () {
+    $coach = coach();
+    $alone = staffedTeam($coach);
+    $kid = rosterMember($alone, 'Kid');
+    $shared = Team::create(['name' => 'Shared', 'club' => 'A', 'season' => '2026/2027']);
+    $shared->staff()->attach($coach, ['owner' => true]);
+    $shared->staff()->attach(coach('Other', 'other@example.test'));
+    $hidden = Team::create(['name' => 'Hidden', 'club' => 'A', 'season' => '2026/2027']);
+    $hidden->staff()->attach($coach, ['owner' => true]);
+    $hidden->delete();
+
+    $coach->delete();
+
+    expect(Team::withTrashed()->find($alone->id))->toBeNull()
+        ->and(Team::withTrashed()->find($hidden->id))->toBeNull()
+        ->and(\Kopling\Core\People\Person::find($kid->person_id))->toBeNull()
+        ->and(Team::find($shared->id))->not->toBeNull();
+});

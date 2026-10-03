@@ -64,7 +64,7 @@ A feature belongs to the extension whose *domain concept* it is — never to whi
 
 Concrete test: with the *other* extension uninstalled, would this extension's migration/controller/view still read as entirely its own domain, with no mention of the other's feature by name? If the code can't be explained without naming that other extension's concept, it belongs there instead, reached into this one through an existing extensibility mechanism:
 
-- `Extend\Model` — relations, casts, `creating`/`saving` hooks on a model you don't own
+- `Extend\Model` — relations, casts, `creating`/`saving`/`saved`/`deleting` hooks on a model you don't own
 - `Extension\Contract\ValidatesModels` — extra validation rules/messages for a model you don't own, aggregated via `Manager::modelValidationRules()`
 - `ChangesUx` — a slot on a page or form you don't own; `Ux\Portal\Slot` takes an optional `:context` prop for slots bound to a specific record (a `Tag` being edited, say), not just page-level chrome
 - `ExtendsPortals` — routes/css/js attached to a Portal you don't own

@@ -45,6 +45,13 @@
                                             <button type="submit" class="btn btn-primary self-start">{{ __('kopling-admin::messages.save') }}</button>
                                         </form>
                                     </x-k::modal>
+                                    @unless ($person->is(auth()->user()))
+                                        <form method="POST" action="{{ route('kopling-admin::admin/people.destroy', $person) }}"
+                                              hx-boost="true" hx-confirm="{{ __('kopling-admin::messages.confirm_delete_person', ['name' => $person->name]) }}">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-error btn-outline">{{ __('kopling-admin::messages.delete') }}</button>
+                                        </form>
+                                    @endunless
                                 </div>
                             </td>
                         </tr>

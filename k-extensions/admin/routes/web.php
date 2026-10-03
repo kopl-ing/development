@@ -46,6 +46,7 @@ Route::middleware('can:kopling-admin::manage-settings')->group(function () {
 Route::middleware('can:kopling-core::manage-people')->group(function () {
     Route::get('people', [PeopleController::class, 'index'])->name('people');
     Route::post('people/{person}/groups', [PeopleController::class, 'updateGroups'])->name('people.groups');
+    Route::post('people/{person}/delete', [PeopleController::class, 'destroy'])->name('people.destroy');
 
     Route::get('groups', [GroupsController::class, 'index'])->name('groups');
     Route::post('groups', [GroupsController::class, 'store'])->name('groups.store');

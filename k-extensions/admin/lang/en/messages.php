@@ -25,6 +25,7 @@ return [
     'delete' => 'Delete',
     'edit' => 'Edit',
     'confirm_delete_group' => 'Delete this group? This cannot be undone.',
+    'confirm_delete_person' => 'Delete :name, including everything they posted, reacted and voted? This cannot be undone.',
 
     'drives' => 'Drives',
     'new_drive' => 'New drive',

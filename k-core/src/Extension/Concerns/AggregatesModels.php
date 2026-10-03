@@ -69,6 +69,10 @@ trait AggregatesModels
                 $class::saved($model->saved);
             }
 
+            if ($model->deleting !== null) {
+                $class::deleting($model->deleting);
+            }
+
             if ($model->morphAlias !== null) {
                 EloquentRelation::morphMap([$model->morphAlias => $class]);
             }

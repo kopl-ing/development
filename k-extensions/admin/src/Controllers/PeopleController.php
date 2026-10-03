@@ -36,4 +36,16 @@ class PeopleController
 
         return redirect()->route('kopling-admin::admin/people');
     }
+
+    /**
+     * Everything the person created goes with them, through the foreign keys' cascades.
+     */
+    public function destroy(Request $request, Person $person): RedirectResponse
+    {
+        abort_if($person->is($request->user()), 403);
+
+        $person->delete();
+
+        return redirect()->route('kopling-admin::admin/people');
+    }
 }

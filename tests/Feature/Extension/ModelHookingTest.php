@@ -59,3 +59,18 @@ it('registers a fixture extension\'s saved() hook, firing post-insert with a rea
         ->and(ModelHookerExtension::$savedLog[1]['id'])->toBe($message->id)
         ->and(ModelHookerExtension::$savedLog[1]['wasRecentlyCreated'])->toBeFalse();
 });
+
+it('registers a fixture extension\'s deleting() hook, firing before the row goes and able to cancel it', function () {
+    migrateModelHookerFixture();
+    ModelHookerExtension::$deletingLog = [];
+
+    $gone = Message::create(['body' => 'bye']);
+    $kept = Message::create(['body' => 'keep-me']);
+
+    $gone->delete();
+    $kept->delete();
+
+    expect(ModelHookerExtension::$deletingLog)->toBe([$gone->id, $kept->id])
+        ->and(Message::find($gone->id))->toBeNull()
+        ->and(Message::find($kept->id))->not->toBeNull();
+});

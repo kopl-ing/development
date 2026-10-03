@@ -66,3 +66,34 @@ it('syncs a person\'s groups, attaching and detaching in one call', function () 
 
     expect($target->groups->pluck('id')->all())->toBe([$newGroup->id]);
 });
+
+it('deletes a person with confirmation, taking their posts but keeping the sanctions they issued', function () {
+    $admin = personWithManagePeople();
+    $moderator = Person::create(['name' => 'Mo', 'email' => 'mo@example.test', 'password' => 'secret']);
+    $banned = Person::create(['name' => 'Spammer', 'email' => 'spam@example.test', 'password' => 'secret']);
+    $sanction = \Kopling\Core\People\Sanction::issue($banned, ['access_blocked' => true, 'reason' => 'spam'], $moderator);
+    $moment = \Kopling\Core\Content\Moment::create(['person_id' => $moderator->id, 'title' => 'Hi', 'body' => 'Hello']);
+
+    $this->actingAs($admin)->get('/admin/people')->assertOk()
+        ->assertSee('hx-confirm="Delete Mo, including everything they posted', false)
+        ->assertSee('/admin/people/'.$moderator->id.'/delete', false)
+        ->assertDontSee('/admin/people/'.$admin->id.'/delete', false);
+
+    $this->actingAs($admin)->post("/admin/people/{$moderator->id}/delete")->assertRedirect();
+
+    expect(Person::find($moderator->id))->toBeNull()
+        ->and(\Kopling\Core\Content\Moment::find($moment->id))->toBeNull()
+        ->and($sanction->fresh())->not->toBeNull()
+        ->and($sanction->fresh()->issued_by)->toBeNull()
+        ->and($banned->fresh()->isAccessBlocked())->toBeTrue();
+});
+
+it('refuses to delete yourself, or anyone without manage-people', function () {
+    $admin = personWithManagePeople();
+    $other = Person::create(['name' => 'Bob', 'email' => 'bob@example.test', 'password' => 'secret']);
+
+    $this->actingAs($admin)->post("/admin/people/{$admin->id}/delete")->assertForbidden();
+    $this->actingAs($other)->post("/admin/people/{$admin->id}/delete")->assertForbidden();
+
+    expect(Person::find($admin->id))->not->toBeNull();
+});

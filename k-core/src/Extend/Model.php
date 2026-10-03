@@ -33,6 +33,8 @@ class Model
 
     public ?Closure $saved = null;
 
+    public ?Closure $deleting = null;
+
     /**
      * @var array<string, Closure>
      */
@@ -106,6 +108,16 @@ class Model
     public function saved(Closure $callback): self
     {
         $this->saved = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Native Eloquent `deleting` -- fires before the row goes, while relations that cascade away with it can still be read.
+     */
+    public function deleting(Closure $callback): self
+    {
+        $this->deleting = $callback;
 
         return $this;
     }
