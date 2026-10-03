@@ -10,6 +10,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Kopling\Core\Authentication\AuthSettings;
 use Kopling\Core\Authentication\Event\AttemptRegistration;
 use Kopling\Core\Authentication\Event\ValidateRegistration;
 use Kopling\Core\Http\Controllers\Concerns\RedirectsUsers;
@@ -33,11 +34,15 @@ class RegistrationController
 
     public function showRegistrationForm(Request $request): View
     {
+        abort_unless(AuthSettings::registrationEnabled(), 404);
+
         return view('kopling-core::auth.register');
     }
 
     public function register(Request $request): RedirectResponse
     {
+        abort_unless(AuthSettings::registrationEnabled(), 404);
+
         $this->validateRegistration($request);
 
         $event = $this->attemptRegistration($request);
@@ -46,6 +51,10 @@ class RegistrationController
             $event->person->save();
 
             event(new Registered($event->person));
+
+            if ($event->deferredTo !== null) {
+                return redirect($event->deferredTo);
+            }
 
             Auth::login($event->person);
 
@@ -73,6 +82,6 @@ class RegistrationController
     {
         $request->session()->regenerate();
 
-        return redirect()->intended($this->redirectTo());
+        return $this->redirectAfterAuthentication($request);
     }
 }

@@ -1644,3 +1644,47 @@ marking in the component keeps every form consistent instead of each view adding
 **Status:** decided & implemented (sports-management team forms use it so far).
 
 ---
+
+## 2026-10-03 — Password reset lives in `auth-email-password`; sign-up switch and auth paths in core
+
+**Decision:** password reset (token table, routes, mail) belongs to `auth-email-password`, attached to
+the community portal; core keeps the sign-up switch, the sign-up path and the after-sign-in/up
+redirect as admin settings (`AuthSettings`). Paths are read when routes are registered, like portal
+paths; a configured redirect replaces the intended URL, an empty one keeps it.
+
+**Why:** core has no opinion on what credentials are, so a password concept can't live there; the
+sign-up route is core's, so its switch and path are too. The reset form answers the same for unknown
+addresses so it can't be used to find accounts.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-10-03 — Unverified accounts can't sign in; core only offers `deferSignIn()`
+
+**Decision:** with verification on (an `auth-email-password` setting, default on), a new account is
+saved but not signed in (`AttemptRegistration::deferSignIn()`, the one core hook) and can't log in
+until it opens the mailed, signed link; the link confirms the address but doesn't sign anyone in. A
+password reset also confirms the address. Existing password accounts were marked verified.
+
+**Why:** blocking sign-in keeps bots out without every extension checking a "verified" flag on each
+write; not signing in from the link means a leaked mail can't be used as a login. Core stays free of
+any email concept.
+
+**Status:** decided & implemented.
+
+---
+
+## 2026-10-03 — Core ships translations of Laravel's own strings
+
+**Decision:** Laravel's built-in strings (validation messages, `auth.failed`/`auth.throttle`, the mail
+template's greeting/footer) are translated in `k-core/lang/framework/{locale}/*.php` and
+`k-core/lang/framework/{locale}.json`, added to the translator by core's ServiceProvider
+(`translation.loader->addPath()`, `loadJsonTranslationsFrom()`). Dutch is the first.
+
+**Why:** Laravel only ships English, and the root installation holds no files of its own, so a
+Dutch site otherwise mixes Dutch screens with English errors and mail footers.
+
+**Status:** decided & implemented (Dutch, the strings the auth screens and mails use).
+
+---

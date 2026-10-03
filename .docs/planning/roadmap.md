@@ -15,6 +15,11 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
 
 - Sign up / sign in — `auth-email-password` (login + registration forms, event-based on Core's
   Attempt Login/Registration)
+- Password reset — `auth-email-password` (mailed link, throttled). Core admin settings: allow
+  sign-ups on/off, log-in and sign-up paths, where to land after signing in/up; reset and
+  verification paths are `auth-email-password` settings. Auth screens and mails in Dutch (2026-10-03).
+- Email verification on sign-up — `auth-email-password`: new accounts can't sign in until they
+  open the mailed link (admin toggle, on by default); resend is throttled (2026-10-03).
 - Feed of moments — `k-core` (`Content/Moment` + community feed rendering)
 - Composing a moment — `composer` extension (compose-first UI, plain `<textarea>` body)
 - Replies / discussion thread per moment — `discussions` extension (activity teaser + engage bar)
@@ -57,8 +62,6 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
 
 ### Still needed
 
-- Email confirmation on sign-up — `auth-email-password` currently only has password
-  *confirmation* (matching fields on the form), no actual email-verification flow.
 - Minimal moderation — enough to not get overrun by spam/bots on day one.
   - polymorphic flagging on both Moments and replies (one flaggable mechanism, not two)
   - a moderation queue to review flagged content — location TBD (`admin` extension is the

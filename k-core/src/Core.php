@@ -36,6 +36,7 @@ use Kopling\Core\Ux\Editor\EditorNode;
 use Kopling\Core\Ux\Form\Field;
 use Kopling\Core\Ux\Form\Input;
 use Kopling\Core\Ux\Form\TextArea;
+use Kopling\Core\Ux\Form\Toggle;
 
 /**
  * Core's own declarations, made through the same contracts any extension would implement --
@@ -112,6 +113,33 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
                 label: 'Community description',
                 component: TextArea::class,
                 description: 'Optional -- used as the site\'s <meta name="description"> tag.',
+            ),
+            new Field(
+                id: 'registration-enabled',
+                label: 'Allow sign-ups',
+                component: Toggle::class,
+                default: true,
+                description: 'Off: the sign-up page and links disappear; existing accounts can still sign in.',
+            ),
+            new Field(
+                id: 'login-path',
+                label: 'Log-in path',
+                component: Input::class,
+                default: 'login',
+                description: 'Path of the log-in page, e.g. "sign-in". Run `php artisan route:clear` after changing it on a site that caches routes.',
+            ),
+            new Field(
+                id: 'registration-path',
+                label: 'Sign-up path',
+                component: Input::class,
+                default: 'register',
+                description: 'Path of the sign-up page, e.g. "join". Run `php artisan route:clear` after changing it on a site that caches routes.',
+            ),
+            new Field(
+                id: 'auth-redirect-path',
+                label: 'After signing in or up, go to',
+                component: Input::class,
+                description: 'Optional path, e.g. "welcome". Empty: back to the page the person came from.',
             ),
         ];
     }

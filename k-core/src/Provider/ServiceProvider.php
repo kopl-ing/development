@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider as Provider;
 use Illuminate\Support\Str;
+use Kopling\Core\Authentication\AuthSettings;
 use Kopling\Core\Console\Commands\CacheRegistrations;
 use Kopling\Core\Console\Commands\DisableExtension;
 use Kopling\Core\Console\Commands\DiscoverExtensions;
@@ -106,6 +107,10 @@ class ServiceProvider extends Provider
 
         Blade::componentNamespace('Kopling\\Core\\Ux', 'k');
 
+        // Dutch (and later other languages) for Laravel's own strings -- validation, `auth.failed`, mail templates.
+        $this->app['translation.loader']->addPath(__DIR__.'/../../lang/framework');
+        $this->loadJsonTranslationsFrom(__DIR__.'/../../lang/framework');
+
         $this->loadMigrationsFrom(__DIR__.'/../migrations');
         $this->loadRoutesFrom(__DIR__.'/../../routes/assets.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
@@ -139,6 +144,9 @@ class ServiceProvider extends Provider
         // called-before-its-own-lang-file-is-loaded trap Portal labels avoid by never
         // translating at all (see Extension::portals()'s own docblock).
         $manager->moderationTargets();
+
+        // Guest-only like the `guest` permission, but also closed while sign-ups are turned off.
+        Gate::define('kopling-core::registration-open', fn (?Person $person) => $person === null && AuthSettings::registrationEnabled());
 
         foreach ($manager->permissions() as $permission) {
             Gate::define($permission->id, function (?Person $person) use ($permission) {

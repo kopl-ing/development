@@ -20,6 +20,7 @@ class AttemptRegistration
 {
     public ?Person $person = null;
     public ValidationException $e;
+    public ?string $deferredTo = null;
 
     public function __construct(readonly public Request $request)
     {
@@ -29,6 +30,16 @@ class AttemptRegistration
     public function failed(ValidationException $e): self
     {
         $this->e = $e;
+
+        return $this;
+    }
+
+    /**
+     * Save the person but don't sign them in yet; send them to `$redirectTo` instead (e.g. "check your email").
+     */
+    public function deferSignIn(string $redirectTo): self
+    {
+        $this->deferredTo = $redirectTo;
 
         return $this;
     }

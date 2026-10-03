@@ -103,6 +103,6 @@ class LoginController
 
         $this->clearLoginAttempts($request);
 
-        return redirect()->intended($this->redirectTo());
+        return $this->redirectAfterAuthentication($request);
     }
 }

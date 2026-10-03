@@ -7,6 +7,7 @@ namespace Kopling\AuthEmailPassword\Listeners;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Kopling\AuthEmailPassword\Extension;
 use Kopling\Core\Authentication\Event\AttemptRegistration;
 use Kopling\Core\People\Person;
 
@@ -27,5 +28,9 @@ class AttemptPasswordRegistration
         }
 
         $event->succeeded(new Person($validator->validated()));
+
+        if (Extension::verificationRequired()) {
+            $event->deferSignIn(route('kopling-core::community/verification.notice'));
+        }
     }
 }

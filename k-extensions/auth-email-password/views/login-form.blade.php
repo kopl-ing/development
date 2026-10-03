@@ -19,11 +19,18 @@
             <p class="label text-error">{{ $message }}</p>
         @enderror
 
-        <label class="label gap-2">
-            <input type="checkbox" name="remember" class="checkbox checkbox-sm" />
-            {{ __('kopling-auth-email-password::messages.remember') }}
-        </label>
+        <div class="flex items-center justify-between gap-2">
+            <label class="label gap-2">
+                <input type="checkbox" name="remember" class="checkbox checkbox-sm" />
+                {{ __('kopling-auth-email-password::messages.remember') }}
+            </label>
+            <a href="{{ route('kopling-core::community/password.request') }}" class="link link-hover text-sm">{{ __('kopling-auth-email-password::messages.forgot_password') }}</a>
+        </div>
 
         <button type="submit" class="btn btn-primary w-full">{{ __('kopling-auth-email-password::messages.submit') }}</button>
     </fieldset>
 </form>
+
+@if (session('verification_email'))
+    @include('kopling-auth-email-password::resend-verification')
+@endif
