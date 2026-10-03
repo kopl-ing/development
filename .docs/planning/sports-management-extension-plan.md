@@ -11,8 +11,8 @@ See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3) and 2026-10-02 
 
 ## Where we left off (2026-10-02)
 
-The extension's tests (81) pass. Everything up to `a319864` is committed; the moderation &
-abuse work (below) is not. Migrations up to 2026-09-30 were edited in place (pre-production);
+The extension's tests (82) pass. Everything below is committed (through `064630e`).
+Migrations up to 2026-09-30 were edited in place (pre-production);
 later ones are new: play minutes (`2026_10_02_000011`, then run
 `kopling:sports-management:seed-knvb-presets`), team owners + invitations (`000012`, backfills
 the earliest staff member of each existing team as owner) and team soft deletes (`000013`).
@@ -113,10 +113,25 @@ the earliest staff member of each existing team as owner) and team soft deletes 
 - **KNVB seed** now also has JO14 and JO16; values per category are `[players on field, play minutes]`.
 - **Dutch translations** (`lang/nl/messages.php`, `lang/nl/permissions.php`). Core, alongside:
   the portal layout's `<html lang>` follows the app locale, and `head.blade.php` takes a
-  `@section('description')` override and a `@stack('head')`.
+  `@section('description')` override and a `@stack('head')`. "Track match" reads "Wedstrijd
+  spelen" in Dutch.
+- **Event log names the position:** a player moved onto the field is logged as "Jip to Midfield"
+  ("Jip naar Middenveld") instead of "Jip on"; a substitution entered afterwards without a zone
+  keeps "on".
+- **Sidebar icons:** teams and upcoming matches carry an icon, declared as overridable
+  `kopling-sports-management::team` (default `fas-user-group`) and `::match` (default
+  `fas-futbol`). The requested `user-group-simple` / `court-sport` are Font Awesome Pro and not in
+  the installed free set.
+- **Report** moved from the team header to the bottom row, next to Delete team (see
+  "Moderation & abuse").
+- **Nightly deploy failure** after these migrations (`activitypub_actors` missing) was core's,
+  not this extension's: only enabled extensions' migrations were loaded. Fixed in core
+  (decisions.md, "Migrations load for every installed extension").
 
 ### Still to check visually
 - Dutch copy read-through on the match screen (longer words in the top bar and badges).
+- Event log lines with the position, sidebar icons for teams and matches (alignment of the
+  match icon beside the two-line entry).
 - 2026-10-02 changes: stop button size next to Break, scorer prompt position over the tabs,
   green badge turning on live, play minutes field on the match form.
 - 2026-09-30 changes: one Back from the match screen returns to the match page, badge tints in
@@ -148,6 +163,11 @@ then decide the communication block and format presets.
   actions was left out on purpose.
 - **Avatar icons from extensions** (e.g. roles): a `RenderingAvatar` event, same shape as
   `RenderingCard`, deferred until a first real use.
+- **Font Awesome Pro icons** (`user-group-simple`, `court-sport`) for the sidebar: only possible
+  with a Pro icon set installed; until then the free defaults stay, overridable per icon.
+- **Roster members as accounts:** core now has a `/settings` page for a person's own name, with
+  a slot for extension sections. Nothing here uses it yet; it becomes relevant once a roster
+  member's `Person` can log in (the "real accounts later" path).
 
 ### Settled, no action needed
 - **Edit team button** on the team page keeps the modal's default small trigger; looked fine.
@@ -196,9 +216,12 @@ handle, which roster members never get.
 - **Invitations by mail:** the invitee only sees an invitation once signed in; no email is sent.
   Invitations don't expire.
 - **Admin people list** still lists roster members (admins only); their profile link there 404s.
-- **Visual check:** Report button next to Delete team at the bottom of the team page, staff list with Owner/Make owner/
-  Leave, invitations card on the Teams page, the Teams overview and team preview in the
-  Moderation portal.
+- **Visual check:** Report button next to Delete team at the bottom of the team page (its
+  trigger is styled for a dropdown, full width and left-aligned, so it may not match Delete
+  team), staff list with Owner/Make owner/Leave, invitations card on the Teams page, the Teams
+  overview and team preview in the Moderation portal.
+- **Teams overview paging** drops the chosen sort on page 2 (core's pagination doesn't keep the
+  query string).
 
 ## Context
 

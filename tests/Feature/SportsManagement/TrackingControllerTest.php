@@ -94,6 +94,32 @@ it('records goals live at the current match clock, and derives the score', funct
         ->and($match->fresh()->timeline()->score())->toBe(['us' => 2, 'them' => 1]);
 });
 
+it('tallies goals and assists per player for the report', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $jip = rosterMember($team, 'Jip');
+    $sam = rosterMember($team, 'Sam');
+    $noor = rosterMember($team, 'Noor');
+    $match = plannedMatch($team);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods'), ['type' => 'play', 'duration_minutes' => 25]);
+
+    $goal = fn (array $data) => $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['minute' => 5] + $data);
+    $goal(['scorer_team_member_id' => $sam->id, 'assist_team_member_id' => $jip->id]);
+    $goal(['scorer_team_member_id' => $jip->id, 'assist_team_member_id' => $sam->id]);
+    $goal(['scorer_team_member_id' => $jip->id]);
+    $goal(['assist_team_member_id' => $noor->id]);
+    $goal(['opponent' => '1']);
+
+    expect($match->fresh()->timeline()->contributions())->toBe([
+        $jip->id => ['goals' => 2, 'assists' => 1],
+        $sam->id => ['goals' => 1, 'assists' => 1],
+        $noor->id => ['goals' => 0, 'assists' => 1],
+    ]);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSeeInOrder(['Goals and assists', 'Jip', '2 goals', '1 assist', 'Sam', '1 goal', 'Noor', '1 assist', 'Time played']);
+});
+
 it('requires a minute for events in a period that is not running', function () {
     $coach = coach();
     $match = plannedMatch(staffedTeam($coach));
@@ -559,18 +585,17 @@ it('leaves players marked absent out of the squad the fair share is divided over
     $match = plannedMatch($team);
     $match->availabilities()->create(['team_member_id' => $absent->id, 'status' => 'absent']);
     lineup($this, $coach, $match, [$anna->id => 'F']);
-    $this->actingAs($coach)->get(trackUrl($match))->assertDontSee('Fair share');
+    $this->actingAs($coach)->get(trackUrl($match))->assertDontSee('Target play time');
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
 
     Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(1999));
     $this->actingAs($coach)->get(trackUrl($match))
-        ->assertDontSee('style="--badge-color: var(--color-success)', false)
         ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', '>= 2000'], false);
 
     Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(2000));
     $this->actingAs($coach)->get(trackUrl($match))
         ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', 'style="--badge-color: var(--color-success)'], false)
-        ->assertSeeInOrder(['data-sm-bench', "Fair share 33'"]);
+        ->assertSeeInOrder(['data-sm-bench', "Target play time: 33'"]);
 });
 
 it('replaces the history entry instead of pushing one for every match screen action', function () {
@@ -592,4 +617,34 @@ it('names the position a player was moved onto in the event log', function () {
         ->assertSessionHasNoErrors();
 
     $this->actingAs($coach)->get(trackUrl($match))->assertSee('Anna to Midfield');
+});
+
+it('counts bench minutes against the fair bench time', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'Duo', 'players_on_field' => 1, 'play_minutes' => 40])->id]);
+    $jip = rosterMember($team, 'Jip');
+    $sam = rosterMember($team, 'Sam');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods'), ['type' => 'play', 'duration_minutes' => 25]);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee("Target play time: 20&#039;, target bench time: 20&#039;", false)
+        ->assertSeeInOrder(['data-sm-player="'.$jip->id.'"', ">25'<", 'data-sm-bench', 'data-sm-player="'.$sam->id.'"', ">played 0'<", 'indicator-bottom', 'var(--color-success)', ">benched 25'<"], false);
+});
+
+it('shows earlier bench minutes on players back on the field', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'Duo', 'players_on_field' => 1, 'play_minutes' => 40])->id]);
+    $jip = rosterMember($team, 'Jip');
+    $sam = rosterMember($team, 'Sam');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods'), ['type' => 'play', 'duration_minutes' => 25]);
+    $this->actingAs($coach)->post(trackUrl($match, '/substitutions'), ['minute' => 10, 'off_team_member_id' => $jip->id, 'on_team_member_id' => $sam->id, 'zone' => 'F']);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSeeInOrder(['data-sm-player="'.$sam->id.'"', ">15'<", 'indicator-bottom', ">10'<", 'data-sm-bench', 'data-sm-player="'.$jip->id.'"', ">played 10'<", 'indicator-bottom', ">benched 15'<"], false);
 });
