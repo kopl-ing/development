@@ -10,7 +10,7 @@ use Illuminate\View\Component;
 /**
  * A single-line text/number/etc. setting field, rendered as a daisyUI `input`. Same shape and
  * reasoning as `Toggle`: purely presentational, one `array $data` prop. Reads
- * `$data['name']`/`label`/`description`/`value`/`type` (defaults to `"text"`)/`placeholder`.
+ * `$data['name']`/`label`/`description`/`value`/`type` (defaults to `"text"`)/`placeholder`/`required`.
  *
  * Unpacks `$data` into named view variables in `render()` -- see `Toggle`'s own docblock for
  * why a property literally named `data` can't be read straight from the Blade view.
@@ -30,6 +30,7 @@ class Input extends Component
             'type' => $this->data['type'] ?? 'text',
             'placeholder' => $this->data['placeholder'] ?? '',
             'value' => $this->data['value'] ?? $this->data['default'] ?? '',
+            'required' => (bool) ($this->data['required'] ?? false),
         ]);
     }
 }

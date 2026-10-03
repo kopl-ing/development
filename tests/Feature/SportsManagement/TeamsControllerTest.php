@@ -43,12 +43,14 @@ it('creates a team and attaches the creator as staff', function () {
             'name' => 'JO11-2',
             'club' => 'SV Testers',
             'season' => '2026/2027',
+            'sport' => 'football',
             'format_preset_id' => $preset->id,
         ])
         ->assertRedirect();
 
     $team = Team::where('name', 'JO11-2')->firstOrFail();
     expect($team->club)->toBe('SV Testers')
+        ->and($team->sport)->toBe(\Kopling\SportsManagement\Sport::Football)
         ->and($team->season)->toBe('2026/2027')
         ->and($team->isOwnedBy($person))->toBeTrue();
 });
@@ -176,4 +178,55 @@ it('hides matches until the team has a roster, then shows them above it', functi
 
     $this->actingAs($coach)->get("/sports-management/{$team->id}")
         ->assertSeeInOrder(['Plan match', 'Add member']);
+});
+
+it('only offers and accepts presets of the team\'s sport, and fixes the sport once it has matches', function () {
+    $football = TeamFormatPreset::create(['name' => 'JO11', 'players_on_field' => 8]);
+    $hockey = TeamFormatPreset::create(['sport' => 'hockey', 'name' => 'D 8-tal', 'players_on_field' => 8]);
+    $person = coach();
+    $team = ['name' => 'H1', 'club' => 'HC Test', 'season' => '2026/2027'];
+
+    $this->actingAs($person)->get('/sports-management/sport-fields?sport=hockey')->assertOk()
+        ->assertSee('D 8-tal')->assertDontSee('JO11')
+        ->assertSee('hx-get', false);
+
+    $this->actingAs($person)->post('/sports-management', $team + ['sport' => 'hockey', 'format_preset_id' => $football->id])
+        ->assertSessionHasErrors('format_preset_id');
+    $this->actingAs($person)->post('/sports-management', $team + ['sport' => 'curling'])->assertSessionHasErrors('sport');
+    $this->actingAs($person)->post('/sports-management', $team + ['sport' => 'hockey', 'format_preset_id' => $hockey->id])->assertRedirect();
+
+    $created = Team::where('name', 'H1')->firstOrFail();
+    expect($created->sport->value)->toBe('hockey');
+
+    plannedMatch($created);
+    $this->actingAs($person)->post("/sports-management/{$created->id}", $team + ['sport' => 'football', 'format_preset_id' => $hockey->id])
+        ->assertSessionHasNoErrors();
+    expect($created->fresh()->sport->value)->toBe('hockey');
+    $this->actingAs($person)->get("/sports-management/{$created->id}")->assertOk()->assertSee('Fixed once the team has matches.');
+
+    $this->actingAs($person)->post("/sports-management/{$created->id}/matches", [
+        'opponent_name' => 'HC Rivals', 'home_away' => 'home', 'scheduled_at' => '2026-10-10 09:30', 'format_preset_id' => $football->id,
+    ])->assertSessionHasErrors('format_preset_id');
+});
+
+it('prefills the season from the date, lists sports alphabetically with football chosen, and marks what is required', function () {
+    $person = coach();
+
+    \Illuminate\Support\Carbon::setTestNow('2027-06-30 12:00');
+    expect(Team::currentSeason())->toBe('2026/2027');
+    \Illuminate\Support\Carbon::setTestNow('2027-07-01 12:00');
+    expect(Team::currentSeason())->toBe('2027/2028');
+
+    $this->actingAs($person)->get('/sports-management')->assertOk()
+        ->assertSee('value="2027/2028"', false)
+        ->assertSeeInOrder(['Basketball', 'Football', 'Handball', 'Hockey'])
+        ->assertSee('<option value="football" selected>', false)
+        ->assertSee('name="name" value="" placeholder="" class="input w-full" required', false)
+        ->assertDontSee('name="club" value="" placeholder="" class="input w-full" required', false);
+
+    $this->actingAs($person)->post('/sports-management', ['name' => 'JO11-2', 'season' => '2027/2028', 'sport' => 'football'])->assertSessionHasNoErrors();
+    expect(Team::where('name', 'JO11-2')->value('club'))->toBeNull();
+    $this->actingAs($person)->get('/sports-management')->assertSee('2027/2028')->assertDontSee('· 2027/2028');
+
+    \Illuminate\Support\Carbon::setTestNow();
 });

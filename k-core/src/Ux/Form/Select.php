@@ -10,7 +10,7 @@ use Illuminate\View\Component;
 /**
  * A single-value setting field, rendered as a native daisyUI-styled `<select>` -- same shape as
  * `Toggle`/`MultiSelect`: one `array $data` constructor param, content-agnostic. Reads
- * `$data['name']`/`label`/`description`/`options` (`array<id, label>`)/`value` (falls back to
+ * `$data['name']`/`label`/`description`/`options` (`array<id, label>`)/`required`/`value` (falls back to
  * `default`). The single-value counterpart `Icon.php`'s own docblock already anticipated
  * ("a future `HasAdminSettings` `Select` field").
  */
@@ -30,6 +30,7 @@ class Select extends Component
             'value' => isset($this->data['value']) || isset($this->data['default'])
                 ? (string) ($this->data['value'] ?? $this->data['default'])
                 : null,
+            'required' => (bool) ($this->data['required'] ?? false),
         ]);
     }
 }

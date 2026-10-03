@@ -3,4 +3,5 @@
     'label' => 'Input',
     'description' => 'A single-line setting field.',
     'placeholder' => 'Type here…',
+    'required' => true,
 ]" />

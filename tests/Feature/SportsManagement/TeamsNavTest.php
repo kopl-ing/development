@@ -41,3 +41,29 @@ it('leaves matches out of the sidebar for staff of more than a few teams', funct
         ->assertSeeInOrder(['id="sidebar"', 'Team 1', 'Team 4'], false)
         ->assertDontSee('Opponent 1');
 });
+
+it('links back to all teams from the sidebar, and to the portal from the user menu', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $index = 'href="'.url('/sports-management').'"';
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")->assertOk()
+        ->assertSeeInOrder(['id="sidebar"', $index, 'All teams', 'JO11-2'], false);
+
+    $this->actingAs($coach)->get('/')->assertOk()->assertSee($index, false)->assertSee('Sports management');
+    $this->actingAs(coach('Member', 'member@example.test', []))->get('/')->assertOk()->assertDontSee($index, false);
+});
+
+it('names the team in upcoming matches for staff of more than one team', function () {
+    Carbon::setTestNow('2026-10-10 09:00:00');
+    $coach = coach();
+    $first = staffedTeam($coach);
+    $second = Team::create(['name' => 'JO9-1', 'club' => 'A', 'season' => '2026/2027']);
+    $second->staff()->attach($coach);
+    plannedMatch($first, ['opponent_name' => 'Rivals', 'scheduled_at' => '2026-10-17 09:30']);
+
+    $this->actingAs($coach)->get('/sports-management')->assertSee('JO11-2 vs Rivals');
+
+    $second->staff()->detach($coach);
+    $this->actingAs($coach)->get('/sports-management')->assertSee('Rivals')->assertDontSee('JO11-2 vs Rivals');
+});

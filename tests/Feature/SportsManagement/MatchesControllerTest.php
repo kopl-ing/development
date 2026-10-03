@@ -285,3 +285,13 @@ it('keeps track and edit above the match details, and delete at the bottom of th
             __('kopling-sports-management::messages.delete_match'),
         ]);
 });
+
+it('seeds the KNVB formats as football presets with their breaks', function () {
+    $this->artisan('kopling:sports-management:seed-knvb-presets')->assertSuccessful();
+
+    $jo11 = TeamFormatPreset::where('name', 'JO11')->firstOrFail();
+    expect($jo11->sport)->toBe(\Kopling\SportsManagement\Sport::Football)
+        ->and($jo11->breaks)->toBe(3)
+        ->and(TeamFormatPreset::where('name', 'JO13')->value('breaks'))->toBe(1)
+        ->and(TeamFormatPreset::where('name', 'JO7')->value('breaks'))->toBeNull();
+});

@@ -111,9 +111,9 @@ it('tallies goals and assists per player for the report', function () {
     $goal(['opponent' => '1']);
 
     expect($match->fresh()->timeline()->contributions())->toBe([
-        $jip->id => ['goals' => 2, 'assists' => 1],
-        $sam->id => ['goals' => 1, 'assists' => 1],
-        $noor->id => ['goals' => 0, 'assists' => 1],
+        $jip->id => ['goals' => 2, 'assists' => 1, 'points' => 2],
+        $sam->id => ['goals' => 1, 'assists' => 1, 'points' => 1],
+        $noor->id => ['goals' => 0, 'assists' => 1, 'points' => 0],
     ]);
 
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()
@@ -743,4 +743,312 @@ it('records an own goal by the opponent as ours, without a scorer', function () 
     $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}/report")->assertOk()
         ->assertSee('Own goal by FC Rivals JO11-1')
         ->assertSeeInOrder(['Goals and assists', 'No goals or assists yet.']);
+});
+
+it('takes zones and the keeper rule from the sport and its preset', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'hockey', 'format_preset_id' => TeamFormatPreset::create(['sport' => 'hockey', 'name' => '6-tal', 'players_on_field' => 6, 'rules' => ['keeper' => 0]])->id]);
+    [$anna, $bram] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram']);
+    $match = plannedMatch($team);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('data-sm-keeper=""', false)
+        ->assertDontSee('data-sm-zone="K"', false)
+        ->assertSeeInOrder(['data-sm-zone="F"', 'data-sm-zone="M"', 'data-sm-zone="D"'], false);
+
+    lineup($this, $coach, $match, [$anna->id => 'D', $bram->id => 'D']);
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/matches/{$match->id}/lineup", ['team_member_id' => $anna->id, 'zone' => 'K'])
+        ->assertSessionHasErrors('zone');
+});
+
+it('cues a break once the running play period reaches its expected length', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO11', 'players_on_field' => 8, 'play_minutes' => 60, 'breaks' => 3])->id]);
+    $match = plannedMatch($team);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    expect($match->fresh()->playPeriodSeconds())->toBe(15 * 60);
+
+    Carbon::setTestNow('2026-10-10 09:44:00');
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('data-sm-break-due=""', false)
+        ->assertSee('}, 60000)', false)
+        ->assertSee('navigator.vibrate', false);
+
+    Carbon::setTestNow('2026-10-10 09:45:00');
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('data-sm-break-due="now"', false)
+        ->assertDontSee('navigator.vibrate', false);
+});
+
+it('names periods after the format\'s break structure', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $periods = fn (?int $breaks, int $count) => tap(plannedMatch($team, ['format_preset_id' => TeamFormatPreset::create(['name' => 'F'.$breaks.$count, 'players_on_field' => 8, 'play_minutes' => 60, 'breaks' => $breaks])->id]), function ($match) use ($count) {
+        foreach (range(1, $count) as $sequence) {
+            $match->periods()->create(['sequence' => $sequence, 'type' => 'play', 'duration_seconds' => 600]);
+        }
+    });
+
+    $labels = fn ($match) => $match->fresh()->timeline()->periods()->map(fn ($period) => $match->fresh()->timeline()->label($period))->all();
+
+    expect($labels($periods(1, 2)))->toBe(['Half 1', 'Half 2'])
+        ->and($labels($periods(3, 5)))->toBe(['Quarter 1', 'Quarter 2', 'Quarter 3', 'Quarter 4', 'Period 5'])
+        ->and($labels($periods(null, 1)))->toBe(['Period 1']);
+});
+
+function hockeyDuo($test): array
+{
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'hockey', 'format_preset_id' => TeamFormatPreset::create(['sport' => 'hockey', 'name' => 'Duo', 'players_on_field' => 2, 'play_minutes' => 40])->id]);
+    [$anna, $bram, $cas] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram', 'Cas']);
+    $match = plannedMatch($team);
+    lineup($test, $coach, $match, [$anna->id => 'F', $bram->id => 'F']);
+    $test->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    return [$coach, $match, $anna, $bram, $cas];
+}
+
+it('takes a player off for a time penalty, plays short, and prompts their return', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    [$coach, $match, $anna, $bram, $cas] = hockeyDuo($this);
+
+    Carbon::setTestNow('2026-10-10 09:40:00');
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $anna->id, 'kind' => 'yellow_card'])->assertRedirect(trackUrl($match));
+
+    $sanction = $match->sanctions()->firstOrFail();
+    $fresh = $match->fresh();
+    $timeline = $fresh->timeline();
+    expect($sanction->duration_seconds)->toBe(300)
+        ->and($sanction->substitution_id)->not->toBeNull()
+        ->and(array_keys($timeline->onField()))->toBe([$bram->id])
+        ->and($fresh->effectiveMaxOnField($timeline))->toBe(1)
+        ->and($fresh->unavailableMemberIds($timeline))->toBe([$anna->id])
+        ->and($timeline->penaltySecondsLeft())->toBe([$anna->id => 300]);
+
+    $field = fn (array $data) => $this->actingAs($coach)->post(trackUrl($match, '/field'), $data);
+    $field(['team_member_id' => $cas->id, 'zone' => 'M'])->assertSessionHasErrors('zone');
+    $field(['team_member_id' => $anna->id, 'zone' => 'M'])->assertSessionHasErrors('zone');
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('data-sm-max="1"', false)
+        ->assertSee('data-sm-player="'.$anna->id.'" draggable="false"  data-sm-unavailable', false)
+        ->assertSee('x-data="{ base: 300,', false)
+        ->assertSee('}, 300000)', false)
+        ->assertSeeInOrder(['Yellow card', 'Anna', '(5&#039;)'], false)
+        ->assertDontSee('Anna off');
+
+    Carbon::setTestNow('2026-10-10 09:46:00');
+    $fresh = $match->fresh();
+    $timeline = $fresh->timeline();
+    expect($timeline->playedSeconds()[$anna->id])->toBe(600)
+        ->and($timeline->penaltySecondsLeft())->toBe([])
+        ->and($timeline->awaitingReturn())->toBe([$anna->id])
+        ->and($fresh->effectiveMaxOnField($timeline))->toBe(2);
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('Anna may come back on.')
+        ->assertDontSee('role="status" class="alert alert-info py-2"  hidden', false);
+
+    $field(['team_member_id' => $anna->id, 'zone' => 'F'])->assertSessionHasNoErrors();
+    expect($match->fresh()->timeline()->awaitingReturn())->toBe([]);
+});
+
+it('undoes or deletes a sanction together with the substitution it made', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    [$coach, $match, $anna, $bram] = hockeyDuo($this);
+    Carbon::setTestNow('2026-10-10 09:35:00');
+
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $anna->id, 'kind' => 'green_card']);
+    $this->actingAs($coach)->get(trackUrl($match))->assertSee('Recorded.');
+    $this->actingAs($coach)->post(trackUrl($match, '/undo'));
+    expect($match->sanctions()->count())->toBe(0)
+        ->and(array_keys($match->fresh()->timeline()->onField()))->toEqualCanonicalizing([$anna->id, $bram->id]);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $anna->id, 'kind' => 'green_card']);
+    $sanction = $match->sanctions()->firstOrFail();
+    $this->actingAs($coach)->post(trackUrl($match, "/sanctions/{$sanction->id}/delete"))->assertRedirect(trackUrl($match));
+    expect($match->substitutions()->where('direction', 'off')->count())->toBe(0);
+});
+
+it('keeps a red-carded player out and the team short for the rest of a hockey match', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    [$coach, $match, $anna] = hockeyDuo($this);
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $anna->id, 'kind' => 'red_card']);
+
+    Carbon::setTestNow('2026-10-10 10:30:00');
+    $fresh = $match->fresh();
+    $timeline = $fresh->timeline();
+    expect($timeline->shortSpells())->toBe(1)
+        ->and($fresh->unavailableMemberIds($timeline))->toBe([$anna->id])
+        ->and($timeline->awaitingReturn())->toBe([]);
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()->assertSee('>out<', false);
+});
+
+it('offers sanctions only where the sport has them', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $jip = rosterMember($team, 'Jip');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'F']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()->assertDontSee('data-sm-sanction-start', false);
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $jip->id, 'kind' => 'red_card'])->assertSessionHasErrors('kind');
+});
+
+it('draws each sport\'s own rows and only takes that sport\'s positions', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'basketball']);
+    $match = plannedMatch($team);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSeeInOrder(['data-sm-zone="C"', 'data-sm-zone="F"', 'data-sm-zone="G"'], false)
+        ->assertSee('title="Forwards"', false)
+        ->assertSee('data-sm-keeper=""', false)
+        ->assertDontSee('data-sm-zone="K"', false);
+
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/members", ['name' => 'Jip', 'positions' => ['K']])->assertSessionHasErrors('positions.0');
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/members", ['name' => 'Jip', 'positions' => ['G']])->assertSessionHasNoErrors();
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")->assertOk()->assertSee('Guards')->assertDontSee('Keeper');
+});
+
+it('tracks a hockey match on a seeded KNHB preset', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $this->artisan('kopling:sports-management:seed-knhb-presets')->assertSuccessful();
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'hockey', 'format_preset_id' => TeamFormatPreset::where('sport', 'hockey')->where('name', 'O12')->value('id')]);
+    $jip = rosterMember($team, 'Jip');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'K']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    expect($match->fresh()->playPeriodSeconds())->toBe(1050)
+        ->and(TeamFormatPreset::where('sport', 'hockey')->where('name', 'O10 (8-tal)')->first()->rules)->toBe(['keeper' => 0]);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $jip->id, 'kind' => 'green_card'])->assertRedirect();
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('Quarter 1')
+        ->assertSee('data-sm-sanction-start', false)
+        ->assertSee('Green card')
+        ->assertSee('}, 1050000)', false);
+
+    $small = plannedMatch($team, ['format_preset_id' => TeamFormatPreset::where('sport', 'hockey')->where('name', 'O9 (6-tal)')->value('id')]);
+    $this->actingAs($coach)->get(trackUrl($small))->assertOk()->assertDontSee('data-sm-zone="K"', false);
+});
+
+it('tracks handball suspensions: two minutes short each, the third rules the player out, a red card shortens for two minutes', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $this->artisan('kopling:sports-management:seed-nhv-presets')->assertSuccessful();
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'handball', 'format_preset_id' => TeamFormatPreset::where('sport', 'handball')->where('name', 'C-jeugd')->value('id')]);
+    [$anna, $bram] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram']);
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$anna->id => 'B', $bram->id => 'A']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+    $suspend = function (string $memberId) use ($coach, $match) {
+        $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $memberId, 'kind' => 'suspension'])->assertSessionHasNoErrors();
+    };
+    $state = function () use ($match) {
+        $fresh = $match->fresh();
+        $timeline = $fresh->timeline();
+
+        return [$timeline->shortSpells(), $fresh->unavailableMemberIds($timeline)];
+    };
+
+    expect($match->fresh()->playPeriodSeconds())->toBe(25 * 60);
+
+    $suspend($anna->id);
+    expect($state())->toBe([1, [$anna->id]]);
+    Carbon::setTestNow('2026-10-10 09:33:00');
+    expect($state())->toBe([0, []]);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $anna->id, 'zone' => 'B']);
+    $suspend($anna->id);
+    Carbon::setTestNow('2026-10-10 09:36:00');
+    $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $anna->id, 'zone' => 'B']);
+    $suspend($anna->id);
+    Carbon::setTestNow('2026-10-10 09:39:00');
+    expect($state())->toBe([0, [$anna->id]]);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $bram->id, 'kind' => 'red_card']);
+    expect($state()[0])->toBe(1);
+    Carbon::setTestNow('2026-10-10 09:41:00');
+    expect($state())->toBe([0, [$anna->id, $bram->id]]);
+});
+
+it('tracks a basketball match: points per basket, foul-out with back-fill', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $this->artisan('kopling:sports-management:seed-nbb-presets')->assertSuccessful();
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'basketball', 'format_preset_id' => TeamFormatPreset::where('sport', 'basketball')->where('name', 'U14')->value('id')]);
+    [$anna, $bram] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram']);
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$anna->id => 'G']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('data-sm-points="3"', false)
+        ->assertDontSee('data-sm-goal-own', false)
+        ->assertSee('Quarter 1');
+
+    $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['scorer_team_member_id' => $anna->id, 'points' => 3])->assertSessionHasNoErrors();
+    $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['scorer_team_member_id' => $anna->id, 'points' => 2]);
+    $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['opponent' => '1', 'points' => 2]);
+    $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['scorer_team_member_id' => $anna->id, 'points' => 4])->assertSessionHasErrors('points');
+
+    $timeline = $match->fresh()->timeline();
+    expect($timeline->score())->toBe(['us' => 5, 'them' => 2])
+        ->and($timeline->contributions()[$anna->id]['points'])->toBe(5);
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}/report")->assertOk()->assertSee('5 points')->assertSee('+3');
+
+    foreach (range(1, 4) as $foul) {
+        $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $anna->id, 'kind' => 'foul']);
+    }
+    expect(array_keys($match->fresh()->timeline()->onField()))->toBe([$anna->id]);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/sanctions'), ['team_member_id' => $anna->id, 'kind' => 'foul']);
+    $fresh = $match->fresh();
+    $timeline = $fresh->timeline();
+    expect($timeline->onField())->toBe([])
+        ->and($fresh->unavailableMemberIds($timeline))->toBe([$anna->id])
+        ->and($fresh->effectiveMaxOnField($timeline))->toBe(5);
+    $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $bram->id, 'zone' => 'G'])->assertSessionHasNoErrors();
+    $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $anna->id, 'zone' => 'G'])->assertSessionHasErrors('zone');
+
+    expect(\Kopling\SportsManagement\Sport::Basketball->config()->rule(TeamFormatPreset::where('sport', 'basketball')->where('name', '3x3')->first(), 'foul_limit'))->toBeNull();
+});
+
+it('cues breaks from the match\'s own shorter play time, not the preset\'s', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $this->artisan('kopling:sports-management:seed-nhv-presets')->assertSuccessful();
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'handball']);
+    $match = plannedMatch($team, ['format_preset_id' => TeamFormatPreset::where('sport', 'handball')->where('name', 'A-jeugd')->value('id'), 'play_minutes' => 4]);
+    $page = fn () => $this->actingAs($coach)->get(trackUrl($match))->assertOk();
+
+    expect($match->fresh()->playPeriodSeconds())->toBe(120);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    Carbon::setTestNow('2026-10-10 09:31:59');
+    $page()->assertSee('data-sm-break-due=""', false)->assertSee('}, 1000)', false);
+    Carbon::setTestNow('2026-10-10 09:32:00');
+    $page()->assertSee('data-sm-break-due="now"', false);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'break']);
+    Carbon::setTestNow('2026-10-10 09:33:30');
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    Carbon::setTestNow('2026-10-10 09:34:00');
+    $page()->assertSee('data-sm-break-due=""', false)->assertSee('}, 90000)', false);
+    Carbon::setTestNow('2026-10-10 09:35:30');
+    $page()->assertSee('data-sm-break-due="now"', false);
 });

@@ -1615,3 +1615,19 @@ and needs no Node on the host. Extension icon defaults stay Free-only, since mos
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-03 — Sports management: sport on team and preset, behaviour in `SportConfig`
+
+**Decision:** a team and each format preset carry a `Sport`; a team only takes presets of its sport,
+and its sport is fixed once it has matches. Per-sport behaviour (field rows, keeper zone, sanctions,
+scoring) lives in a `SportConfig` class; presets hold the numbers, with a `rules` JSON overriding the
+config's defaults. `Position` stays the zone vocabulary, the union of every sport's row codes.
+
+**Why:** adding a sport is then a config class plus seeded presets, never a fork of the tracker.
+A preset's new `breaks` count only drives a break cue; periods stay explicit, correctable start/end
+events, as the plan's "Format preset" decision requires.
+
+**Status:** decided & implemented (football, hockey, handball, basketball; korfbal postponed). Epic:
+`.docs/planning/sports-management-multi-sport-epic.md`.
+
+---

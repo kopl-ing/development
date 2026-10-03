@@ -1,5 +1,8 @@
 # Plan: `sports-management`, a Dutch youth soccer team management extension
 
+> Since 2026-10-03 the extension also covers hockey, handball and basketball; see
+> `sports-management-multi-sport-epic.md`.
+
 Status: renamed from `kopling/soccer-management` to `kopling/sports-management` (2026-09-29, see
 decisions.md). All three phases built, plus a reworked tracking page (2026-09-29): a field with K/D/M/F
 zones and a bench of avatars, a stored pre-kick-off lineup, and a single match clock driven by
