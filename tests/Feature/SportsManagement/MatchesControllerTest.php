@@ -82,12 +82,15 @@ it('takes play minutes from the match, falling back to the format, and shares th
     $team = staffedTeam($coach);
     $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO11', 'players_on_field' => 8, 'play_minutes' => 60])->id]);
     $overridden = plannedMatch($team, ['play_minutes' => 50]);
+    $jo10 = plannedMatch($team, ['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 50])->id]);
 
     expect(plannedMatch($team)->fairShareSeconds(10))->toBe(48 * 60)
         ->and($overridden->effectivePlayMinutes())->toBe(50)
         ->and($overridden->fairShareSeconds(6))->toBe(50 * 60)
         ->and(plannedMatch($team)->fairBenchSeconds(10))->toBe(12 * 60)
         ->and($overridden->fairBenchSeconds(6))->toBe(0)
+        ->and($jo10->fairShareSeconds(7))->toBe(42 * 60)
+        ->and($jo10->fairBenchSeconds(7))->toBe(8 * 60)
         ->and(plannedMatch(staffedTeam($coach), ['play_minutes' => 60])->fairShareSeconds(10))->toBeNull()
         ->and(plannedMatch(staffedTeam($coach), ['play_minutes' => 60])->fairBenchSeconds(10))->toBeNull();
 });

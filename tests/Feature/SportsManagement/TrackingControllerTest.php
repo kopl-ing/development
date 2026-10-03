@@ -588,11 +588,11 @@ it('leaves players marked absent out of the squad the fair share is divided over
     $this->actingAs($coach)->get(trackUrl($match))->assertDontSee('Target play time');
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
 
-    Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(1999));
+    Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(1979));
     $this->actingAs($coach)->get(trackUrl($match))
-        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', '>= 2000'], false);
+        ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', '>= 1980'], false);
 
-    Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(2000));
+    Carbon::setTestNow(Carbon::parse('2026-10-10 09:30:00')->addSeconds(1980));
     $this->actingAs($coach)->get(trackUrl($match))
         ->assertSeeInOrder(['data-sm-player="'.$anna->id.'"', 'style="--badge-color: var(--color-success)'], false)
         ->assertSeeInOrder(['data-sm-bench', "Target play time: 33'"]);
@@ -647,4 +647,26 @@ it('shows earlier bench minutes on players back on the field', function () {
 
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()
         ->assertSeeInOrder(['data-sm-player="'.$sam->id.'"', ">15'<", 'indicator-bottom', ">10'<", 'data-sm-bench', 'data-sm-player="'.$jip->id.'"', ">played 10'<", 'indicator-bottom', ">benched 15'<"], false);
+});
+
+it('serves the report on its own page and links ended matches to it', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $jip = rosterMember($team, 'Jip');
+    $match = plannedMatch($team);
+    $report = "/sports-management/{$team->id}/matches/{$match->id}/report";
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")->assertOk()->assertDontSee($report, false);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/periods'), ['type' => 'play', 'duration_minutes' => 25]);
+    $this->actingAs($coach)->from($report)
+        ->post(trackUrl($match, '/goals'), ['minute' => 5, 'scorer_team_member_id' => $jip->id])
+        ->assertRedirect($report);
+
+    $this->actingAs($coach)->get($report)->assertOk()
+        ->assertSeeInOrder(['FC Rivals', '1 &ndash; 0', 'Goals and assists', 'Jip', '1 goal'], false)
+        ->assertDontSee('data-sm-field', false);
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")->assertOk()->assertSee($report, false);
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")->assertOk()->assertSee($report, false);
+    $this->actingAs(coach('Other', 'other@example.test'))->get($report)->assertForbidden();
 });
