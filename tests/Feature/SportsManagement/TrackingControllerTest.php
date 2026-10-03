@@ -1101,3 +1101,28 @@ it('uses each sport\'s own words, per language, without borrowing another langua
     app()->setLocale('en');
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()->assertSee('aria-label="Court"', false)->assertSee('Goals and assists');
 });
+
+it('keeps the score on one line and offers the opponent one points button, a menu when a sport scores more than one way', function () {
+    $this->artisan('kopling:sports-management:seed-nbb-presets')->assertSuccessful();
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $anna = rosterMember($team, 'Anna');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$anna->id => 'M']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $football = $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('tabular-nums whitespace-nowrap', false)
+        ->assertSee('flex justify-between', false)
+        ->assertDontSee('data-sm-opponent-points', false);
+    expect(substr_count($football->getContent(), 'class="btn btn-xs btn-outline btn-error"'))->toBe(1);
+
+    $team->update(['sport' => 'basketball', 'format_preset_id' => TeamFormatPreset::where('sport', 'basketball')->where('name', 'U14')->value('id')]);
+    $match->lineup()->update(['zone' => 'G']);
+    $match->substitutions()->update(['zone' => 'G']);
+
+    $basketball = $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('data-sm-opponent-points', false)
+        ->assertSeeInOrder(['data-sm-opponent-points', '+1', '+2', '+3'], false);
+    expect(substr_count($basketball->getContent(), 'class="btn btn-sm btn-ghost text-error tabular-nums"'))->toBe(3);
+});
