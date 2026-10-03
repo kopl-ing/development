@@ -670,3 +670,53 @@ it('serves the report on its own page and links ended matches to it', function (
     $this->actingAs($coach)->get("/sports-management/{$team->id}")->assertOk()->assertSee($report, false);
     $this->actingAs(coach('Other', 'other@example.test'))->get($report)->assertForbidden();
 });
+
+it('remembers where in a zone a player was put, before kick-off and live', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    [$anna, $bram, $cas, $dirk] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram', 'Cas', 'Dirk']);
+    $match = plannedMatch($team);
+    $lineup = fn (array $data) => $this->actingAs($coach)->post("/sports-management/{$team->id}/matches/{$match->id}/lineup", $data)->assertRedirect(trackUrl($match));
+    $field = fn (array $data) => $this->actingAs($coach)->post(trackUrl($match, '/field'), $data)->assertRedirect(trackUrl($match));
+    $zoneOrder = fn (array $ids) => $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSeeInOrder(['data-sm-zone="M"', ...array_map(fn ($member) => 'data-sm-player="'.$member->id.'"', $ids), 'data-sm-zone="D"'], false);
+
+    $lineup(['team_member_id' => $cas->id, 'zone' => 'M']);
+    $lineup(['team_member_id' => $anna->id, 'zone' => 'M']);
+    $lineup(['team_member_id' => $bram->id, 'zone' => 'M', 'before_team_member_id' => $cas->id]);
+    $zoneOrder([$bram, $cas, $anna]);
+
+    $lineup(['team_member_id' => $anna->id, 'zone' => 'M', 'before_team_member_id' => $bram->id]);
+    $zoneOrder([$anna, $bram, $cas]);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+    $zoneOrder([$anna, $bram, $cas]);
+
+    $field(['team_member_id' => $cas->id, 'zone' => 'M', 'before_team_member_id' => $anna->id]);
+    expect($match->substitutions()->count())->toBe(3)
+        ->and(session()->has(\Kopling\SportsManagement\Controllers\TrackingController::undoKey($match)))->toBeFalse();
+    $zoneOrder([$cas, $anna, $bram]);
+
+    $field(['team_member_id' => $dirk->id, 'replace_team_member_id' => $anna->id]);
+    $zoneOrder([$cas, $dirk, $bram]);
+
+    $field(['team_member_id' => $anna->id, 'zone' => 'M', 'before_team_member_id' => $dirk->id]);
+    $zoneOrder([$cas, $anna, $dirk, $bram]);
+});
+
+it('ignores a remembered slot once the player is in another zone', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    [$anna, $bram, $cas] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram', 'Cas']);
+    $match = plannedMatch($team);
+    $lineup = fn (array $data) => $this->actingAs($coach)->post("/sports-management/{$team->id}/matches/{$match->id}/lineup", $data);
+
+    $lineup(['team_member_id' => $anna->id, 'zone' => 'F']);
+    $lineup(['team_member_id' => $cas->id, 'zone' => 'M']);
+    $lineup(['team_member_id' => $bram->id, 'zone' => 'M', 'before_team_member_id' => $cas->id]);
+    $match->lineup()->where('team_member_id', $bram->id)->update(['zone' => 'F']);
+
+    expect($match->slots()->where('team_member_id', $bram->id)->value('slot'))->toBeLessThan($match->slots()->where('team_member_id', $anna->id)->value('slot'));
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSeeInOrder(['data-sm-zone="F"', 'data-sm-player="'.$anna->id.'"', 'data-sm-player="'.$bram->id.'"', 'data-sm-zone="M"'], false);
+});

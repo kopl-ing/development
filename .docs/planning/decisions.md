@@ -1589,3 +1589,16 @@ tables that were never created; enabling an extension also never ran its migrati
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-03 — Player order within a zone is current state, not match history
+
+**Decision:** `sm_match_slots` stores one zone-scoped fractional slot per player per match, written
+only for the player moved (a swap trades slots); it is not part of the substitution event replay.
+
+**Why:** order within a zone is display, not something that happened in the match: recording it as
+an event would add "X to Midfield" noise to the report for a plain reorder. The slot only counts
+while the player is still in the zone it was set for, so no other code path has to clean it up.
+
+**Status:** decided & implemented.
+
+---
