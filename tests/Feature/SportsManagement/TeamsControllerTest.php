@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Kopling\Core\People\Group;
 use Kopling\Core\People\Person;
+use Kopling\SportsManagement\Sport;
 use Kopling\SportsManagement\Team;
 use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMember;
@@ -229,4 +230,14 @@ it('prefills the season from the date, lists sports alphabetically with football
     $this->actingAs($person)->get('/sports-management')->assertSee('2027/2028')->assertDontSee('· 2027/2028');
 
     \Illuminate\Support\Carbon::setTestNow();
+});
+
+it('preselects the sport stored in the session when creating a team', function () {
+    $person = coach();
+
+    $this->actingAs($person)->withSession([Sport::SESSION_KEY => 'hockey'])->get('/sports-management')->assertOk()
+        ->assertSee('<option value="hockey" selected>', false);
+
+    $this->actingAs($person)->withSession([Sport::SESSION_KEY => 'curling'])->get('/sports-management')->assertOk()
+        ->assertSee('<option value="football" selected>', false);
 });

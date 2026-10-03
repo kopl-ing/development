@@ -1052,3 +1052,52 @@ it('cues breaks from the match\'s own shorter play time, not the preset\'s', fun
     Carbon::setTestNow('2026-10-10 09:35:30');
     $page()->assertSee('data-sm-break-due="now"', false);
 });
+
+it('lets points be chosen when entering baskets afterwards', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'basketball']);
+    $anna = rosterMember($team, 'Anna');
+    $match = plannedMatch($team);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods'), ['type' => 'play', 'duration_minutes' => 10]);
+    $report = "/sports-management/{$team->id}/matches/{$match->id}/report";
+
+    $page = $this->actingAs($coach)->get($report)->assertOk()->assertDontSee('name="own_goal"', false);
+    expect(substr_count($page->getContent(), 'name="points"'))->toBe(2);
+
+    $this->actingAs($coach)->from($report)->post(trackUrl($match, '/goals'), ['minute' => 3, 'scorer_team_member_id' => $anna->id, 'points' => 3])->assertRedirect($report);
+    $this->actingAs($coach)->from($report)->post(trackUrl($match, '/goals'), ['minute' => 4, 'opponent' => '1', 'points' => 2])->assertRedirect($report);
+    expect($match->fresh()->timeline()->score())->toBe(['us' => 3, 'them' => 2]);
+
+    $football = plannedMatch(staffedTeam(coach('Other', 'other@example.test')));
+    $football->periods()->create(['sequence' => 1, 'type' => 'play', 'duration_seconds' => 600]);
+    $this->actingAs(\Kopling\Core\People\Person::where('email', 'other@example.test')->first())
+        ->get("/sports-management/{$football->team_id}/matches/{$football->id}/report")->assertOk()
+        ->assertDontSee('name="points"', false)
+        ->assertSee('name="own_goal"', false);
+});
+
+it('uses each sport\'s own words, per language, without borrowing another language\'s override', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'basketball']);
+    $match = plannedMatch($team);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods'), ['type' => 'play', 'duration_minutes' => 10]);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('Points and assists')->assertSee('No points or assists yet.')
+        ->assertSee('aria-label="Court"', false)->assertSee('Score for us')
+        ->assertDontSee('Goals and assists');
+
+    app()->setLocale('nl');
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('Punten en assists')->assertSee('Score voor ons')->assertDontSee('Doelpuntmaker');
+
+    $team->update(['sport' => 'handball']);
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee('aria-label="Veld"', false)->assertDontSee('Court')
+        ->assertSee('Doelpunten en assists');
+
+    app()->setLocale('en');
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()->assertSee('aria-label="Court"', false)->assertSee('Goals and assists');
+});

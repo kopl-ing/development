@@ -8,7 +8,7 @@ draft assumed a different baseline. Decisions go in `.docs/planning/decisions.md
 
 ---
 
-## 1. What exists today (the baseline)
+## 1. Baseline before this epic (2026-10-03, pre-M1)
 
 - **Teams** (`sm_teams`: name, club, season, `format_preset_id`), staff with owners and
   invitations, roster `TeamMember`s (a `Person` without login, `jersey_number`, preferred
@@ -170,6 +170,11 @@ team member — not gender, never on core's `Person`, never shown outside korfba
   uncertain is marked in the seeder and here, to confirm.
 - Basketball team fouls / bonus free throws: out of v1.
 - Vibration isn't available on iOS Safari; the visual cue is the baseline.
+- **Untested:** two time penalties running at once (stacking) — the code counts each running spell
+  (`MatchTimeline::shortSpells()`), but no test covers it yet. The JS flows (sanction mode, return
+  prompt, refusing unavailable players, +1/+2/+3) have no automated test; checked by hand only.
+- The break cue is one `setTimeout` from the server-computed remaining time; it honours a
+  match's own `play_minutes` (tested) and was confirmed on a phone with a 2-minute match.
 
 ## 10. Progress log
 
@@ -212,3 +217,15 @@ team member — not gender, never on core's `Person`, never shown outside korfba
   all covered by the M3/M7/M8 tests.
 - **Release state:** M1–M8 done, korfbal postponed. On deploy: `php artisan migrate`, then the
   four seeders (`seed-knvb-presets`, `seed-knhb-presets`, `seed-nhv-presets`, `seed-nbb-presets`).
+- 2026-10-03 — After the release: sidebar "All teams" + user-menu portal link; upcoming matches
+  read "<team> vs <opponent>" for multi-team staff; team form sorts sports alphabetically,
+  prefills the season, marks required fields; club optional (`000018`). Break cue confirmed on a
+  phone. Not committed yet.
+- 2026-10-03 — Fixed: the "enter afterwards" goal forms (ours and the opponent's) had no points
+  choice, so a basket entered afterwards always counted 1. Both now include
+  `tracking/points.blade.php` (+1/+2/+3, only for sports with several point values); the own-goal
+  checkbox shows only for 1-point sports. The wording gap (§9) remains.
+- 2026-10-03 — Per-sport wording done: `Sport::trans($key)` (`by_sport.{sport}.{key}` per locale,
+  generic fallback), used for the report heading/empty text, scorer prompt, undo text, goal form,
+  opponent button label, "on the field"/Field tab; `Position::label()` moved onto it
+  (`positions_{sport}` keys removed). Field-only English messages reworded neutrally.

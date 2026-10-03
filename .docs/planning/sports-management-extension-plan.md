@@ -1,7 +1,7 @@
 # Plan: `sports-management`, a Dutch youth soccer team management extension
 
-> Since 2026-10-03 the extension also covers hockey, handball and basketball; see
-> `sports-management-multi-sport-epic.md`.
+> Since 2026-10-03 the extension also covers hockey, handball and basketball (korfbal postponed);
+> the multi-sport design, milestones and progress log live in `sports-management-multi-sport-epic.md`.
 
 Status: renamed from `kopling/soccer-management` to `kopling/sports-management` (2026-09-29, see
 decisions.md). All three phases built, plus a reworked tracking page (2026-09-29): a field with K/D/M/F
@@ -10,11 +10,45 @@ Kick off / Break / Continue / End match / Resume. Since 2026-10-02 format preset
 minutes, used to mark a player's fair share of play time, and a moderation/abuse pass added team
 owners, staff invitations and moderation-portal tooling (see "Moderation & abuse" below). Package `kopling/sports-management`
 (`k-extensions/sports-management`), own Portal `sports-management`, every table `sm_`-prefixed.
-See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3) and 2026-10-02 (×5).
+See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3), 2026-10-02 (×5) and 2026-10-03 (×2).
 
-## Where we left off (2026-10-02)
+## Where we left off (2026-10-03)
 
-The extension's tests (82) pass. Everything below is committed (through `064630e`).
+The extension's tests (106) pass; the full suite (631) too. Committed through `3287893` (own goals);
+everything from the multi-sport epic on (sports, breaks, sanctions, seeders, sidebar/user-menu
+links, season prefill, optional club) is still uncommitted in the working tree. Local database is
+migrated through `2026_10_03_000018` and all four preset seeders have run.
+
+### Changes 2026-10-03
+- **Fairness:** target bench time (`TeamMatch::fairBenchSeconds()`) next to target play time;
+  bench players carry a bottom badge with bench minutes ("benched 12'"), green at the target;
+  field players who sat at least a minute keep theirs (no prefix, not ticking). Top badge on bench
+  players reads "played 12'". Both badges centered. Targets are whole minutes, rounded down
+  (`fairShareSeconds()`), so a badge turns green on the minute it shows and every player can
+  reach the target; bench target = match minutes − play target. Labels: "Target play time: 42',
+  target bench time: 8'" (NL "Speelstreeftijd", "reservestreeftijd"; NL "reserve" for bench).
+- **Report:** goals and assists per player (points for basketball); own page at
+  `/{team}/matches/{match}/report` (same partial as the tab, data from
+  `TrackingController::matchData()`), linked from the match page and the team's match list once a
+  match has ended; edits made there redirect back to it. "Back to match" sits left of the tabs.
+- **Field order:** order within a zone is remembered (`sm_match_slots`, see decisions.md
+  2026-10-03); dropping beside a player inserts left/right of their center.
+- **Own goal by the opponent:** `own_goal` on goals — counts for us, no scorer/assist.
+- **Multi-sport (epic M1–M8):** sport on team and preset, `SportConfig` per sport, break cue,
+  sanctions (time penalties, red cards, foul-outs), zones per sport, KNHB/NHV/NBB seeders,
+  basketball points. Details: the epic.
+- **Navigation:** "All teams" at the top of the sidebar; "Sports management" in the user menu
+  (`access-sports-management`, hidden on the portal itself). Upcoming matches read
+  "<team> vs <opponent>" for staff of more than one team.
+- **Team form:** sports listed alphabetically (football preselected); season prefilled
+  (`Team::currentSeason()`, turns over in July); name, sport and season marked required (core
+  `x-k::form.input`/`select` `required` option); club optional (`000018`), subtitles skip it
+  (`Team::subtitle()`).
+- **Per-sport wording:** `Sport::trans($key)` reads `by_sport.{sport}.{key}` in the current locale
+  (`Lang::hasForLocale`, so Dutch never borrows an English override) and falls back to the generic
+  key; `Position::label()` uses it too. Basketball says "Score"/"Points and assists"/"Basket
+  recorded" (NL "Score"/"Punten en assists"/"Tik op de scorer"); English handball/basketball say
+  "court". "Enter afterwards" goal forms offer +1/+2/+3 for basketball.
 Migrations up to 2026-09-30 were edited in place (pre-production);
 later ones are new: play minutes (`2026_10_02_000011`, then run
 `kopling:sports-management:seed-knvb-presets`), team owners + invitations (`000012`, backfills
@@ -152,16 +186,27 @@ the earliest staff member of each existing team as owner) and team soft deletes 
 - Team page cards, the positions multi-select and roster counts.
 - Earlier item not yet confirmed: edit controls hidden for staff missing a permission.
 
+- 2026-10-03 changes: sanction mode (button, tap player, pick kind), countdown and "out" badges,
+  the return prompt after a penalty, +1/+2/+3 buttons for basketball, a second action button next
+  to Goal on a phone, sidebar "All teams" + user-menu portal link order, required asterisks.
+  Confirmed working: break cue (tested with a 2-minute match).
+
 ### Next
-Visual pass on a phone (list above) and of the moderation & abuse screens (see that section),
-then decide the communication block and format presets.
+- Commit the multi-sport work.
+- Visual pass on a phone (list above) and of the moderation & abuse screens (see that section),
+  then decide the communication block.
 
 ### Open
+- **Required markers on the match form** (opponent, date/time) — offered, not done.
+- **Federation values to confirm:** see the epic §9/§10 (small hockey formats, all NHV durations,
+  NBB formats, whether the youngest age groups use cards/suspensions).
+- **Korfbal:** postponed (epic §6).
 - **Later:** a second person operating the phone; preparing substitutions ahead and applying
   them together.
-- **Editing format presets:** still no screen for them; the seed leaves `rules_url` empty, so the
-  "Rules" link never shows. Undecided: admin CRUD (recommended: in the admin portal), fill URLs in
-  the seed only, or defer.
+- **Editing format presets:** out of scope for now (decided 2026-10-03): presets are seeded from
+  the federations, one command each (`seed-knvb-presets`, `seed-knhb-presets`,
+  `seed-nhv-presets`, `seed-nbb-presets`). The seeds leave `rules_url` empty, so the "Rules" link
+  never shows.
 - **No signal on the sideline:** an action sent without a connection fails; queuing offline
   actions was left out on purpose.
 - **Avatar icons from extensions** (e.g. roles): a `RenderingAvatar` event, same shape as
@@ -169,6 +214,7 @@ then decide the communication block and format presets.
 - **Font Awesome Pro icons** (`user-group-simple`, `court-sport`) for the sidebar: a site can now
   install Pro with its own token (`kopling:icons:pro`, see decisions.md, 2026-10-03) and override
   these two icons; the defaults stay free, since most sites won't have Pro.
+- **Cards in football:** not wanted for now (2026-10-03); `Football::sanctions()` is empty.
 - **Roster members as accounts:** core now has a `/settings` page for a person's own name, with
   a slot for extension sections. Nothing here uses it yet; it becomes relevant once a roster
   member's `Person` can log in (the "real accounts later" path).

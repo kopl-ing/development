@@ -1631,3 +1631,16 @@ events, as the plan's "Format preset" decision requires.
 `.docs/planning/sports-management-multi-sport-epic.md`.
 
 ---
+
+## 2026-10-03 — Core form fields mark required ones themselves
+
+**Decision:** `x-k::form.input` and `x-k::form.select` take `'required' => true`, which renders the
+native `required` attribute and a red asterisk after the label (`aria-hidden`, since `required` is
+announced already). Optional fields get no marker.
+
+**Why:** there was no convention, and forms are built from these components across extensions;
+marking in the component keeps every form consistent instead of each view adding its own.
+
+**Status:** decided & implemented (sports-management team forms use it so far).
+
+---
