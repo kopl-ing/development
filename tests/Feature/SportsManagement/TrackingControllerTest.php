@@ -73,6 +73,7 @@ it('records goals live at the current match clock, and derives the score', funct
     $jip = rosterMember($team, 'Jip');
     $sam = rosterMember($team, 'Sam');
     $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'F', $sam->id => 'M']);
 
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
     $period = $match->periods()->firstOrFail();
@@ -233,10 +234,11 @@ it('refuses to delete a period that still has events', function () {
 it('renders the tracking page in each state', function () {
     $coach = coach();
     $team = staffedTeam($coach);
-    rosterMember($team, 'Jip');
+    $jip = rosterMember($team, 'Jip');
     $match = plannedMatch($team);
 
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()->assertSee('data-sm-editable', false)->assertSee('/lineup', false);
+    lineup($this, $coach, $match, [$jip->id => 'F']);
 
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
     $this->actingAs($coach)->post(trackUrl($match, '/goals'), ['minute' => 3, 'opponent' => '1']);
@@ -314,10 +316,11 @@ it('refuses lineup changes once the match has kicked off', function () {
     $team = staffedTeam($coach);
     $jip = rosterMember($team, 'Jip');
     $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'F']);
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
 
     $this->actingAs($coach)
-        ->post("/sports-management/{$team->id}/matches/{$match->id}/lineup", ['team_member_id' => $jip->id, 'zone' => 'F'])
+        ->post("/sports-management/{$team->id}/matches/{$match->id}/lineup", ['team_member_id' => $jip->id, 'zone' => 'M'])
         ->assertStatus(409);
 });
 
@@ -578,13 +581,17 @@ it('leaves players marked absent out of the squad the fair share is divided over
     $team = staffedTeam($coach);
     $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 50])->id]);
     $anna = rosterMember($team, 'Anna');
+    $starters = [$anna->id => 'F'];
     foreach (range(2, 9) as $number) {
-        rosterMember($team, "Player $number");
+        $player = rosterMember($team, "Player $number");
+        if ($number <= 6) {
+            $starters[$player->id] = 'M';
+        }
     }
     $absent = rosterMember($team, 'Absent');
     $match = plannedMatch($team);
     $match->availabilities()->create(['team_member_id' => $absent->id, 'status' => 'absent']);
-    lineup($this, $coach, $match, [$anna->id => 'F']);
+    lineup($this, $coach, $match, $starters);
     $this->actingAs($coach)->get(trackUrl($match))->assertDontSee('Target play time');
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
 
@@ -611,6 +618,7 @@ it('names the position a player was moved onto in the event log', function () {
     $team = staffedTeam($coach);
     $anna = rosterMember($team, 'Anna');
     $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$anna->id => 'F']);
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
 
     $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $anna->id, 'zone' => 'M'])
@@ -672,6 +680,7 @@ it('serves the report on its own page and links ended matches to it', function (
 });
 
 it('remembers where in a zone a player was put, before kick-off and live', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
     $coach = coach();
     $team = staffedTeam($coach);
     [$anna, $bram, $cas, $dirk] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram', 'Cas', 'Dirk']);
@@ -702,6 +711,23 @@ it('remembers where in a zone a player was put, before kick-off and live', funct
 
     $field(['team_member_id' => $anna->id, 'zone' => 'M', 'before_team_member_id' => $dirk->id]);
     $zoneOrder([$cas, $anna, $dirk, $bram]);
+});
+
+it('replays events within the same second in the order they were made, whatever order the database returns', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00.000000');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $anna = rosterMember($team, 'Anna');
+    $match = plannedMatch($team);
+    $period = $match->periods()->create(['sequence' => 1, 'type' => 'play', 'started_at' => now()]);
+    $event = fn (string $direction, string $at) => $match->substitutions()->create([
+        'period_id' => $period->id, 'team_member_id' => $anna->id, 'direction' => $direction, 'zone' => $direction === 'on' ? 'F' : null, 'offset_seconds' => 0,
+    ])->forceFill(['created_at' => Carbon::parse($at)])->save();
+
+    $event('off', '2026-10-10 09:30:00.000002');
+    $event('on', '2026-10-10 09:30:00.000001');
+
+    expect($match->fresh()->timeline()->onField())->toBe([]);
 });
 
 it('ignores a remembered slot once the player is in another zone', function () {
@@ -989,10 +1015,11 @@ it('tracks a basketball match: points per basket, foul-out with back-fill', func
     $coach = coach();
     $team = staffedTeam($coach);
     $team->update(['sport' => 'basketball', 'format_preset_id' => TeamFormatPreset::where('sport', 'basketball')->where('name', 'U14')->value('id')]);
-    [$anna, $bram] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram']);
+    $anna = rosterMember($team, 'Anna');
     $match = plannedMatch($team);
     lineup($this, $coach, $match, [$anna->id => 'G']);
     $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+    $bram = rosterMember($team, 'Bram');
 
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()
         ->assertSee('data-sm-points="3"', false)

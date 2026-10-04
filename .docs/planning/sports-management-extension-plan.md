@@ -12,12 +12,38 @@ owners, staff invitations and moderation-portal tooling (see "Moderation & abuse
 (`k-extensions/sports-management`), own Portal `sports-management`, every table `sm_`-prefixed.
 See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3), 2026-10-02 (×5) and 2026-10-03 (×2).
 
-## Where we left off (2026-10-03)
+## Where we left off (2026-10-04)
 
-The extension's tests (111) pass; the full suite (653) too. Everything below is committed (through
-`cb72764`). Local database is migrated through `2026_10_03_000018` and all four preset seeders have
-run; later core/auth migrations (`password_reset_tokens`, verified backfill, sanctions issuer) may
-still need `php artisan migrate` locally.
+Local database is migrated through `2026_10_04_000020`. The work below is uncommitted.
+
+### Changes 2026-10-04
+- **Referee ("spelbegeleider"):** staff carry a role (`sm_team_staff.role`: `coach` | `referee`,
+  `StaffRole`); invitations carry the role they grant. Owners are always coaches. A match names one
+  referee from the team's referee staff (`sm_matches.referee_person_id`) and the duties delegated to
+  them (`referee_duties`, `RefereeDuty`: timing, scoring, sanctions where the sport has them), set in
+  the match form. See decisions.md 2026-10-04.
+  - A delegated duty is the referee's alone: hidden from coaches and refused server-side
+    (`TeamMatch::handles()`); coaches take it back by editing the match. Lineup, field moves,
+    substitutions, availability, roster and team settings stay coach-only, whatever site-wide
+    permissions the referee holds.
+  - A referee sees only matches assigned to them (team page, sidebar). On those: the field without
+    bench or play-time badges (read-only, to pick scorer/assist/sanctioned player), and a report with
+    periods, goals and scorers, plus sanctions only when they hold that duty — no substitutions or
+    time played.
+  - Removing a referee from staff unassigns them from upcoming matches. Deleting a person
+    force-deletes teams they were the last *coach* of (was: last staff member).
+- **Kick-off needs a complete lineup** (coach or referee): every field place filled, or nobody
+  available left on the bench (`TrackingController::lineupComplete()`). Entering a first period
+  afterwards isn't checked.
+- **Repeat guard:** the same live action within 5 seconds is ignored — starting a period of the type
+  that just started, or a live goal identical in side/scorer/assist/points. Goals entered afterwards
+  with a minute aren't guarded.
+- **Staff list:** name and badge over email; owners change a member's role, make them owner or
+  remove them from one Edit modal (`StaffController::updateRole`, owners stay coaches; leaving the
+  referee role unassigns upcoming matches).
+- **Event timestamps keep microseconds** (`000020`, `$dateFormat` on substitutions, goals, sanctions):
+  the replay breaks same-offset ties on `created_at`, which at second precision fell back to whatever
+  order the database returned.
 
 ### Changes 2026-10-03
 - **Fairness:** target bench time (`TeamMatch::fairBenchSeconds()`) next to target play time;

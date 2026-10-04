@@ -1703,3 +1703,18 @@ without staff is unreachable for anyone but moderators, so it goes with its last
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-04 — Sports teams get a referee role with per-match delegated duties
+
+**Decision:** team staff have a role (`coach` or `referee`, Dutch "spelbegeleider"). Each match can
+name one referee and delegate duties to them (timing, scoring, sanctions); a delegated duty belongs
+to the referee alone (`TeamMatch::handles()`), everything else stays with coaches. Team-scoped checks
+use the role, not the site-wide permissions, which only gate whether an account may use a feature
+at all.
+
+**Why:** youth referees are usually parents; exclusive duties stop two devices driving the same
+clock, and keeping play time and substitutions from them avoids handing parents data to argue with.
+
+**Status:** decided & implemented.
+
+---
