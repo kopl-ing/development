@@ -270,19 +270,20 @@ it('shows the available count in red until enough players are available, maybe a
     $this->actingAs($coach)->get($url)->assertSee('badge badge-success', false)->assertDontSee('badge badge-error', false);
 });
 
-it('keeps track and edit above the match details, and delete at the bottom of the match page', function () {
+it('puts edit and delete in the more-actions menu, and track below the match details', function () {
     $coach = coach();
     $team = staffedTeam($coach);
     $match = plannedMatch($team, ['location_address' => 'Sportpark Noord']);
 
     $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")
         ->assertSeeInOrder([
-            __('kopling-sports-management::messages.track_match'),
+            __('kopling-sports-management::messages.more_actions'),
             __('kopling-sports-management::messages.edit_match'),
+            __('kopling-sports-management::messages.delete_match'),
             'FC Rivals JO11-1',
             'Sportpark Noord',
+            __('kopling-sports-management::messages.track_match'),
             __('kopling-sports-management::messages.availability'),
-            __('kopling-sports-management::messages.delete_match'),
         ]);
 });
 
