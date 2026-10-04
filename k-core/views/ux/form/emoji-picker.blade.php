@@ -20,6 +20,6 @@
         <input type="hidden" name="{{ $name }}" value="{{ $value }}" data-emoji-input>
     </div>
     @if ($description)
-        <p class="label">{{ $description }}</p>
+        <p class="label whitespace-normal">{{ $description }}</p>
     @endif
 </fieldset>

@@ -6,6 +6,6 @@
         @endforeach
     </select>
     @if ($description)
-        <p class="label">{{ $description }}</p>
+        <p class="label whitespace-normal">{{ $description }}</p>
     @endif
 </fieldset>

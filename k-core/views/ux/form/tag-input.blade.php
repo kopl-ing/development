@@ -29,6 +29,6 @@
         <p class="label text-xs opacity-60">{{ __('kopling-core::ux.select_max', ['max' => $max]) }}</p>
     @endif
     @if ($description)
-        <p class="label">{{ $description }}</p>
+        <p class="label whitespace-normal">{{ $description }}</p>
     @endif
 </fieldset>
