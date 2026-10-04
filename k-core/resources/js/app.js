@@ -29,17 +29,24 @@ document.addEventListener('click', (event) => {
 });
 
 // A click anywhere on a date/time field opens its picker: on some pages Firefox's own calendar
-// button does nothing, and the whole field is an easier target anyway.
+// button does nothing, and the whole field is an easier target anyway. Deferred so a browser
+// that already opened it from its icon isn't toggled shut again.
 document.addEventListener('click', (event) => {
     const input = event.target.closest('input[type="date"], input[type="datetime-local"], input[type="time"], input[type="month"], input[type="week"]');
 
-    if (input && !input.disabled && !input.readOnly && typeof input.showPicker === 'function') {
-        try {
-            input.showPicker();
-        } catch {
-            // Refused outside a user gesture or in a cross-origin iframe; typing still works.
-        }
+    if (!input || input.disabled || input.readOnly || typeof input.showPicker !== 'function') {
+        return;
     }
+
+    setTimeout(() => {
+        try {
+            if (!input.matches(':open')) {
+                input.showPicker();
+            }
+        } catch {
+            // No `:open` support, or refused outside a user gesture; the native field still works.
+        }
+    });
 });
 
 // A card wrapping a linked Moment/Reply (`Card\Card`'s own `data-href`) forwards a click anywhere
