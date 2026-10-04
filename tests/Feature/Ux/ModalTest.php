@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\MessageBag;
+use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
 
 /**
@@ -30,9 +31,26 @@ it('renders the trigger button and dialog markup', function () {
 
     expect($html)->toContain('data-modal-show')
         ->and($html)->toContain('<dialog')
-        ->and($html)->toContain('modal-backdrop')
         ->and($html)->toContain('Open')
         ->and($html)->toContain('Body content');
+});
+
+it('only closes through its own close button or Escape, never a tap beside the box', function () {
+    $html = (string) $this->blade(
+        '<x-k::modal label="Manage groups"><x-slot:trigger>Open</x-slot:trigger><p>Body</p></x-k::modal>'
+    );
+
+    expect($html)->not->toContain('modal-backdrop')
+        ->and($html)->toContain('<form method="dialog">')
+        ->and($html)->toContain('aria-label="'.__('kopling-core::ux.close').'"');
+});
+
+it('renders a cancel button that closes the dialog without submitting or validating the form', function () {
+    $html = (string) $this->blade('<x-k::modal.cancel />');
+
+    expect($html)->toContain('formmethod="dialog"')
+        ->and($html)->toContain('formnovalidate')
+        ->and($html)->toContain(__('kopling-core::ux.cancel'));
 });
 
 it('gives two modals sharing the same label distinct ids', function () {
@@ -84,6 +102,8 @@ it('does not reopen a modal whose id does not match the flashed _form value', fu
 it('lets the trigger slot replace the default trigger classes', function () {
     $html = (string) $this->blade('<x-k::modal label="Edit"><x-slot:trigger class="btn">Edit</x-slot:trigger><p>Body</p></x-k::modal>');
 
-    expect($html)->toContain('class="btn"')
-        ->and($html)->not->toContain('btn-sm');
+    $trigger = Str::before($html, '</button>');
+
+    expect($trigger)->toContain('class="btn"')
+        ->and($trigger)->not->toContain('btn-sm');
 });

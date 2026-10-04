@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 return [
     'close' => 'Close',
+    'cancel' => 'Cancel',
     'clear' => 'Clear',
     'pick_emoji' => 'Pick an emoji',
     'no_options' => 'No options available.',
