@@ -28,6 +28,20 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// A click anywhere on a date/time field opens its picker: on some pages Firefox's own calendar
+// button does nothing, and the whole field is an easier target anyway.
+document.addEventListener('click', (event) => {
+    const input = event.target.closest('input[type="date"], input[type="datetime-local"], input[type="time"], input[type="month"], input[type="week"]');
+
+    if (input && !input.disabled && !input.readOnly && typeof input.showPicker === 'function') {
+        try {
+            input.showPicker();
+        } catch {
+            // Refused outside a user gesture or in a cross-origin iframe; typing still works.
+        }
+    }
+});
+
 // A card wrapping a linked Moment/Reply (`Card\Card`'s own `data-href`) forwards a click anywhere
 // on it into a real click on `[data-card-primary-link]`, so it gets the same htmx-boosted
 // navigation a direct click on the title link would.

@@ -8,13 +8,21 @@ decisions.md). All three phases built, plus a reworked tracking page (2026-09-29
 zones and a bench of avatars, a stored pre-kick-off lineup, and a single match clock driven by
 Kick off / Break / Continue / End match / Resume. Since 2026-10-02 format presets carry total play
 minutes, used to mark a player's fair share of play time, and a moderation/abuse pass added team
-owners, staff invitations and moderation-portal tooling (see "Moderation & abuse" below). Package `kopling/sports-management`
+owners, staff invitations and moderation-portal tooling (see "Moderation & abuse" below). Since
+2026-10-04 staff are coaches or referees ("spelbegeleider"), with duties delegated per match. Package `kopling/sports-management`
 (`k-extensions/sports-management`), own Portal `sports-management`, every table `sm_`-prefixed.
-See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3), 2026-10-02 (×5) and 2026-10-03 (×2).
+See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3), 2026-10-02 (×5), 2026-10-03 (×2) and 2026-10-04.
 
 ## Where we left off (2026-10-04)
 
-Local database is migrated through `2026_10_04_000020`. The work below is uncommitted.
+Local database is migrated through `2026_10_04_000020`. The 2026-10-04 work is uncommitted;
+everything before it is committed.
+
+**Access rule for new work:** a referee is staff too, so `Team::isStaffedBy()` only answers "may
+open the team at all". Check `Team::isCoachedBy()` for coach-only actions,
+`TeamMatch::isVisibleTo()` for viewing a match, and `TeamMatch::handles($person, RefereeDuty)` for
+anything a referee can be delegated. A view on the match screen hides by the same rules
+(`$isCoach`, `$duties[...]` from `TrackingController::matchData()` and `Ux\MatchControls`).
 
 ### Changes 2026-10-04
 - **Referee ("spelbegeleider"):** staff carry a role (`sm_team_staff.role`: `coach` | `referee`,
@@ -195,6 +203,16 @@ the earliest staff member of each existing team as owner) and team soft deletes 
   (decisions.md, "Migrations load for every installed extension").
 
 ### Still to check visually
+- 2026-10-04 changes, on a phone:
+  - Staff list: name and badge over email, one Edit button; the Edit modal (role, Make owner,
+    Remove); the role select beside the email field in the invite row.
+  - Match form: referee picker and duty checkboxes; "Referee: name (time, score)" on the match page.
+  - As a referee: team page (only assigned matches, Leave team), match page without availability,
+    match screen with field only (no bench or badges), Goal/Break buttons, report without time
+    played or substitutions.
+  - As a coach with duties delegated: top bar with timing delegated (falls back to the read-only
+    clock layout), field without Goal buttons when scoring is delegated.
+  - The "complete the lineup" error on kick-off (shown above the field).
 - Dutch copy read-through on the match screen (longer words in the top bar and badges).
 - Event log lines with the position, sidebar icons for teams and matches (alignment of the
   match icon beside the two-line entry).
@@ -225,6 +243,10 @@ the earliest staff member of each existing team as owner) and team soft deletes 
   then decide the communication block.
 
 ### Open
+- **Referees, later:** the moderation team preview shows owners but not referee roles; a coach
+  can't correct delegated events afterwards without first taking the duty back (by design, see
+  2026-10-04); a referee on more than three teams gets no sidebar match list
+  (`TeamsNav::MATCHES_UP_TO_TEAMS`), only the team pages.
 - **Required markers on the match form** (opponent, date/time) — offered, not done.
 - **Federation values to confirm:** see the epic §9/§10 (small hockey formats, all NHV durations,
   NBB formats, whether the youngest age groups use cards/suspensions).
@@ -296,7 +318,7 @@ handle, which roster members never get.
 - **Admin people list** still lists roster members (admins only); their profile link there 404s.
 - **Visual check:** Report button next to Delete team at the bottom of the team page (its
   trigger is styled for a dropdown, full width and left-aligned, so it may not match Delete
-  team), staff list with Owner/Make owner/Leave, invitations card on the Teams page, the Teams
+  team), invitations card on the Teams page, the Teams
   overview and team preview in the Moderation portal.
 - **Teams overview paging** drops the chosen sort on page 2 (core's pagination doesn't keep the
   query string).
@@ -407,7 +429,8 @@ None outstanding from the design rounds. Open implementation items are listed un
   permissions for managing a team's roster, planning its matches, and tracking a live match —
   declared locally and Manager-prefixed per convention, checked *in addition to* `sm_team_staff`
   membership (holding the permission is necessary but not sufficient — it must also be for a team
-  you actually staff). The portal-gate permission is named after the extension itself
+  you actually staff, in the right role: since 2026-10-04 coach, or referee for duties delegated
+  on that match). The portal-gate permission is named after the extension itself
   (`access-sports-management`, matching the `access-admin`/`access-mail` convention), while
   domain-action permissions (`manage-teams`) keep the domain word, matching `manage-tags`/
   `manage-people`.
@@ -431,8 +454,9 @@ columns), not migration code — confirm the shape before Phases 2-3 turn it int
 
 - **`sm_teams`** — `name`, `club` (string), `season` (string, e.g. `"2026/2027"`),
   `format_preset_id` (FK, nullable), `deleted_at`/`deleted_by`/`deleted_reason` (moderation hide).
-- **`sm_team_staff`** — pivot: `team_id`, `person_id`, `owner` (bool).
-- **`sm_team_invitations`** — `team_id`, `email` (lowercased, unique per team), `invited_by`.
+- **`sm_team_staff`** — pivot: `team_id`, `person_id`, `owner` (bool), `role` (`coach` |
+  `referee`; owners are always coaches).
+- **`sm_team_invitations`** — `team_id`, `email` (lowercased, unique per team), `role`, `invited_by`.
 - **`sm_team_format_presets`** — `name` (e.g. `"JO11"`), `players_on_field`, `play_minutes`
   (total, nullable), `rules_url`. A small
   seeded set of KNVB categories, editable like any other admin-managed data (not a config file,
@@ -444,7 +468,8 @@ columns), not migration code — confirm the shape before Phases 2-3 turn it int
 - **`sm_matches`** (Phase 2, built) — `team_id`, `opponent_name`, `home_away` (enum),
   `location_address` (text), `format_preset_id` (nullable FK — defaults from
   `team.format_preset_id`, overridable per match), `play_minutes` (nullable — falls back to the
-  effective preset's), `scheduled_at`. No stored result/state column
+  effective preset's), `scheduled_at`, `referee_person_id` (nullable, a referee on the team's
+  staff) and `referee_duties` (JSON array of `RefereeDuty`). No stored result/state column
   — final score and planned/in-progress/final state are both derived from
   `sm_match_goals`/`sm_match_periods` (one source of truth, can't drift out of sync with the
   event log).
@@ -461,7 +486,8 @@ columns), not migration code — confirm the shape before Phases 2-3 turn it int
   `direction` (on / off), `zone` (K/D/M/F on "on" events), `offset_seconds` within that period (blank minute = "now" for a running
   period). Starters are plain `on` events at offset 0 of period 1. A substitution during a break
   takes effect from the next play period. Time played is replayed from these events per play
-  period — unlimited/rolling subs, no sub-slot count.
+  period — unlimited/rolling subs, no sub-slot count. Events at the same offset replay in
+  `created_at` order, so event tables keep microsecond timestamps (`$dateFormat`, since `000020`).
 - **`sm_match_goals`** (Phase 3, built) — `match_id`, `period_id`, `opponent` (bool),
   `scorer_team_member_id` (nullable — unknown scorer), `assist_team_member_id` (nullable),
   `offset_seconds`. An explicit `opponent` flag instead of "null scorer = opponent", so "our goal,
