@@ -89,7 +89,8 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   a second, different feature needs the same shape of thing.
 
 ### People / Groups
-- People/Groups admin UI now exists (`/admin/people`, `/admin/groups` — see Checkpoint 1, Built).
+- People/Groups admin UI now exists (`/admin/people`, `/admin/groups` — see Checkpoint 1, Built);
+  people can be deleted there, with confirmation, not oneself (2026-10-03).
   Still no person detail/profile page. Needs to cover, at minimum:
   - updating one's own email/password
   - avatar — upload, or fall back to Gravatar

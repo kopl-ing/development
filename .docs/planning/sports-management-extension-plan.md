@@ -14,10 +14,10 @@ See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3), 2026-10-02 (×
 
 ## Where we left off (2026-10-03)
 
-The extension's tests (106) pass; the full suite (631) too. Committed through `3287893` (own goals);
-everything from the multi-sport epic on (sports, breaks, sanctions, seeders, sidebar/user-menu
-links, season prefill, optional club) is still uncommitted in the working tree. Local database is
-migrated through `2026_10_03_000018` and all four preset seeders have run.
+The extension's tests (111) pass; the full suite (653) too. Everything below is committed (through
+`cb72764`). Local database is migrated through `2026_10_03_000018` and all four preset seeders have
+run; later core/auth migrations (`password_reset_tokens`, verified backfill, sanctions issuer) may
+still need `php artisan migrate` locally.
 
 ### Changes 2026-10-03
 - **Fairness:** target bench time (`TeamMatch::fairBenchSeconds()`) next to target play time;
@@ -49,6 +49,9 @@ migrated through `2026_10_03_000018` and all four preset seeders have run.
   key; `Position::label()` uses it too. Basketball says "Score"/"Points and assists"/"Basket
   recorded" (NL "Score"/"Punten en assists"/"Tik op de scorer"); English handball/basketball say
   "court". "Enter afterwards" goal forms offer +1/+2/+3 for basketball.
+- **Deleting a person** (admin → People) force-deletes every team they were the last staff member
+  of, roster included (`PersonObserver`, registered with `Extend\Model::observe()` on `Person`). A team can't
+  lose its last staff member any other way (the last owner can't leave or be removed).
 Migrations up to 2026-09-30 were edited in place (pre-production);
 later ones are new: play minutes (`2026_10_02_000011`, then run
 `kopling:sports-management:seed-knvb-presets`), team owners + invitations (`000012`, backfills
@@ -192,7 +195,6 @@ the earliest staff member of each existing team as owner) and team soft deletes 
   Confirmed working: break cue (tested with a 2-minute match).
 
 ### Next
-- Commit the multi-sport work.
 - Visual pass on a phone (list above) and of the moderation & abuse screens (see that section),
   then decide the communication block.
 

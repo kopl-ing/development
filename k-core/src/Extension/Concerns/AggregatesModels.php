@@ -69,8 +69,8 @@ trait AggregatesModels
                 $class::saved($model->saved);
             }
 
-            if ($model->deleting !== null) {
-                $class::deleting($model->deleting);
+            foreach ($model->observers as $observer) {
+                $class::observe($observer);
             }
 
             if ($model->morphAlias !== null) {

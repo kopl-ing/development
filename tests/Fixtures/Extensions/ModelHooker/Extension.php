@@ -14,7 +14,7 @@ use Kopling\Core\Extension\Contract\ExtendsModels;
  * outright), a `saving()` hook that transforms an attribute on both insert and update, and a
  * `saved()` hook that logs each fire -- proving it sees a real assigned primary key (something
  * `creating()` structurally can't, since it runs before the insert) and fires on both create
- * and update, same as `saving()`; plus a `deleting()` hook that logs and can cancel a delete.
+ * and update, same as `saving()`; plus an observer whose `deleting()` logs and can cancel a delete.
  */
 class Extension extends AbstractExtension implements ExtendsModels
 {
@@ -23,11 +23,6 @@ class Extension extends AbstractExtension implements ExtendsModels
      */
     public static array $savedLog = [];
 
-    /**
-     * @var array<int, mixed>
-     */
-    public static array $deletingLog = [];
-
     public static function name(): string
     {
         return 'Model Hooker Fixture';
@@ -35,7 +30,7 @@ class Extension extends AbstractExtension implements ExtendsModels
 
     public static function description(): string
     {
-        return 'Adds creating()/saving()/saved()/deleting() hooks to a fixture model, for testing ExtendsModels.';
+        return 'Adds creating()/saving()/saved() hooks and an observer to a fixture model, for testing ExtendsModels.';
     }
 
     /**
@@ -63,11 +58,7 @@ class Extension extends AbstractExtension implements ExtendsModels
                         'wasRecentlyCreated' => $message->wasRecentlyCreated,
                     ];
                 })
-                ->deleting(function (Message $message) {
-                    static::$deletingLog[] = $message->id;
-
-                    return $message->body !== 'KEEP-ME';
-                }),
+                ->observe(MessageObserver::class),
         ];
     }
 }

@@ -33,7 +33,10 @@ class Model
 
     public ?Closure $saved = null;
 
-    public ?Closure $deleting = null;
+    /**
+     * @var array<int, class-string>
+     */
+    public array $observers = [];
 
     /**
      * @var array<string, Closure>
@@ -113,11 +116,13 @@ class Model
     }
 
     /**
-     * Native Eloquent `deleting` -- fires before the row goes, while relations that cascade away with it can still be read.
+     * A regular Eloquent observer class, for any model event (`deleting`, `restored`, ...) -- applied by `Manager`, so only while this extension is enabled.
+     *
+     * @param class-string $observer
      */
-    public function deleting(Closure $callback): self
+    public function observe(string $observer): self
     {
-        $this->deleting = $callback;
+        $this->observers[] = $observer;
 
         return $this;
     }

@@ -220,7 +220,7 @@ team member — not gender, never on core's `Person`, never shown outside korfba
 - 2026-10-03 — After the release: sidebar "All teams" + user-menu portal link; upcoming matches
   read "<team> vs <opponent>" for multi-team staff; team form sorts sports alphabetically,
   prefills the season, marks required fields; club optional (`000018`). Break cue confirmed on a
-  phone. Not committed yet.
+  phone.
 - 2026-10-03 — Fixed: the "enter afterwards" goal forms (ours and the opponent's) had no points
   choice, so a basket entered afterwards always counted 1. Both now include
   `tracking/points.blade.php` (+1/+2/+3, only for sports with several point values); the own-goal
@@ -229,3 +229,4 @@ team member — not gender, never on core's `Person`, never shown outside korfba
   generic fallback), used for the report heading/empty text, scorer prompt, undo text, goal form,
   opponent button label, "on the field"/Field tab; `Position::label()` moved onto it
   (`positions_{sport}` keys removed). Field-only English messages reworded neutrally.
+- 2026-10-03 — All of the above is committed (through `cb72764`).

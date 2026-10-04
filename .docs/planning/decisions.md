@@ -1688,3 +1688,18 @@ Dutch site otherwise mixes Dutch screens with English errors and mail footers.
 **Status:** decided & implemented (Dutch, the strings the auth screens and mails use).
 
 ---
+
+## 2026-10-03 — Deleting a person: their content goes, moderation records stay
+
+**Decision:** admins delete people from Admin → People (not themselves). What belongs to the person
+cascades away; records of what they did to others stay with the actor cleared — `sanctions.issued_by`
+changed from cascade to `nullOnDelete`. Extensions react through an observer registered with the new
+`Extend\Model::observe()` (a regular Eloquent observer, applied by `Manager` so only while the
+extension is enabled); sports-management's `PersonObserver` deletes teams left without staff.
+
+**Why:** cascading a moderator's sanctions would silently unban everyone they had banned; a team
+without staff is unreachable for anyone but moderators, so it goes with its last staff member.
+
+**Status:** decided & implemented.
+
+---
