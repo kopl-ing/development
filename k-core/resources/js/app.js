@@ -1,8 +1,10 @@
 import htmx from 'htmx.org';
 import Alpine from 'alpinejs';
+import { alert } from './alert.js';
 
 window.htmx = htmx;
 window.Alpine = Alpine;
+window.kopling = { ...window.kopling, alert };
 
 // htmx 4 renamed this event to the colon form and moved request headers under
 // detail.ctx.request.headers (was detail.headers). Without this, htmx.ajax() calls

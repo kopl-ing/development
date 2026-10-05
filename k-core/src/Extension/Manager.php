@@ -22,6 +22,7 @@ use Kopling\Core\Extension\Concerns\AggregatesModerationTargets;
 use Kopling\Core\Extension\Concerns\AggregatesPermissions;
 use Kopling\Core\Extension\Concerns\AggregatesPortalExtensions;
 use Kopling\Core\Extension\Concerns\AggregatesPortals;
+use Kopling\Core\Extension\Concerns\AggregatesSettings;
 use Kopling\Core\Extension\Concerns\AggregatesStorageDrivers;
 use Kopling\Core\Extension\Concerns\AggregatesThemes;
 use Kopling\Core\Extension\Concerns\AggregatesUx;
@@ -56,6 +57,7 @@ class Manager
     use AggregatesPermissions;
     use AggregatesPortalExtensions;
     use AggregatesPortals;
+    use AggregatesSettings;
     use AggregatesStorageDrivers;
     use AggregatesThemes;
     use AggregatesUx;

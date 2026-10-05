@@ -1718,3 +1718,18 @@ clock, and keeping play time and substitutions from them avoids handing parents 
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-05 — Per-person preferences via `HasSettings`; device alerts go through core
+
+**Decision:** extensions declare per-person preferences with `HasSettings` (same `Field` shape as
+`HasAdminSettings`), stored in core's `person_settings` and rendered on core's account settings
+page. Alerts (vibration + a synthesized sound) and the screen wake lock live in core's JS
+(`kopling.alert()`, `[data-wake-lock]`) and follow the person's choices; extensions never call
+`navigator.vibrate`/`wakeLock` themselves.
+
+**Why:** how a device alerts someone is the person's choice, not one extension's, and iOS has no
+vibration at all, so sound has to be an option everywhere alerts are used.
+
+**Status:** decided & implemented.
+
+---

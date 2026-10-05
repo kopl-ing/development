@@ -10,6 +10,7 @@ return [
     'logout' => 'Uitloggen',
     'settings' => 'Instellingen',
     'account' => 'Account',
+    'preferences' => 'Voorkeuren',
     'name' => 'Naam',
     'save' => 'Opslaan',
     'settings_saved' => 'Opgeslagen.',

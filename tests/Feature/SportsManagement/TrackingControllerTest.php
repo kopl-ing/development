@@ -802,12 +802,12 @@ it('cues a break once the running play period reaches its expected length', func
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()
         ->assertSee('data-sm-break-due=""', false)
         ->assertSee('}, 60000)', false)
-        ->assertSee('navigator.vibrate', false);
+        ->assertSee('kopling.alert()', false);
 
     Carbon::setTestNow('2026-10-10 09:45:00');
     $this->actingAs($coach)->get(trackUrl($match))->assertOk()
         ->assertSee('data-sm-break-due="now"', false)
-        ->assertDontSee('navigator.vibrate', false);
+        ->assertDontSee('kopling.alert()', false);
 });
 
 it('names periods after the format\'s break structure', function () {

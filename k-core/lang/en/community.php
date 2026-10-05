@@ -10,6 +10,7 @@ return [
     'logout' => 'Log out',
     'settings' => 'Settings',
     'account' => 'Account',
+    'preferences' => 'Preferences',
     'name' => 'Name',
     'save' => 'Save',
     'settings_saved' => 'Saved.',

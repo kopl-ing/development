@@ -13,6 +13,7 @@ use Kopling\Core\Extension\Contract\ChangesTheme;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
 use Kopling\Core\Extension\Contract\HasAdminSettings;
+use Kopling\Core\Extension\Contract\HasSettings;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
@@ -67,6 +68,7 @@ class ListExtensionRegistrations extends Command
         $this->theme($manager, $id);
         $this->icons($manager, $id);
         $this->adminSettings($manager, $id);
+        $this->settings($manager, $id);
         $this->editor($manager, $package);
         $this->modelValidations($manager, $package);
 
@@ -84,6 +86,7 @@ class ListExtensionRegistrations extends Command
             CannotBeDisabled::class => 'CannotBeDisabled',
             ChangesTheme::class => 'ChangesTheme',
             HasAdminSettings::class => 'HasAdminSettings',
+            HasSettings::class => 'HasSettings',
             HasIcons::class => 'HasIcons',
             ChangesIcons::class => 'ChangesIcons',
             ChangesEditor::class => 'ChangesEditor',
@@ -406,6 +409,26 @@ class ListExtensionRegistrations extends Command
         $this->components->info('Admin settings (HasAdminSettings)');
 
         $fields = $manager->adminSettings()[$id] ?? [];
+
+        if ($fields === []) {
+            $this->line('  <fg=gray>none</>');
+            $this->newLine();
+
+            return;
+        }
+
+        foreach ($fields as $field) {
+            $this->components->twoColumnDetail($field->id, "{$field->label} ({$field->component})");
+        }
+
+        $this->newLine();
+    }
+
+    protected function settings(Manager $manager, string $id): void
+    {
+        $this->components->info('Person settings (HasSettings)');
+
+        $fields = $manager->settings()[$id] ?? [];
 
         if ($fields === []) {
             $this->line('  <fg=gray>none</>');

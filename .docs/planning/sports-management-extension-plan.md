@@ -15,8 +15,8 @@ See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3), 2026-10-02 (×
 
 ## Where we left off (2026-10-04)
 
-Local database is migrated through `2026_10_04_000020`. The 2026-10-04 work is uncommitted;
-everything before it is committed.
+Local database is migrated through `2026_10_04_000020`. Everything below is committed and pushed
+(last: `c6819f1`, 2026-10-04).
 
 **Access rule for new work:** a referee is staff too, so `Team::isStaffedBy()` only answers "may
 open the team at all". Check `Team::isCoachedBy()` for coach-only actions,
@@ -52,6 +52,27 @@ anything a referee can be delegated. A view on the match screen hides by the sam
 - **Event timestamps keep microseconds** (`000020`, `$dateFormat` on substitutions, goals, sanctions):
   the replay breaks same-offset ties on `created_at`, which at second precision fell back to whatever
   order the database returned.
+
+### Changes 2026-10-04 (UI pass, driven from the Veldwissel site)
+- **Home/away badge** (`views/teams/matches.blade.php`, `views/matches/show.blade.php`): icon
+  `kopling-sports-management::home` (`fas-house`) / `::away` (`fas-car-side`); in the match list the
+  label is `sr-only` below `sm` (tooltip via `title`). Match rows no longer wrap: score + badge
+  `shrink-0 whitespace-nowrap`, opponent/date `min-w-0`, date on its own line.
+- **Match page header** (`views/matches/show.blade.php`): back link + ⋮ menu (`<x-k::dropdown>`, coaches
+  only) holding Edit (opens `modal-match-edit` via `data-modal-show`; the modal sits outside the
+  dropdown with a hidden trigger) and Delete (was a button at the bottom); Report/Track buttons on
+  their own row under the title. `MatchesControllerTest` asserts the new order.
+- **Team page:** "Back to all teams" link above the title (`back_to_teams`), since phones have no
+  sidebar.
+- **New match defaults** to next Saturday 08:30 (`views/matches/form.blade.php`; app timezone, no
+  conversion, same as stored times).
+- **Modal forms** carry `<x-k::modal.cancel />` next to Save (team create/edit, player add/edit, match
+  create/edit, period edit).
+- Core, same pass: modals no longer close on a tap beside the box (✕ in the corner instead, plus
+  Escape); `<x-k::modal.cancel />`; form hints wrap (`whitespace-normal` on `.label`, a long hint used
+  to stretch the field past the modal); a click anywhere on a date/time input opens its picker
+  (`resources/js/app.js`, deferred so a browser that already opened it isn't toggled shut); Dutch
+  `lang/nl/ux.php` and `community.php`; Dutch admin/moderation menu labels.
 
 ### Changes 2026-10-03
 - **Fairness:** target bench time (`TeamMatch::fairBenchSeconds()`) next to target play time;
@@ -203,6 +224,10 @@ the earliest staff member of each existing team as owner) and team soft deletes 
   (decisions.md, "Migrations load for every installed extension").
 
 ### Still to check visually
+- 2026-10-04 UI pass: the date picker in a real desktop Firefox (on Veldwissel's pages Firefox's own
+  calendar button did nothing while a bare `data:` page worked; root cause not found, the click
+  handler works around it); whether the Android back gesture still closes a modal; the modal ✕
+  against a long modal title; the ⋮ menu on the match page for a referee (should be absent).
 - 2026-10-04 changes, on a phone:
   - Staff list: name and badge over email, one Edit button; the Edit modal (role, Make owner,
     Remove); the role select beside the email field in the invite row.
@@ -243,6 +268,11 @@ the earliest staff member of each existing team as owner) and team soft deletes 
   then decide the communication block.
 
 ### Open
+- **Firefox date picker root cause:** something on Kopling pages stops Firefox's own calendar button
+  (not reproducible in headless Firefox 155; a click reaches the input, nothing prevents it). The
+  core click handler covers it; worth finding if it shows up elsewhere.
+- **Other extensions' modals** (admin, tags, pages, moderation) have only the ✕ and Escape now; give
+  their forms `<x-k::modal.cancel />` too.
 - **Referees, later:** the moderation team preview shows owners but not referee roles; a coach
   can't correct delegated events afterwards without first taking the duty back (by design, see
   2026-10-04); a referee on more than three teams gets no sidebar match list

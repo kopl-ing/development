@@ -13,8 +13,7 @@ use Kopling\Core\Ux\Form\Field;
  * established for storage drives: an extension asks for what it needs, the extension that owns
  * the concern (here, `kopling/admin`) decides the backend/placement.
  *
- * Deliberately not named `HasSettings` -- a future per-person preferences contract needs that
- * name free without colliding with this one.
+ * Per-person preferences are `HasSettings`.
  */
 interface HasAdminSettings
 {

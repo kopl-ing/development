@@ -20,8 +20,10 @@ use Kopling\Core\Extension\Contract\HasFederatedModels;
 use Kopling\Core\Extension\Contract\HasIcons;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\HasPortals;
+use Kopling\Core\Extension\Contract\HasSettings;
 use Kopling\Core\Portal\Portal;
 use Kopling\Core\Portal\PortalExtension;
+use Kopling\Core\Ux\Alert;
 use Kopling\Core\Ux\Card\Badges;
 use Kopling\Core\Ux\Card\Body;
 use Kopling\Core\Ux\Card\Control;
@@ -35,6 +37,7 @@ use Kopling\Core\Ux\Editor;
 use Kopling\Core\Ux\Editor\EditorNode;
 use Kopling\Core\Ux\Form\Field;
 use Kopling\Core\Ux\Form\Input;
+use Kopling\Core\Ux\Form\Select;
 use Kopling\Core\Ux\Form\TextArea;
 use Kopling\Core\Ux\Form\Toggle;
 
@@ -42,7 +45,7 @@ use Kopling\Core\Ux\Form\Toggle;
  * Core's own declarations, made through the same contracts any extension would implement --
  * `Manager` always includes this as its first entry, not Composer-discovered like the rest.
  */
-class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor, ChangesUx, ExtendsPortals, HasAdminSettings, HasFederatedModels, HasIcons, HasPermissions, HasPortals
+class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor, ChangesUx, ExtendsPortals, HasAdminSettings, HasFederatedModels, HasIcons, HasPermissions, HasPortals, HasSettings
 {
     public static function name(): string
     {
@@ -145,6 +148,37 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
     }
 
     /**
+     * @return array<Field>
+     */
+    public function settings(): array
+    {
+        return [
+            new Field(
+                id: 'alert-vibrate',
+                label: __('kopling-core::settings.vibrate'),
+                component: Toggle::class,
+                default: true,
+                description: __('kopling-core::settings.vibrate_description'),
+            ),
+            new Field(
+                id: 'alert-sound',
+                label: __('kopling-core::settings.sound'),
+                component: Select::class,
+                default: Alert::DEFAULT_SOUND,
+                description: __('kopling-core::settings.sound_description'),
+                data: ['options' => Alert::soundOptions()],
+            ),
+            new Field(
+                id: 'wake-lock',
+                label: __('kopling-core::settings.wake_lock'),
+                component: Toggle::class,
+                default: true,
+                description: __('kopling-core::settings.wake_lock_description'),
+            ),
+        ];
+    }
+
+    /**
      * @return array<Icon>
      */
     public function icons(): array
@@ -158,6 +192,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
             new Icon(id: 'pagination-next', label: 'Next page', default: 'fas-chevron-right'),
             new Icon(id: 'logout', label: 'Log out', default: 'fas-arrow-right-from-bracket'),
             new Icon(id: 'settings', label: 'Settings', default: 'fas-gear'),
+            new Icon(id: 'sound-preview', label: 'Play sound', default: 'fas-volume-high'),
             new Icon(id: 'close', label: 'Close', default: 'fas-xmark'),
         ];
     }

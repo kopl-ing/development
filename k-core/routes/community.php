@@ -42,4 +42,5 @@ Route::post('logout', [LoginController::class, 'logout'])
 Route::middleware('auth')->group(function () {
     Route::get('settings', [AccountSettingsController::class, 'edit'])->name('settings');
     Route::post('settings', [AccountSettingsController::class, 'update'])->name('settings.update');
+    Route::post('settings/preferences', [AccountSettingsController::class, 'updatePreferences'])->name('settings.preferences');
 });
