@@ -292,6 +292,30 @@ it('swaps a bench player in for a field player live, taking over their zone', fu
         ->and($match->substitutions()->where('offset_seconds', 10 * 60)->where('direction', 'off')->value('team_member_id'))->toBe($jip->id);
 });
 
+it('splits time played per position, shown on the report', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $jip = rosterMember($team, 'Jip');
+    $sam = rosterMember($team, 'Sam');
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$jip->id => 'F', $sam->id => 'D']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    Carbon::setTestNow('2026-10-10 09:42:00');
+    $this->actingAs($coach)->post(trackUrl($match, '/field'), ['team_member_id' => $jip->id, 'replace_team_member_id' => $sam->id]);
+
+    Carbon::setTestNow('2026-10-10 09:50:00');
+    $timeline = $match->fresh()->timeline();
+    expect($timeline->positionSeconds(Position::Midfield))->toEqual([
+        $jip->id => ['F' => 12 * 60, 'D' => 8 * 60],
+        $sam->id => ['D' => 12 * 60, 'F' => 8 * 60],
+    ]);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}/report")->assertOk()
+        ->assertSeeInOrder(['Jip', Position::Defender->label($team->sport), '8:00', Position::Forward->label($team->sport), '12:00'], false);
+});
+
 it('swaps zones when a field player is dropped on another field player', function () {
     $coach = coach();
     $team = staffedTeam($coach);
