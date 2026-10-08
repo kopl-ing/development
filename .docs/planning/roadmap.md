@@ -35,6 +35,9 @@ and upvote feature requests. Kopling dogfooding itself is the bar for "done" her
   attachment. `HasAdminSettings::adminSettings(): array<Field>` lets any extension declare
   fields, rendered via new `Ux/Form/*` components (`Toggle`/`Input`/`TextArea`), persisted in a
   flat `settings` key-value table. See decisions.md, 2026-07-14.
+- Per-person preferences — `HasSettings::settings(): array<Field>`, the per-person counterpart of
+  `HasAdminSettings`, stored in core's `person_settings` and rendered on core's `/settings` page.
+  First user: device alerts (vibrate, sound, keep screen on). See decisions.md, 2026-10-05.
 - People/Groups admin UI — `admin` extension can now list people and assign them to Groups, and
   create/rename/delete Groups (`/admin/people`, `/admin/groups`), gated behind the
   already-declared `manage-people` permission. See decisions.md, 2026-07-15.

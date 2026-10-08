@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 return [
     'moments' => '{0} Geen momenten|{1} :count moment|[2,*] :count momenten',
+    'menu' => 'Menu',
     'home' => 'Community',
     'post_actions' => 'Acties voor dit bericht',
     'account_menu' => 'Accountmenu',

@@ -13,16 +13,28 @@ owners, staff invitations and moderation-portal tooling (see "Moderation & abuse
 (`k-extensions/sports-management`), own Portal `sports-management`, every table `sm_`-prefixed.
 See decisions.md, 2026-09-21, 2026-09-28 (×2), 2026-09-29 (×3), 2026-10-02 (×5), 2026-10-03 (×2) and 2026-10-04.
 
-## Where we left off (2026-10-04)
+## Where we left off (2026-10-05)
 
-Local database is migrated through `2026_10_04_000020`. Everything below is committed and pushed
-(last: `c6819f1`, 2026-10-04).
+Committed and pushed up to `c6819f1` (2026-10-04). The 2026-10-05 changes below are **uncommitted**
+and add one core migration (`k-core/migrations/2026_10_05_000001_create_person_settings_table`),
+not yet run on the local database. Not yet checked on a device: the alert sounds (incl. the iOS
+mute switch via `navigator.audioSession`) and the settings page layout.
 
 **Access rule for new work:** a referee is staff too, so `Team::isStaffedBy()` only answers "may
 open the team at all". Check `Team::isCoachedBy()` for coach-only actions,
 `TeamMatch::isVisibleTo()` for viewing a match, and `TeamMatch::handles($person, RefereeDuty)` for
 anything a referee can be delegated. A view on the match screen hides by the same rules
 (`$isCoach`, `$duties[...]` from `TrackingController::matchData()` and `Ux\MatchControls`).
+
+### Changes 2026-10-05
+- **Alerts follow the person's own preferences** (core, decisions.md 2026-10-05): break-due and
+  penalty-over call `kopling.alert()` instead of `navigator.vibrate`; the live field carries
+  `data-wake-lock` (was `data-sm-live` + the extension's own wake-lock code). Vibrate / sound
+  (none, beep, chime, whistle; default beep) / keep screen on are set per account on `/settings`,
+  with a Play button beside the sound choice. iOS has no vibration, so sound is the only alert there.
+- **Time per position on the report:** coaches see, per player, seconds in each position under
+  their name in "Time played" (`MatchTimeline::positionSeconds($default)`, credited by the same
+  replay as `playedSeconds()`; no zone counts as the sport's default zone).
 
 ### Changes 2026-10-04
 - **Referee ("spelbegeleider"):** staff carry a role (`sm_team_staff.role`: `coach` | `referee`,
@@ -160,7 +172,8 @@ the earliest staff member of each existing team as owner) and team soft deletes 
     Break / Continue / End match have no undo.
   - Moves show instantly (the avatar moves and pulses until the server confirms). htmx 4's
     `hx-optimistic` was checked and doesn't fit moving an existing element.
-  - Screen kept awake (Wake Lock API) while the match is live; pull-to-refresh blocked.
+  - Screen kept awake (Wake Lock API, core's `[data-wake-lock]`, per-person opt-out since
+    2026-10-05) while the match is live; pull-to-refresh blocked.
   - Bench sorted by fewest minutes played after kick-off; avatars bigger (64px).
   - **Limits:** at most one keeper, and at most the format's players-on-field (e.g. JO10: 6),
     enforced by the server for both lineup and field, and checked in the browser first. No limit

@@ -194,6 +194,7 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
             new Icon(id: 'settings', label: 'Settings', default: 'fas-gear'),
             new Icon(id: 'sound-preview', label: 'Play sound', default: 'fas-volume-high'),
             new Icon(id: 'close', label: 'Close', default: 'fas-xmark'),
+            new Icon(id: 'menu', label: 'Menu', default: 'fas-bars'),
         ];
     }
 
