@@ -44,6 +44,7 @@ it('invites someone as referee, who joins with that role and cannot become owner
 });
 
 it('shows a referee only the matches assigned to them, without roster or staff', function () {
+    Carbon::setTestNow('2026-10-09 12:00:00');
     $coach = coach();
     $team = staffedTeam($coach);
     rosterMember($team, 'Jip Jansen');

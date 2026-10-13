@@ -1177,3 +1177,28 @@ it('keeps the score on one line and offers the opponent one points button, a men
         ->assertSeeInOrder(['data-sm-opponent-points', '+1', '+2', '+3'], false);
     expect(substr_count($basketball->getContent(), 'class="btn btn-sm btn-ghost text-error tabular-nums"'))->toBe(3);
 });
+
+it('records a handball goal from the field taps, own goal included', function () {
+    Carbon::setTestNow('2026-10-10 09:30:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['sport' => 'handball']);
+    [$anna, $bram] = array_map(fn (string $name) => rosterMember($team, $name), ['Anna', 'Bram']);
+    $match = plannedMatch($team);
+    lineup($this, $coach, $match, [$anna->id => 'B', $bram->id => 'A']);
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertSee('data-sm-goal-own', false);
+
+    $tap = fn (array $fields) => $this->actingAs($coach)
+        ->post(trackUrl($match, '/goals'), $fields + ['scorer_team_member_id' => '', 'assist_team_member_id' => '', 'own_goal' => '', 'points' => '1'])
+        ->assertSessionHasNoErrors();
+    $tap(['scorer_team_member_id' => $anna->id]);
+    Carbon::setTestNow('2026-10-10 09:31:00');
+    $tap(['own_goal' => '1']);
+
+    expect($match->goals()->orderBy('created_at')->get(['scorer_team_member_id', 'own_goal'])->toArray())->toBe([
+        ['scorer_team_member_id' => $anna->id, 'own_goal' => false],
+        ['scorer_team_member_id' => null, 'own_goal' => true],
+    ]);
+});

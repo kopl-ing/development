@@ -1733,3 +1733,19 @@ vibration at all, so sound has to be an option everywhere alerts are used.
 **Status:** decided & implemented.
 
 ---
+
+## 2026-10-13 — Public match pages: own guest Portal, name-free view data
+
+**Decision:** a match can have a public page at `/live/{token}` (a 40-char random token, kept when
+the page is switched off and on again), served from a second, permission-less `live` Portal. A team
+setting (off by default) makes new matches public; each match can still be switched on or off. The
+controller gives the view plain arrays (initials, avatar colour, score, goals), never a `Person`
+or `TeamMember`, so no template change can leak a child's name.
+
+**Why:** roster members are children; initials are enough for parents, and a guest page that
+cannot reach names is safer than one that just doesn't print them. Like referees, guests see no
+play time or substitutions.
+
+**Status:** decided & implemented.
+
+---
