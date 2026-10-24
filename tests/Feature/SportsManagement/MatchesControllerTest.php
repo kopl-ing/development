@@ -54,6 +54,44 @@ it('plans a match for a staffed team', function () {
         ->and($match->format_preset_id)->toBeNull();
 });
 
+it('marks guests absent on a newly planned match, leaving permanent players unset', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $player = rosterMember($team, 'Player');
+    $guest = rosterMember($team, 'Guest');
+    $guest->update(['guest' => true]);
+
+    $this->actingAs($coach)
+        ->post("/sports-management/{$team->id}/matches", [
+            'opponent_name' => 'FC Rivals',
+            'home_away' => 'home',
+            'scheduled_at' => '2026-10-10T09:30',
+        ])
+        ->assertRedirect();
+
+    expect(TeamMatch::where('team_id', $team->id)->firstOrFail()->availabilities()->pluck('status', 'team_member_id')->all())
+        ->toBe([$guest->id => AvailabilityStatus::Absent]);
+});
+
+it('divides permanent players from guests on the roster and match availability, only when both are there', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $guest = rosterMember($team, 'Aad');
+    $guest->update(['guest' => true]);
+    $match = plannedMatch($team);
+    $divider = 'class="divider';
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")->assertDontSee($divider, false);
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")->assertDontSee($divider, false);
+
+    rosterMember($team, 'Zoë');
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")
+        ->assertSeeInOrder(['Zoë', $divider, 'Guests', 'Aad'], false);
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")
+        ->assertSeeInOrder(['Zoë', $divider, 'Guests', 'Aad'], false);
+});
+
 it('rejects an invalid home/away value', function () {
     $coach = coach();
     $team = staffedTeam($coach);
@@ -90,7 +128,7 @@ it('takes play minutes from the match, falling back to the format, and shares th
         ->and(plannedMatch($team)->fairBenchSeconds(10))->toBe(12 * 60)
         ->and($overridden->fairBenchSeconds(6))->toBe(0)
         ->and($jo10->fairShareSeconds(7))->toBe(42 * 60)
-        ->and($jo10->fairBenchSeconds(7))->toBe(8 * 60)
+        ->and($jo10->fairBenchSeconds(7))->toBe(7 * 60)
         ->and(plannedMatch(staffedTeam($coach), ['play_minutes' => 60])->fairShareSeconds(10))->toBeNull()
         ->and(plannedMatch(staffedTeam($coach), ['play_minutes' => 60])->fairBenchSeconds(10))->toBeNull();
 });

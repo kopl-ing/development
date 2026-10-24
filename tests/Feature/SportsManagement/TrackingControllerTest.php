@@ -666,6 +666,39 @@ it('counts bench minutes against the fair bench time', function () {
         ->assertSeeInOrder(['data-sm-player="'.$jip->id.'"', ">25'<", 'data-sm-bench', 'data-sm-player="'.$sam->id.'"', ">played 0'<", 'indicator-bottom', 'var(--color-success)', ">benched 25'<"], false);
 });
 
+it('rounds the fair bench time down on its own, not as what is left after the rounded play time', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 50])->id]);
+    $players = collect(range(1, 9))->map(fn (int $number) => rosterMember($team, "Player $number"));
+    $guest = rosterMember($team, 'Guest');
+    $guest->update(['guest' => true]);
+    $match = plannedMatch($team);
+    $players->take(3)->each(fn ($player) => $match->availabilities()->create(['team_member_id' => $player->id, 'status' => 'absent']));
+    $match->availabilities()->create(['team_member_id' => $guest->id, 'status' => 'available']);
+    lineup($this, $coach, $match, $players->slice(3, 6)->mapWithKeys(fn ($player) => [$player->id => 'M'])->all());
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee("Target play time: 42&#039;, target bench time: 7&#039;", false);
+});
+
+it('divides the fair play and bench time over the guests joining, not the guests sitting this match out', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 50])->id]);
+    $players = collect(range(1, 6))->map(fn (int $number) => rosterMember($team, "Player $number"));
+    $guests = collect(range(1, 3))->map(fn (int $number) => tap(rosterMember($team, "Guest $number"))->update(['guest' => true]));
+    $match = plannedMatch($team);
+    $guests->take(2)->each(fn ($guest) => $match->availabilities()->create(['team_member_id' => $guest->id, 'status' => 'available']));
+    $match->availabilities()->create(['team_member_id' => $guests->last()->id, 'status' => 'absent']);
+    lineup($this, $coach, $match, $players->mapWithKeys(fn ($player) => [$player->id => 'M'])->all());
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+
+    $this->actingAs($coach)->get(trackUrl($match))->assertOk()
+        ->assertSee("Target play time: 37&#039;, target bench time: 12&#039;", false);
+});
+
 it('shows earlier bench minutes on players back on the field', function () {
     $coach = coach();
     $team = staffedTeam($coach);
