@@ -264,3 +264,19 @@ it('deletes a team, roster included, once its last coach is deleted', function (
         ->and(\Kopling\Core\People\Person::find($kid->person_id))->toBeNull()
         ->and(Team::find($shared->id))->not->toBeNull();
 });
+
+it('lists a match played today as played, not upcoming', function () {
+    Illuminate\Support\Carbon::setTestNow('2026-10-10 12:00:00');
+    $coach = coach();
+    $team = staffedTeam($coach);
+    plannedMatch($team, ['opponent_name' => 'Tomorrow FC', 'scheduled_at' => '2026-10-11 09:30']);
+    plannedMatch($team, ['opponent_name' => 'Still To Play FC', 'scheduled_at' => '2026-10-10 14:00']);
+    plannedMatch($team, ['opponent_name' => 'Played Today FC', 'scheduled_at' => '2026-10-10 09:30'])
+        ->periods()->create(['sequence' => 1, 'type' => 'play', 'duration_seconds' => 1500]);
+    plannedMatch($team, ['opponent_name' => 'Last Week FC', 'scheduled_at' => '2026-10-03 09:30']);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")
+        ->assertSeeInOrder(['Upcoming', 'Still To Play FC', 'Tomorrow FC', 'Played', 'Played Today FC', 'Last Week FC']);
+
+    Illuminate\Support\Carbon::setTestNow();
+});
