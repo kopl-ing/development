@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Kopling\SportsManagement\AvailabilityStatus;
 use Kopling\SportsManagement\TeamMatch;
 
 it('keeps a match private unless the team defaults to public', function () {
@@ -68,6 +69,23 @@ it('shows guests the score and initials, never names', function () {
         ->assertDontSee('Sam')
         ->assertDontSee('Vries')
         ->assertDontSee('Coach');
+});
+
+it('shows the bench before and during the match, leaving absent players out', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $jip = rosterMember($team, 'Jip');
+    rosterMember($team, 'Sam');
+    $absent = rosterMember($team, 'Kim');
+    $match = plannedMatch($team, ['public' => true]);
+    $match->availabilities()->create(['team_member_id' => $absent->id, 'status' => AvailabilityStatus::Absent]);
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/matches/{$match->id}/lineup", ['team_member_id' => $jip->id, 'zone' => 'F']);
+
+    $bench = __('kopling-sports-management::messages.bench');
+    $this->get($match->fresh()->publicUrl())->assertSeeInOrder([$bench, 'title="S"'], false)->assertDontSee('title="K"', false);
+
+    $this->actingAs($coach)->post(trackUrl($match, '/periods/start'), ['type' => 'play']);
+    $this->get($match->fresh()->publicUrl())->assertSeeInOrder([$bench, 'title="S"'], false)->assertDontSee('title="K"', false);
 });
 
 it('hides private matches, unknown tokens, and deleted teams', function () {

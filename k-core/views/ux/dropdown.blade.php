@@ -1,5 +1,5 @@
 <button type="button" popovertarget="{{ $id }}" style="anchor-name:--{{ $id }}"
-        {{ $attributes->merge(['class' => 'btn btn-ghost btn-circle btn-sm']) }}
+        {{ $attributes->merge(['class' => 'btn btn-ghost btn-circle '.$size]) }}
         aria-label="{{ $label }}" aria-haspopup="menu">
     {{ $trigger }}
 </button>

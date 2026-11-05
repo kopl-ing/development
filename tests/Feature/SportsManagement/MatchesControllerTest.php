@@ -73,6 +73,28 @@ it('marks guests absent on a newly planned match, leaving permanent players unse
         ->toBe([$guest->id => AvailabilityStatus::Absent]);
 });
 
+it('marks a guest absent on matches not yet started, keeping choices already made', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $planned = plannedMatch($team);
+    $decided = plannedMatch($team);
+    $started = plannedMatch($team);
+    $started->periods()->create(['sequence' => 1, 'type' => 'play', 'started_at' => now()]);
+    $member = rosterMember($team, 'Guest');
+    $decided->availabilities()->create(['team_member_id' => $member->id, 'status' => AvailabilityStatus::Available]);
+
+    $member->update(['guest' => true]);
+
+    $statusOn = fn (TeamMatch $match) => $match->availabilities()->where('team_member_id', $member->id)->value('status');
+    expect($statusOn($planned))->toBe(AvailabilityStatus::Absent)
+        ->and($statusOn($decided))->toBe(AvailabilityStatus::Available)
+        ->and($statusOn($started))->toBeNull();
+
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/members", ['name' => 'New Guest', 'guest' => '1']);
+    $newGuest = TeamMember::whereRelation('person', 'name', 'New Guest')->firstOrFail();
+    expect($planned->availabilities()->where('team_member_id', $newGuest->id)->value('status'))->toBe(AvailabilityStatus::Absent);
+});
+
 it('divides permanent players from guests on the roster and match availability, only when both are there', function () {
     $coach = coach();
     $team = staffedTeam($coach);

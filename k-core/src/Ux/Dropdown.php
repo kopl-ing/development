@@ -28,6 +28,7 @@ class Dropdown extends Component
     public function __construct(
         public string $label,
         public string $align = 'dropdown-end',
+        public string $size = 'btn-sm',
     ) {
         $this->id = 'dropdown-'.Str::random(8);
     }
