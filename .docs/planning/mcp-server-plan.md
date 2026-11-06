@@ -233,6 +233,7 @@ Names below are local; on the wire each is prefixed, e.g. `kopling-sports-manage
 | `get-team` | roster (current players; former players flagged), staff, periods, settings relevant to planning |
 | `list-matches` | upcoming/past matches with opponent, home/away, period, score if played; filters: from/to, period |
 | `get-match` | lineup, availability, referee, location, score and goal list if played |
+| `live-match` | clock, running period, score, field and bench with player ids and zones, latest events with ids; coach or the match's referee |
 | `list-tasks` | tasks with schedule summary, min/max, weight, staff-only flag |
 | `task-planning` | dates in a window with who's on them, state (needs people / enough / full), skips |
 | `task-balance` | balance per player (points, planned, no-shows); staff view, so former players and no-shows included |
@@ -251,8 +252,20 @@ Names below are local; on the wire each is prefixed, e.g. `kopling-sports-manage
 | `assign-task` / `unassign-task` | staff assign / remove, per date or season-long, incl. "off this date" | coach |
 | `record-outcome` | done / no-show on a passed date | coach, team confirms completion |
 
-Out of scope for v1: live match tracking (periods, substitutions, goals). That's a real-time,
-on-the-pitch UI; driving it through an assistant adds risk without a use case.
+Live tracking (M6), so a coach can say "John scored, assist Kyle" or "John off, Charlie on" to an
+assistant on their phone. Same checks as the tracking screen: `track-matches`, substitutions
+coach-only, timing/scoring/sanctions through `TeamMatch::handles()` (a delegated duty is the
+referee's alone; no admin bypass). All go through `Actions\TrackMatch`, shared with
+`TrackingController`, and answer with the `live-match` state.
+
+| Tool | Does | Needs |
+|---|---|---|
+| `start-period` | kick-off, break start, restart after a break (ends the running period) | timing duty |
+| `end-period` | stop the running period, e.g. final whistle | timing duty |
+| `record-goal` | goal for us (scorer, assist, own goal, points) or the opponent | scoring duty |
+| `substitute` | swap (incoming takes the zone), off only, on in a zone; optional earlier `minute` | coach |
+| `record-sanction` | card / suspension / foul, taking the player off when it rules them out | sanctions duty |
+| `delete-match-event` | takes back events by id; the stateless stand-in for the screen's session undo | per event type |
 
 ### Admins (decided 2026-11-06)
 
@@ -333,6 +346,8 @@ sm_teams
 - [x] M5 Docs: `extend.html` "Adding MCP tools" section and a toolset in `k-extensions/example`
       (kept in sync, per CLAUDE.md), charter diff for MCP access, decisions.md entries for the
       decisions below once confirmed.
+- [x] M6 Live match tracking tools (`live-match` + six write tools), `Actions\TrackMatch` extracted
+      from `TrackingController`.
 
 ## Decided (2026-11-06)
 
@@ -426,3 +441,7 @@ None at the moment.
   Charter: Section 9 row "AI assistants (MCP)" and D34. decisions.md: `use-mcp` on every call,
   team opt-in with audited admin reach. No privacy page exists yet; the charter row is where
   "MCP access exists when enabled" is stated for now.
+- 2026-11-06 — M6 done: live tracking over MCP, reversing the v1 "out of scope" call now that
+  there's a use case (a coach on the sideline talking to an assistant). Write logic moved from
+  `TrackingController` into `Actions\TrackMatch`; tools in `src/Mcp/Tools/` on a `Mcp\MatchTool`
+  base; `tests/Feature/SportsManagement/McpLiveMatchTest.php`. Write-scope consent wording updated.
