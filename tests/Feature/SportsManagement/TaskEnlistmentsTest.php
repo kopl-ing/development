@@ -243,3 +243,21 @@ it('gives every live page the team\'s sport, like the public match page, for lay
     $this->get(linkPath($team))->assertViewHas('sport', $team->sport);
     $this->get(linkPath($team).'/'.$daan->id)->assertViewHas('sport', $team->sport);
 });
+
+it('puts season roles and staff assignments collapsed at the bottom, and colours the counts', function () {
+    $this->travelTo('2026-11-01 12:00');
+    $team = tasksTeam(coach());
+    $daan = rosterMember($team, 'Daan de Kok');
+    $short = datesTask($team, ['2026-11-14'], ['title' => 'Short task', 'min_people' => 2]);
+    $full = datesTask($team, ['2026-11-15'], ['title' => 'Full task', 'max_people' => 1]);
+    enlistOn($full, $daan, '2026-11-15');
+    datesTask($team, ['2026-11-16'], ['title' => 'Staff task', 'staff_only' => true, 'min_people' => 1]);
+    datesTask($team, ['2026-11-30'], ['title' => 'Season role', 'schedule' => TaskSchedule::Season, 'enrolment' => TaskEnrolment::WholeTask, 'starts_on' => '2026-11-01', 'ends_on' => '2026-11-30']);
+
+    $html = $this->get(linkPath($team).'/'.$daan->id)->assertSeeInOrder(['Short task', 'Full task', 'Fixed roles and staff assignments', 'Season role', 'Staff task'])->getContent();
+
+    expect(preg_match('/Short task.*?badge badge-sm shrink-0 whitespace-nowrap badge-warning/s', $html))->toBe(1)
+        ->and(preg_match('/Full task.*?badge badge-sm shrink-0 whitespace-nowrap badge-success/s', $html))->toBe(1)
+        ->and(preg_match('/Staff task.*?badge badge-sm shrink-0 whitespace-nowrap badge-ghost/s', $html))->toBe(1)
+        ->and(substr_count($html, 'Staff task'))->toBe(substr_count(substr($html, strpos($html, 'Fixed roles and staff assignments')), 'Staff task'));
+});

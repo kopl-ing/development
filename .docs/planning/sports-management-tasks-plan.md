@@ -428,3 +428,7 @@ refuses all tokens, balance weight with whole-task enlistments across periods, o
   points, no outcome). Their dates now show on the link page and planning page (not for `season`
   roles' hidden month dates). Link: "Deze keer niet" / "Toch wel" within the undo window, not on
   staff-only tasks; staff: "Deze keer weghalen" / "Terugzetten" on upcoming and past dates.
+- 2026-11-06 — Link page layout: season-long tasks and staff-only tasks moved to one collapsed
+  section at the bottom ("Vaste rollen en indeling door de staf", with an open-roles count); the
+  date list is what parents can act on. Badge colours: under minimum orange, enough or full
+  green, staff assigns / passed / cancelled grey (`TaskOccurrenceState::fromCount()`).
