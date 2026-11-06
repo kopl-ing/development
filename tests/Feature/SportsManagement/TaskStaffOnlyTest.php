@@ -84,3 +84,31 @@ it('lets staff assign and remove people one by one on a season-long task from th
         ->and(TaskEnlistment::whereKey($daans->id)->exists())->toBeFalse();
     $this->actingAs($coach)->get($page)->assertSee("/tasks/{$role->id}/enlist", false);
 });
+
+it('lets staff assign a season-long task whose dates have all passed, from its first date, and remove it again', function () {
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $role = datesTask($team, ['2026-10-31', '2026-11-14'], ['title' => 'Kit washer', 'enrolment' => TaskEnrolment::WholeTask, 'max_people' => 1]);
+    $page = "/sports-management/{$team->id}";
+
+    $this->actingAs($coach)->get($page)->assertSee("/tasks/{$role->id}/enlist", false)->assertSee('value="2026-10-31"', false);
+    $this->actingAs($coach)->from($page)->post("$page/tasks/{$role->id}/enlist", ['team_member_id' => $daan->id, 'starts_on' => '2026-10-31'])->assertRedirect($page);
+
+    expect(TaskBalance::for($team)->sole()['points'])->toBe(2);
+    $this->actingAs($coach)->get($page)->assertSee('Daan de Kok')->assertDontSee("/tasks/{$role->id}/enlist", false);
+
+    $this->actingAs($coach)->from($page)->post("$page/tasks/enlistments/".TaskEnlistment::sole()->id.'/delete')->assertRedirect($page);
+    expect(TaskEnlistment::count())->toBe(0);
+});
+
+it('keeps a parent-made season-long sign-up starting on the day it was made', function () {
+    $team = tasksTeam(coach());
+    $daan = rosterMember($team, 'Daan de Kok');
+    $role = datesTask($team, ['2026-10-31', '2026-11-30'], ['enrolment' => TaskEnrolment::WholeTask]);
+
+    $this->post('/live/team/'.$team->fresh()->tasks_token.'/tasks/'.$daan->id, ['task_id' => $role->id, 'starts_on' => '2026-10-01'])->assertRedirect();
+
+    expect(TaskEnlistment::sole()->starts_on)->toBeNull()
+        ->and(TaskBalance::for($team)->sole()['points'])->toBe(0);
+});

@@ -422,3 +422,9 @@ refuses all tokens, balance weight with whole-task enlistments across periods, o
 - 2026-11-06 — Planning "Afgelopen" tab: assign and remove on past dates (backfill, replacements);
   staff assigning a passed date records it as done when the team confirms. Match-tied rows show
   the opponent in both tabs.
+- 2026-11-06 — Per-date exceptions on whole-task tasks (migration `2026_11_06_000029`,
+  `sm_task_enlistment_skips`): a per-date sign-up adds someone next to the regular person; a skip
+  takes the regular person off one date (`TaskEnlistment::covers()` excludes it: no capacity, no
+  points, no outcome). Their dates now show on the link page and planning page (not for `season`
+  roles' hidden month dates). Link: "Deze keer niet" / "Toch wel" within the undo window, not on
+  staff-only tasks; staff: "Deze keer weghalen" / "Terugzetten" on upcoming and past dates.
