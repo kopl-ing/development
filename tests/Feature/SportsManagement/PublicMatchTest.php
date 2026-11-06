@@ -42,7 +42,7 @@ it('lets a match opt out of the team default, and back in on the same link', fun
 
     $match->update(['public' => true]);
     expect($match->fresh()->publicUrl())->toBe($url);
-    $this->get($url)->assertOk();
+    $this->get($url)->assertOk()->assertSee('<title>JO11-2 – FC Rivals JO11-1 · Not started</title>', false);
 });
 
 it('shows guests the score and initials, never names', function () {

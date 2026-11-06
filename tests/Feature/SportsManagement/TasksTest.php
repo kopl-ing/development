@@ -28,6 +28,7 @@ function taskPayload(array $overrides = []): array
         'title' => 'Drive to away match',
         'schedule' => 'away_matches',
         'enrolment' => 'per_occurrence',
+        'undo_window' => 'any_time',
         'weight' => 1,
     ];
 }
@@ -236,12 +237,13 @@ it('switches tasks on from the team form and lists them on the team page', funct
     expect($team->fresh()->tasks_enabled)->toBeTrue();
 
     plannedMatch($team, ['scheduled_at' => now()->addWeek()->setTime(9, 30)]);
-    matchTask($team, attributes: ['title' => 'Bring oranges', 'lead_minutes' => 30, 'min_people' => 1, 'max_people' => 2]);
+    matchTask($team, attributes: ['title' => 'Bring oranges', 'lead_minutes' => 30, 'min_people' => 1, 'max_people' => 2, 'effort_minutes' => 45]);
 
     $this->actingAs($coach)->get("/sports-management/{$team->id}")
         ->assertOk()
         ->assertSee('Bring oranges')
         ->assertSee('Every away match, 30 min before kick-off')
+        ->assertSee('takes about 45 minutes')
         ->assertSee('1–2 people');
 });
 
@@ -296,4 +298,30 @@ it('offers the sign-up choice only when a task happens more than once', function
         ->assertOk()->assertSee('<select name="enrolment"', false);
     $this->actingAs($coach)->get($url.'?schedule=away_matches')
         ->assertOk()->assertSee('<select name="enrolment"', false);
+});
+
+it('says one number when the minimum and maximum are the same', function () {
+    $team = tasksTeam(coach());
+
+    expect(matchTask($team, attributes: ['min_people' => 1, 'max_people' => 1])->peopleSummary())->toBe('1 person')
+        ->and(matchTask($team, attributes: ['min_people' => 3, 'max_people' => 3])->peopleSummary())->toBe('3 people')
+        ->and(matchTask($team, attributes: ['min_people' => 1, 'max_people' => 3])->peopleSummary())->toBe('1–3 people');
+});
+
+it('opens the add form filled from the task being duplicated', function () {
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $task = matchTask($team, attributes: ['title' => 'Bring oranges', 'lead_minutes' => 30]);
+    $other = matchTask(tasksTeam(coach('Other', 'other@example.test')), attributes: ['title' => 'Not ours']);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}?duplicate={$task->id}")
+        ->assertOk()
+        ->assertSee('Duplicate task')
+        ->assertSee("document.getElementById(\"modal-task-create\")?.showModal()", false)
+        ->assertSee('value="30"', false);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}?duplicate={$other->id}")
+        ->assertOk()
+        ->assertDontSee('Not ours')
+        ->assertDontSee('showModal()', false);
 });

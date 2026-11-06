@@ -20,14 +20,15 @@ document.body.addEventListener('htmx:config:request', (event) => {
 
 // `<x-k::modal>` uses the native <dialog> element for real focus-trapping (unlike Dropdown's
 // Popover API), but <dialog> has no attribute-only opener the way Popover's `popovertarget`
-// gives Dropdown -- this one delegated listener is the only JS any modal needs; closing needs
-// none (the panel's own `<form method="dialog">` and native Escape both close it for free).
+// gives Dropdown -- so opening (and `x-k::modal.cancel`) go through this one delegated listener.
 document.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-modal-show]');
 
     if (trigger) {
         document.getElementById(trigger.dataset.modalShow)?.showModal();
     }
+
+    event.target.closest('[data-modal-close]')?.closest('dialog')?.close();
 });
 
 // A click anywhere on a date/time field opens its picker: on some pages Firefox's own calendar

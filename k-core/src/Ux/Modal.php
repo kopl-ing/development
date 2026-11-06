@@ -21,6 +21,7 @@ class Modal extends Component
     public function __construct(
         public string $label,
         ?string $id = null,
+        public bool $open = false,
     ) {
         $this->id = $id ?? 'modal-'.Str::slug($label).'-'.Str::random(4);
     }

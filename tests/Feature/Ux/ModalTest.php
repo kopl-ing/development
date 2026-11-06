@@ -45,11 +45,11 @@ it('only closes through its own close button or Escape, never a tap beside the b
         ->and($html)->toContain('aria-label="'.__('kopling-core::ux.close').'"');
 });
 
-it('renders a cancel button that closes the dialog without submitting or validating the form', function () {
+it('renders a cancel button that closes the dialog without submitting the form', function () {
     $html = (string) $this->blade('<x-k::modal.cancel />');
 
-    expect($html)->toContain('formmethod="dialog"')
-        ->and($html)->toContain('formnovalidate')
+    expect($html)->toContain('type="button" data-modal-close')
+        ->and($html)->not->toContain('formmethod')
         ->and($html)->toContain(__('kopling-core::ux.cancel'));
 });
 

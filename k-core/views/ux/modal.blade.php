@@ -18,7 +18,7 @@
 </dialog>
 
 {{-- Reopens after a failed validation when the form inside posts `_form` = this modal's id. --}}
-@if (isset($errors) && $errors->any() && old('_form') === $id)
+@if ($open || (isset($errors) && $errors->any() && old('_form') === $id))
     <script>
         document.getElementById(@json($id))?.showModal();
     </script>

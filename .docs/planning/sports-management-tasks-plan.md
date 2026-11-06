@@ -1,6 +1,6 @@
 # Plan: team tasks in `sports-management` (volunteer duties, sign-ups, balance)
 
-Status: M1 built (2026-11-06), uncommitted; M2 next. Part of `kopling/sports-management`; every table
+Status: M1 committed, M2 built (2026-11-06), uncommitted; M3 next. Part of `kopling/sports-management`; every table
 `sm_`-prefixed, same as the rest of the extension (`sports-management-extension-plan.md`).
 
 ## Goal
@@ -296,7 +296,7 @@ is the place if this ever comes), club-wide tasks, guardian accounts, federation
 
 ## Open questions
 
-1. **Undo window default** on a new task: *any time* (proposed), or *until a day before*?
+1. **Undo window default** on a new task: built as *any time* (the proposal); confirm, or switch to *until a day before*.
 
 ## Decided (2026-11-06)
 
@@ -313,7 +313,7 @@ is the place if this ever comes), club-wide tasks, guardian accounts, federation
       `TaskRecurrence`, weight, `TaskOccurrences::sync()`, `TeamMatch` hooks, task form, Tasks
       card on the team page, `tasks_enabled` toggle (staff). The other team toggles land with the
       milestone that gives them an effect.
-- [ ] M2 Link pages: team + per-player tokens, toggle/regenerate, avatar picker, per-player list,
+- [x] M2 Link pages: team + per-player tokens, toggle/regenerate, avatar picker, per-player list,
       enlist/leave (throttled) with event log, capacity lock, undo window; staff Tasks card + list
       with staff assign.
 - [ ] M3 Balance page (weight-based), `tasks_balance_public`.
@@ -351,3 +351,11 @@ refuses all tokens, balance weight with whole-task enlistments across periods, o
   Notes for M2: `date` columns are compared with `whereDate()` (SQLite stores a date cast with a
   time); occurrences are deleted, not cancelled, until enlistments exist — M2 switches sync and
   the match `deleted` hook to cancelling occurrences that have enlistments.
+- 2026-11-06 — M2 built: migration `2026_11_06_000023` (link mode + tokens, `undo_window`,
+  enlistments, event log; backfills tokens for existing members and task-enabled teams).
+  `TaskEnlistments` holds enlist/leave (capacity lock, undo window, log); `TaskBoard` loads what
+  both the link page and the staff planning page (`/{team}/tasks`) show, 8 weeks at a time.
+  Occurrences with sign-ups are cancelled instead of deleted. Leaving a whole-task sign-up sets
+  `ended_on` to the day before the next date, or drops it if it covered nothing yet. Notes for
+  M3: a whole-task sign-up covers dates from its `created_at` day; guests can't use links or be
+  assigned.

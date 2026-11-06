@@ -356,3 +356,16 @@ it('seeds the KNVB formats as football presets with their breaks', function () {
         ->and(TeamFormatPreset::where('name', 'JO13')->value('breaks'))->toBe(1)
         ->and(TeamFormatPreset::where('name', 'JO7')->value('breaks'))->toBeNull();
 });
+
+it('titles each team and match page after the team and the match', function () {
+    $coach = coach();
+    $team = staffedTeam($coach);
+    $match = plannedMatch($team);
+    $base = "/sports-management/{$team->id}";
+
+    $this->actingAs($coach)->get('/sports-management')->assertSee('<title>Teams</title>', false);
+    $this->actingAs($coach)->get($base)->assertSee('<title>JO11-2</title>', false);
+    $this->actingAs($coach)->get("$base/matches/{$match->id}")->assertSee('<title>FC Rivals JO11-1 – JO11-2</title>', false);
+    $this->actingAs($coach)->get("$base/matches/{$match->id}/track")->assertSee('<title>Track match · FC Rivals JO11-1 – JO11-2</title>', false);
+    $this->actingAs($coach)->get("$base/matches/{$match->id}/report")->assertSee('<title>Match report · FC Rivals JO11-1 – JO11-2</title>', false);
+});
