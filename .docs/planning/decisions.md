@@ -1765,3 +1765,17 @@ roster free of contact data; claiming a roster `Person` with an account stays po
 **Status:** occurrences implemented (M1); links planned (M2), see `sports-management-tasks-plan.md`.
 
 ---
+
+## 2026-11-06 — Roster members leave a team with `left_on`, not by deletion
+
+**Decision:** a player leaving gets `sm_team_members.left_on` (first day off the team). Their
+task sign-ups and not-yet-started match planning from that date are removed; everything before
+stays. Any query for "who is on the team" uses `TeamMember::onTeamAt($date)`: today for task
+pages, the match date for match pages. Deleting a member stays for mistakes and still wipes all.
+
+**Why:** deletion cascades through every match and task table, so a player who moved on took
+their match history and earned task points with them.
+
+**Status:** implemented.
+
+---

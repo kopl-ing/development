@@ -78,3 +78,21 @@ it('hides a team from its staff until unhidden, and deletes it with its roster p
     expect(Team::withTrashed()->find($team->id))->toBeNull()
         ->and(Person::find($player->person_id))->toBeNull();
 });
+
+it('shows moderators a reported team\'s tasks, periods and the notes left through task links', function () {
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $team->periods()->create(['name' => 'Rude period', 'starts_on' => '2026-09-01', 'ends_on' => '2026-12-12']);
+    $task = datesTask($team, ['2026-11-14'], ['title' => 'Rude task', 'description' => 'Rude description']);
+    enlistOn($task, $daan, '2026-11-14', ['note' => 'Rude note']);
+
+    $this->actingAs($coach)->post('/_xhr/kopling-moderation/'.teamModerationType()."/{$team->id}", ['reason' => 'inappropriate'])->assertSessionHasNoErrors();
+
+    $this->actingAs(teamModerator())->get('/moderation')
+        ->assertSee('Rude task')
+        ->assertSee('Rude description')
+        ->assertSee('Daan de Kok:')
+        ->assertSee('Rude note')
+        ->assertSee('Rude period');
+});

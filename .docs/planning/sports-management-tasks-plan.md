@@ -1,6 +1,6 @@
 # Plan: team tasks in `sports-management` (volunteer duties, sign-ups, balance)
 
-Status: M1 committed, M2 built (2026-11-06), uncommitted; M3 next. Part of `kopling/sports-management`; every table
+Status: M1–M2 committed; M3–M7 built (2026-11-06), uncommitted; only M8 (optional) left. Part of `kopling/sports-management`; every table
 `sm_`-prefixed, same as the rest of the extension (`sports-management-extension-plan.md`).
 
 ## Goal
@@ -122,7 +122,8 @@ other enlistment.
 `sm_team_periods`: `team_id`, `name` ("Fase 1", "Voorjaar"), `starts_on`, `ends_on`. A team is
 already one season (`sm_teams.season`), so its periods cut that season up. **Coaches define them
 themselves** on the team page (decided 2026-11-06); used by `within_periods` tasks, nothing else
-for now. Periods may not overlap and must fall within the season.
+for now. Periods may not overlap and run at most two years; they may reach past the season on
+either side (handing out or collecting kit before or after it).
 
 Why not presets, checked 2026-11-06: federations publish periods as documents, not data. KNVB's
 youth "fasenvoetbal" planning is a PDF per district per season and differs per age band (2026/27
@@ -316,18 +317,18 @@ is the place if this ever comes), club-wide tasks, guardian accounts, federation
 - [x] M2 Link pages: team + per-player tokens, toggle/regenerate, avatar picker, per-player list,
       enlist/leave (throttled) with event log, capacity lock, undo window; staff Tasks card + list
       with staff assign.
-- [ ] M3 Balance page (weight-based), `tasks_balance_public`.
-- [ ] M4 Approve completion: outcomes, to-confirm filter, "all done", no-shows on the balance.
-- [ ] M5 Season periods: table + UI (coaches), `within_periods` generation.
-- [ ] M6 "Needs people" surfacing on team page, sidebar and link page.
-- [ ] M7 Translations (nl/en), moderation team preview lists tasks.
+- [x] M3 Balance page (weight-based), `tasks_balance_public`.
+- [x] M4 Approve completion: outcomes, to-confirm filter, "all done", no-shows on the balance.
+- [x] M5 Season periods: table + UI (coaches), `within_periods` generation.
+- [x] M6 "Needs people" surfacing on team page, sidebar and link page.
+- [x] M7 Translations (nl/en), moderation team preview lists tasks.
 - [ ] M8 (optional) Skip school holidays: Rijksoverheid feed, region site setting, cache.
 
 ## Testing (Pest)
 
 Feature tests in `tests/Feature/SportsManagement/TasksTest.php` (same folder, so the shared helpers load): occurrence generation per schedule
 (incl. monthly "nth weekday", year boundaries, `within_periods`), match moved/deleted/home↔away
-flip, period edits regenerating occurrences, overlapping/out-of-season periods refused, several
+flip, period edits regenerating occurrences, overlapping or over-long periods refused, several
 enlistments per player counting toward capacity and balance, capacity at the last slot,
 undo window per option for link page vs staff, whole-task
 `confirm_each_occurrence` on/off, team link reaches only its own team, per-player link reaches only
@@ -359,3 +360,45 @@ refuses all tokens, balance weight with whole-task enlistments across periods, o
   `ended_on` to the day before the next date, or drops it if it covered nothing yet. Notes for
   M3: a whole-task sign-up covers dates from its `created_at` day; guests can't use links or be
   assigned.
+- 2026-11-06 — M2 testing round: link page wording is "Oppakken" / "I'll do it" and "Toch niet" /
+  "Can't make it" (no "aanmelden": it reads as an account action); sign-up details, undo rule and
+  "Wie doet het?" moved into a modal; duplicate task; page titles across the extension.
+- 2026-11-06 — M3 built: migration `2026_11_06_000024` (`tasks_balance_public`), `TaskBalance`
+  computes per permanent player: weight per passed, non-cancelled date covered, per sign-up.
+  Staff page `/{team}/tasks/balance` lowest first, a collapse per player listing what they took
+  on. The link page shows points and done/to-come counts only (no effort or costs), sorted by
+  name rather than ranked. UI calls earned weight "punten" / "points". Notes for M4: "passed"
+  is all that counts as done now; outcomes replace that test in `TaskBalance`.
+- 2026-11-06 — M4 built: migration `2026_11_06_000025` (`tasks_approve_completion`,
+  `confirm_each_occurrence`, `sm_task_outcomes`). The rule lives in one place,
+  `TaskEnlistment::outcomeFor()`: team not confirming → done (recorded outcomes ignored);
+  otherwise the recorded outcome, else done for a whole-task sign-up without
+  `confirm_each_occurrence`, else waiting. `TaskReview` lists passed dates for the planning page's
+  new "Afgelopen" / "Te bevestigen" tabs (the latter over the whole season), with done/no-show per
+  person and "Alles gedaan" per date and per week. Balance shows no-shows and waiting counts to
+  staff only.
+- 2026-11-06 — Leaving the team: migration `2026_11_06_000026` adds `sm_team_members.left_on`
+  (first day off the team; set or cleared in the member's edit modal; delete still wipes
+  everything). `TeamMember::leaveOn()` drops sign-ups from that date (season-long ones end the
+  day before, logged as left by the coach) and the planning of not-yet-started matches. Task
+  pages use `onTeamAt(now())`, match pages `onTeamAt(match date)`, so past reports keep the
+  player. Former players: own collapsed roster section, own section on the staff balance, not on
+  the parents' balance.
+- 2026-11-06 — M5 built: migration `2026_11_06_000027` (`sm_team_periods`, `within_periods`).
+  Periods are managed at the bottom of the Tasks card (coaches, tasks on); refused when they
+  overlap or run longer than two years, not bound to the season. `TaskOccurrences` filters a `within_periods`
+  repeating task's dates through the team's periods; any period change re-syncs those tasks
+  (`syncPeriodTasks()`), with the usual keep/cancel rules. A task can only be limited to periods
+  once the team has one. Summary reads "…, binnen periodes".
+- 2026-11-06 — M6 built: `TaskBoard::shortHanded()` (dates within `SOON_DAYS` = 7 still under
+  `min_people`, whole-task sign-ups counted). Shown as a warning on the team page's Tasks card
+  and a "Deze week nog mensen nodig" section in the sidebar (coached teams, first 3), both
+  linking to the date on the planning page; and at the top of the link page, jumping to the row.
+- 2026-11-06 — Public match page lists the match-bound tasks still vacant for that match (under
+  their minimum, or no minimum and nobody yet) until kick-off: titles and counts only, never the
+  task link (`TaskBoard::vacantFor()`).
+- 2026-11-06 — M7 built: all task strings already existed in nl and en. Added the Dutch
+  framework messages the task/period forms hit (`after_or_equal`, `between`, `date_format` in
+  `k-core/lang/framework/nl/validation.php`) and readable `:attribute` names from the form labels
+  (`Controllers/FieldNames`). Moderation team preview lists tasks with descriptions, the notes
+  left through task links (with player and date), and periods.

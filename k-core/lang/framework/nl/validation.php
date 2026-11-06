@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 return [
     'accepted' => ':Attribute moet geaccepteerd worden.',
+    'after_or_equal' => ':Attribute moet op of na :date liggen.',
     'array' => ':Attribute moet een lijst zijn.',
+    'between' => [
+        'array' => ':Attribute moet tussen :min en :max items bevatten.',
+        'file' => ':Attribute moet tussen :min en :max kilobytes zijn.',
+        'numeric' => ':Attribute moet tussen :min en :max liggen.',
+        'string' => ':Attribute moet tussen :min en :max tekens bevatten.',
+    ],
     'boolean' => ':Attribute moet ja of nee zijn.',
     'confirmed' => 'De bevestiging van :attribute komt niet overeen.',
     'date' => ':Attribute moet een geldige datum zijn.',
+    'date_format' => ':Attribute is geen geldige datum of tijd.',
     'different' => ':Attribute en :other moeten verschillen.',
     'email' => ':Attribute moet een geldig e-mailadres zijn.',
     'enum' => 'De gekozen :attribute is ongeldig.',
