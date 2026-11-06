@@ -1861,6 +1861,10 @@ a team is logged with its `team_id` and shown to that team's owner.
 person responsible decides; site admins still need cross-team access for moderation and
 analytics, and the exception stays visible rather than silent.
 
-**Status:** implemented (`Mcp\TeamAccess`, `TEAM_OWNER_SLOT`).
+**Status:** implemented (`Mcp\TeamAccess`, `TEAM_OWNER_SLOT`). Renamed the same day to
+`administer-teams-via-mcp` (migration `2026_11_06_000031` moves existing grants): admins already
+reach teams without MCP through moderation, so the permission names only the AI-assistant reach
+and leaves `administer-teams` free for a web admin role later. A site can withhold it without
+touching moderation.
 
 ---

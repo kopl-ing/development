@@ -190,7 +190,7 @@ it: permissions and team roles always apply on top.
   routes. No MCP-specific copies of existing permissions.
 - Team rules stay in the domain: tools call `Team::roleOf()`, `isCoachedBy()`,
   `TeamMatch::handles()` like the controllers do.
-- `kopling-sports-management::administer-teams` (new, owned by `sports-management`): site admins
+- `kopling-sports-management::administer-teams-via-mcp` (new, owned by `sports-management`): site admins
   for teams. See "Admins".
 
 ## Privacy
@@ -272,21 +272,21 @@ referee's alone; no admin bypass). All go through `Actions\TrackMatch`, shared w
 Site admins can reach **every team, regardless of team roles and of a team's MCP opt-in**, to
 work through moderation reports and do analytics across teams.
 
-- **Who:** persons with `kopling-sports-management::administer-teams`. Core has no "superuser"
+- **Who:** persons with `kopling-sports-management::administer-teams-via-mcp`. Core has no "superuser"
   (no `Gate::before` granting everything), and `sports-management` must not depend on `admin`'s
   `access-admin` or `moderation`'s `moderate` (ownership rule), so the extension declares its own
   permission and the site assigns it to its admin group.
 - **What:** every read and write tool, on any team. Tools resolve the team through one helper,
-  `Kopling\SportsManagement\Mcp\TeamAccess`: team staff → their role's rules; `administer-teams`
+  `Kopling\SportsManagement\Mcp\TeamAccess`: team staff → their role's rules; `administer-teams-via-mcp`
   → full access, opt-in ignored; otherwise not found.
-- **Cross-team read tools**, only for `administer-teams`: `list-all-teams` (all teams,
+- **Cross-team read tools**, only for `administer-teams-via-mcp`: `list-all-teams` (all teams,
   including hidden and soft-deleted, with staff counts and moderation state) and
   `team-stats` (aggregates per team or season: matches played, roster size, task coverage
   and balance spread).
 - **Accountability:** every admin call is in the audit log with `team_id`. The team owner's view
   of the log shows admin access to their team, so the opt-in exception is visible, not silent.
 - **Web UI unchanged:** `TeamsController::show` still requires a team role. Whether
-  `administer-teams` should open the web pages too is a separate decision, not part of this plan.
+  `administer-teams-via-mcp` should open the web pages too is a separate decision, not part of this plan.
 - Instance-level tools (moderation queue, extension settings) remain a separate toolset for
   `moderation` / `admin` later.
 
@@ -328,7 +328,7 @@ sm_teams
   under `tests/Fixtures/Extensions/` declaring a toolset (`fakeManager()`), so `mcp` is tested
   without `sports-management`.
 - `tests/Feature/SportsManagement/Mcp*Test.php`: every tool, including referee vs. coach,
-  team without `mcp_enabled` (refused for staff, allowed for `administer-teams`, audited),
+  team without `mcp_enabled` (refused for staff, allowed for `administer-teams-via-mcp`, audited),
   admin-only tools hidden from staff, former players, and the "Daan is ill on the 14th" skip flow. Use
   Laravel MCP's own test helpers for calling tools; check what the installed version offers.
 
@@ -340,7 +340,7 @@ sm_teams
 - [x] M2 `kopling/mcp`: `/mcp` endpoint, OAuth discovery + dynamic client registration, core
       `HasMcpTools` + `Extend\Mcp\Toolset`, `Kopling\Mcp\Tool` base class, filtering, audit log
       + pruning, `use-mcp` permission, admin settings, fixture-extension tests.
-- [x] M3 `sports-management` read tools, `sm_teams.mcp_enabled`, `administer-teams` permission,
+- [x] M3 `sports-management` read tools, `sm_teams.mcp_enabled`, `administer-teams-via-mcp` permission,
       `Mcp\TeamAccess`, admin-only cross-team tools.
 - [x] M4 `sports-management` write tools, with shared actions extracted per tool.
 - [x] M5 Docs: `extend.html` "Adding MCP tools" section and a toolset in `k-extensions/example`
@@ -355,7 +355,7 @@ sm_teams
    `kopling/mcp`.
 2. **Teams opt in** for `sports-management` (`sm_teams.mcp_enabled`, owner decides).
 3. **Site admins reach everything**, regardless of team roles and opt-in, for moderation and
-   analytics, through `kopling-sports-management::administer-teams`; every such call audited and
+   analytics, through `kopling-sports-management::administer-teams-via-mcp`; every such call audited and
    visible to the team owner.
 4. **`use-mcp` is mandatory** as both permission and token scope (`kopling-mcp::use-mcp`) on
    every call. Dynamic
@@ -373,7 +373,7 @@ None at the moment.
 
 - 2026-11-06 — plan drafted.
 - 2026-11-06 — decided: extender in core, teams opt in, site admins reach every team through
-  `administer-teams` (audited), `use-mcp` required as permission and `mcp` scope.
+  `administer-teams-via-mcp` (audited), `use-mcp` required as permission and `mcp` scope.
 - 2026-11-06 — tool names and scopes prefixed with the extension id like every other aggregated
   contribution: tools `{id}__{local}` (MCP's character set has no `:`), scopes `{id}::{local}`;
   the use-mcp scope is `kopling-mcp::use-mcp`.
@@ -414,7 +414,7 @@ None at the moment.
   and the call log. Notes for M3: the team owner's view of the log is still to build; Passport's
   default scope applies to every OAuth client, revisit when a non-MCP client appears.
 - 2026-11-06 — M3 built: migration `2026_11_06_000030` (`sm_teams.mcp_enabled`, switch in the team
-  edit form, owner only, shown when `kopling/mcp` is installed). Permission `administer-teams`.
+  edit form, owner only, shown when `kopling/mcp` is installed). Permission `administer-teams-via-mcp`.
   `Mcp\TeamAccess` (staff: teams they're on that opted in; admins: every team incl. hidden) and
   `Mcp\TeamTool` (`team()`, `tasksTeam()`, `player()`: name, number, positions, guest, left_on).
   Read tools, all in `kopling-sports-management::read`: `list-my-teams`, `get-team` (roster for
@@ -445,3 +445,7 @@ None at the moment.
   there's a use case (a coach on the sideline talking to an assistant). Write logic moved from
   `TrackingController` into `Actions\TrackMatch`; tools in `src/Mcp/Tools/` on a `Mcp\MatchTool`
   base; `tests/Feature/SportsManagement/McpLiveMatchTest.php`. Write-scope consent wording updated.
+- 2026-11-06 — Admin permission renamed from `administer-teams` to `administer-teams-via-mcp`
+  (migration `2026_11_06_000031` moves existing grants): it only ever granted the AI-assistant
+  reach, while admins reach teams on the web through moderation anyway. A site can now withhold
+  AI reach to team data without touching moderation; Veldwissel does (its privacy page promises it).

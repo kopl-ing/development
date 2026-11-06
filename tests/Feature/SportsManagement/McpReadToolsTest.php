@@ -43,7 +43,7 @@ function smToken(CorePerson $person, array $scopes = [SM.'::read']): string
 
 function siteAdmin(): CorePerson
 {
-    return grant(coach('Admin', 'admin@example.test', []), ['kopling-sports-management::administer-teams']);
+    return grant(coach('Admin', 'admin@example.test', []), ['kopling-sports-management::administer-teams-via-mcp']);
 }
 
 function smCall($test, string $token, string $tool, array $arguments = [])
