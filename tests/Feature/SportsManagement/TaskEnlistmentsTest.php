@@ -219,3 +219,19 @@ it('shows the team link on the team page once there are tasks, or a note in per-
         ->assertDontSee(linkPath($team))
         ->assertSee('Copy link');
 });
+
+it('names the match next to the date for match tasks, for parents and staff', function () {
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    plannedMatch($team, ['scheduled_at' => '2026-11-14 09:30', 'opponent_name' => 'FC Rivals JO11-1']);
+    plannedMatch($team, ['scheduled_at' => '2026-11-21 09:30', 'opponent_name' => 'VV Home', 'home_away' => \Kopling\SportsManagement\HomeAway::Home]);
+    matchTask($team, TaskSchedule::AllMatches, ['title' => 'Oranges']);
+
+    $this->get(linkPath($team).'/'.$daan->id)
+        ->assertSee('09:30 · away at FC Rivals JO11-1')
+        ->assertSee('Saturday 14 November, 09:30 · away at FC Rivals JO11-1')
+        ->assertSee('09:30 · home vs VV Home');
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/tasks")->assertSee('away at FC Rivals JO11-1')->assertSee('home vs VV Home');
+});

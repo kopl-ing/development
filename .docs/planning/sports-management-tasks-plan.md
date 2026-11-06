@@ -395,7 +395,7 @@ refuses all tokens, balance weight with whole-task enlistments across periods, o
   once the team has one. Summary reads "…, binnen periodes".
 - 2026-11-06 — M6 built: `TaskBoard::shortHanded()` (dates within `SOON_DAYS` = 7 still under
   `min_people`, whole-task sign-ups counted). Shown as a warning on the team page's Tasks card
-  and a "Deze week nog mensen nodig" section in the sidebar (coached teams, first 3), both
+  and a "Deze week nog personen nodig" section in the sidebar (coached teams, first 3), both
   linking to the date on the planning page; and at the top of the link page, jumping to the row.
 - 2026-11-06 — Public match page lists the match-bound tasks still vacant for that match (under
   their minimum, or no minimum and nobody yet) until kick-off: titles and counts only, never the
@@ -419,3 +419,6 @@ refuses all tokens, balance weight with whole-task enlistments across periods, o
   one); `Team::periodOn()` labels matches with their period on the team page and match page.
 - 2026-11-06 — M8 (school holidays) postponed to the backlog: coaches' own periods already skip
   the breaks.
+- 2026-11-06 — Planning "Afgelopen" tab: assign and remove on past dates (backfill, replacements);
+  staff assigning a passed date records it as done when the team confirms. Match-tied rows show
+  the opponent in both tabs.

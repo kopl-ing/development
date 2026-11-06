@@ -152,3 +152,23 @@ it('stores confirming each date only for tasks taken on for all dates at once', 
     expect(\Kopling\SportsManagement\Task::orderBy('title')->pluck('confirm_each_occurrence', 'title')->all())
         ->toBe(['Drive to away match' => false, 'Trainer' => true]);
 });
+
+it('lets staff backfill or replace who did a past match task from the past tab', function () {
+    $coach = coach();
+    $team = approvingTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $jip = rosterMember($team, 'Jip Vos');
+    plannedMatch($team, ['scheduled_at' => '2026-11-14 09:30', 'opponent_name' => 'FC Rivals']);
+    $task = matchTask($team, attributes: ['title' => 'Drive', 'max_people' => 1]);
+    $occurrence = $task->occurrences()->sole();
+    $daans = enlistOn($task, $daan, '2026-11-14');
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/tasks?filter=past")
+        ->assertSee('FC Rivals')
+        ->assertSee(route('kopling-sports-management::sports-management/tasks.leave', [$team, $daans]), false);
+
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/tasks/enlistments/{$daans->id}/delete")->assertRedirect();
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/tasks/{$task->id}/enlist", ['team_member_id' => $jip->id, 'occurrence_id' => $occurrence->id])->assertRedirect();
+
+    expect(balanceOf($team))->toBe(['Daan de Kok' => [0, 0, 0], 'Jip Vos' => [1, 0, 0]]);
+});
