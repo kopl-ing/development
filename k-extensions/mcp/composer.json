@@ -1,0 +1,28 @@
+{
+    "name": "kopling/mcp",
+    "description": "MCP server for Kopling: lets AI assistants work with a site on a person's behalf, through tools other extensions contribute.",
+    "type": "kopling-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniël Klabbers",
+            "email": "daniel@klabbers.email"
+        }
+    ],
+    "require": {
+        "kopling/oauth": "*",
+        "laravel/mcp": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kopling\\Mcp\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kopling\\Mcp\\ServiceProvider"
+            ]
+        }
+    }
+}

@@ -11,6 +11,9 @@
     ],
     "require": {
     },
+    "suggest": {
+        "kopling/mcp": "Offers the example's things to AI assistants."
+    },
     "autoload": {
         "psr-4": {
             "Kopling\\Example\\": "src/"

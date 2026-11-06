@@ -12,6 +12,9 @@ on:
       - k-core/views/**/*.blade.php
       - k-extensions/**/*.blade.php
       - k-extensions/*/resources/**
+      # Bundled npm dependencies: a security update must reach dist/ without a source change.
+      - package.json
+      - package-lock.json
 jobs:
   build_dist:
     runs-on: ubuntu-latest

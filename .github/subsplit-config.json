@@ -41,9 +41,19 @@
             "target": "git@github.com:kopl-ing/mail-client.git"
         },
         {
+            "name": "mcp",
+            "directory": "k-extensions/mcp",
+            "target": "git@github.com:kopl-ing/mcp.git"
+        },
+        {
             "name": "moderation",
             "directory": "k-extensions/moderation",
             "target": "git@github.com:kopl-ing/moderation.git"
+        },
+        {
+            "name": "oauth",
+            "directory": "k-extensions/oauth",
+            "target": "git@github.com:kopl-ing/oauth.git"
         },
         {
             "name": "pin",

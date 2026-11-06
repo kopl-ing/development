@@ -1779,3 +1779,88 @@ their match history and earned task points with them.
 **Status:** implemented.
 
 ---
+
+## 2026-11-06 — Infrastructure extensions wire Laravel packages through their own ServiceProvider
+
+**Decision:** An extension that wraps a Laravel package (first: `kopling/oauth` around Passport)
+may ship a plain Laravel `ServiceProvider` via Composer package discovery, the way `k-core` does,
+for wiring the package needs at boot (guards, bindings, its routes). The provider does nothing
+visible unless `EnabledExtensions::isEnabled()` says the extension is on, and switches off the
+package's own routes. `AbstractExtension` stays a plain class; regular extensions never need this.
+
+**Why:** a package like Passport can't be configured through declarations alone. A core contract
+handing every extension `Application` would undo the 2026-07-09 entry-point decision.
+
+**Status:** implemented in `kopling/oauth`.
+
+---
+
+## 2026-11-06 — Unauthenticated API requests get a 401, not the login page
+
+**Decision:** `RedirectUnauthenticated` answers a request that expects JSON or carries a bearer
+token with a 401 JSON response itself; only browser requests are sent to the login page.
+
+**Why:** the root skeleton's `shouldRenderJsonWhen()` only covers `api/*`, so Laravel's own
+fallback never applied to `/oauth` or `/mcp`, and API clients got a redirect (or a 500).
+
+**Status:** implemented.
+
+---
+
+## 2026-11-06 — MCP tools are declared in core (`HasMcpTools` + `Extend\Mcp\Toolset`), served by `kopling/mcp`
+
+**Decision:** An extension offers MCP tools by implementing `HasMcpTools` and returning
+`Extend\Mcp\Toolset`s: scopes with a description and their tool classes, nothing protocol-specific.
+`Manager::mcpToolsets()` prefixes toolset and scope ids with the extension id (`{id}::{local}`);
+`kopling/mcp` prefixes tool names as `{id}__{local}` (MCP tool names allow no `:`), registers the
+scopes with `kopling/oauth` and runs the tools, which extend `Kopling\Mcp\Tool`.
+
+**Why:** same split as `Extend\Federation` and `activitypub`: an extension can declare tools
+whether or not `kopling/mcp` is installed, and core never depends on Laravel MCP.
+
+**Status:** implemented; consumers `sports-management` and `example` (documented in `extend.html`).
+
+---
+
+## 2026-11-06 — MCP write tools reuse the web's own save logic through `Actions\*`
+
+**Decision:** A write tool never validates or saves by itself. The controller's logic moves into
+an action in the owning extension (`src/Actions/SaveMatch`, `SaveTeamMember`, `SaveTask`,
+`SetAvailability`) taking form-shaped input plus the team and person; the controller and the tool
+both call it. Partial updates from a tool merge the given fields over the record's current
+form values first.
+
+**Why:** two copies of the same rules drift; the existing Feature tests then guard both paths.
+
+**Status:** implemented for sports-management.
+
+---
+
+## 2026-11-06 — MCP access needs `use-mcp` as both permission and token scope, on every call
+
+**Decision:** Every `/mcp` request requires the person to hold `kopling-mcp::use-mcp` **and** the
+token to carry the scope of the same name, checked per call; a tool additionally needs its own
+toolset scope and its `allows()`. Dynamic client registration stays open.
+
+**Why:** losing the permission must stop existing tokens at once, and a token issued for another
+purpose later must never reach MCP. Open registration is safe because a client gets nothing until
+a person with `use-mcp` consents, and clients like Claude.ai need it to connect with only a URL.
+
+**Status:** implemented in `kopling/mcp`.
+
+---
+
+## 2026-11-06 — Sports teams opt in to MCP; `administer-teams` reaches every team, audited
+
+**Decision:** Team staff reach a team through MCP only once its owner switches on
+`sm_teams.mcp_enabled`. Persons with `kopling-sports-management::administer-teams` (the extension's
+own permission, not `admin`'s or `moderation`'s) reach every team regardless, and every call about
+a team is logged with its `team_id` and shown to that team's owner.
+
+**Why:** roster data is about children and leaves the site for the person's AI provider, so the
+person responsible decides; site admins still need cross-team access for moderation and
+analytics, and the exception stays visible rather than silent.
+
+**Status:** implemented (`Mcp\TeamAccess`, `TEAM_OWNER_SLOT`).
+
+---

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Kopling\Example;
 
+use Kopling\Core\Extend\Mcp\Toolset;
 use Kopling\Core\Extend\Permission;
 use Kopling\Core\Extend\Ux;
 use Kopling\Core\Extend\Ux\ProvidesUxEntries;
 use Kopling\Core\Extension\AbstractExtension;
 use Kopling\Core\Extension\Contract\ChangesUx;
 use Kopling\Core\Extension\Contract\ExtendsPortals;
+use Kopling\Core\Extension\Contract\HasMcpTools;
 use Kopling\Core\Extension\Contract\HasPermissions;
 use Kopling\Core\Extension\Contract\RequestsStorageDriver;
 use Kopling\Core\Extension\LoadOrder\LoadsAfter;
@@ -26,7 +28,7 @@ use Kopling\Core\Ux\Portal\Navigation\Item;
  * sibling directories (views/, css/, js/, resources/css+js/, migrations/, routes/, lang/,
  * icon/) and CLAUDE.md ("Extension conventions") for what each one does.
  */
-class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, LoadsAfter, ExtendsPortals
+class Extension extends AbstractExtension implements ChangesUx, RequestsStorageDriver, HasPermissions, LoadsAfter, ExtendsPortals, HasMcpTools
 {
     public static function name(): string
     {
@@ -138,5 +140,20 @@ class Extension extends AbstractExtension implements ChangesUx, RequestsStorageD
     public function loadAfter(): array
     {
         return ['kopling/admin'];
+    }
+
+    /**
+     * Ids are local: clients see `kopling-example__list-things` in scope `kopling-example::read`.
+     *
+     * @return array<Toolset>
+     */
+    public function mcpTools(): array
+    {
+        return [
+            (new Toolset('things'))
+                ->label('Things')
+                ->scope('read', __('kopling-example::messages.mcp.read_scope'), [Mcp\ListThings::class])
+                ->scope('write', __('kopling-example::messages.mcp.write_scope'), [Mcp\AddThing::class]),
+        ];
     }
 }

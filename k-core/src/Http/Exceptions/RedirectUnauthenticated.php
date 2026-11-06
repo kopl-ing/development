@@ -23,6 +23,10 @@ class RedirectUnauthenticated
 {
     public function __invoke(AuthenticationException $e, Request $request): Response
     {
+        if ($request->expectsJson() || $request->bearerToken() !== null) {
+            return response()->json(['message' => $e->getMessage()], 401);
+        }
+
         $login = Route::has('kopling-core::community/login')
             ? route('kopling-core::community/login')
             : '/login';
