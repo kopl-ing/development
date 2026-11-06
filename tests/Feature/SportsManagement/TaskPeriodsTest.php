@@ -98,3 +98,31 @@ it('explains form errors in Dutch with the field names the form shows', function
     $this->actingAs($coach)->post("/sports-management/{$team->id}/tasks", taskPayload(['schedule' => 'recurring', 'frequency' => 'weekly', 'weekday' => 9, 'starts_on' => '2027-01-01', 'ends_on' => '1-2-2027']))
         ->assertSessionHasErrors(['weekday' => 'Dag moet tussen 1 en 7 liggen.', 'ends_on' => 'Tot en met is geen geldige datum of tijd.']);
 });
+
+it('counts a fixed role only for months with days in a period, dated on its last day in one', function () {
+    $team = tasksTeam(coach());
+    $team->periods()->create(['name' => 'Autumn', 'starts_on' => '2026-09-01', 'ends_on' => '2026-12-12']);
+    $team->periods()->create(['name' => 'Spring', 'starts_on' => '2027-02-10', 'ends_on' => '2027-05-31']);
+    $role = $team->tasks()->create([
+        'title' => 'Trainer', 'schedule' => TaskSchedule::Season, 'enrolment' => TaskEnrolment::WholeTask,
+        'starts_on' => '2026-08-01', 'ends_on' => '2027-06-30', 'within_periods' => true,
+    ]);
+    TaskOccurrences::sync($role);
+
+    expect(occurrenceDates($role))->toBe([
+        '2026-09-30', '2026-10-31', '2026-11-30', '2026-12-12',
+        '2027-02-28', '2027-03-31', '2027-04-30', '2027-05-31',
+    ])->and($role->scheduleSummary())->toBe('Fixed role, 1 Aug 2026 – 30 Jun 2027, within periods');
+});
+
+it('shows the period a match falls in', function () {
+    $this->travelTo('2026-09-01 12:00');
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $team->periods()->create(['name' => 'Autumn', 'starts_on' => '2026-09-01', 'ends_on' => '2026-12-12']);
+    $match = plannedMatch($team, ['scheduled_at' => '2026-10-10 09:30']);
+    plannedMatch($team, ['scheduled_at' => '2027-01-09 09:30', 'opponent_name' => 'Winter cup']);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")->assertSeeInOrder(['FC Rivals JO11-1', 'Autumn', 'Winter cup']);
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/matches/{$match->id}")->assertSee('Autumn');
+});

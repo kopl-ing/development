@@ -1,6 +1,6 @@
 # Plan: team tasks in `sports-management` (volunteer duties, sign-ups, balance)
 
-Status: M1–M2 committed; M3–M7 built (2026-11-06), uncommitted; only M8 (optional) left. Part of `kopling/sports-management`; every table
+Status: M1–M2 committed; M3–M7 built (2026-11-06), uncommitted; M8 postponed (see Backlog). Part of `kopling/sports-management`; every table
 `sm_`-prefixed, same as the rest of the extension (`sports-management-extension-plan.md`).
 
 ## Goal
@@ -67,6 +67,7 @@ their roster `Person` with a real account is backlog (see "Backlog").
 | `home_matches` / `away_matches` | matches with that `home_away` |
 | `dates` | one or more date(+time)s entered on the task |
 | `recurring` | a rule: weekly (weekday), monthly (day of month, or "nth weekday"), yearly (date); optional interval ("every 2 weeks") |
+| `season` | a fixed role (team coordinator) from `starts_on` to `ends_on`: one hidden date per month end, always whole-task, so it earns its weight per month held; with `within_periods`, only months with a day in a period, dated on the last in-period day |
 
 Recurring tasks have `starts_on`/`ends_on` (at most two years apart), defaulting to the team's
 season (`Team::seasonBounds()`: July–June for a season like "2026/2027"), so they have an end and
@@ -121,8 +122,8 @@ other enlistment.
 
 `sm_team_periods`: `team_id`, `name` ("Fase 1", "Voorjaar"), `starts_on`, `ends_on`. A team is
 already one season (`sm_teams.season`), so its periods cut that season up. **Coaches define them
-themselves** on the team page (decided 2026-11-06); used by `within_periods` tasks, nothing else
-for now. Periods may not overlap and run at most two years; they may reach past the season on
+themselves** on the team page (decided 2026-11-06); used by `within_periods` repeating tasks and
+season roles, and shown next to the date of matches that fall in one (derived, not stored). Periods may not overlap and run at most two years; they may reach past the season on
 either side (handing out or collecting kit before or after it).
 
 Why not presets, checked 2026-11-06: federations publish periods as documents, not data. KNVB's
@@ -155,7 +156,7 @@ sm_tasks
   title, description text null
   schedule (TaskSchedule), recurrence json null, time null, lead_minutes int null
   starts_on date null, ends_on date null     -- recurring only
-  within_periods bool, skip_school_holidays bool   -- M5 / M8
+  within_periods bool                               -- M5
   min_people int null, max_people int null
   effort_minutes int null, effort_cents int null, weight tinyint default 1 (1–10)
   enrolment (TaskEnrolment)
@@ -288,6 +289,8 @@ Recommended for the first version:
 - **Match import** from Sportlink Club.Dataservice (football, club `client_id`).
 - **Self-service availability** on the same link page: tap your player, mark available/absent
   per match.
+- **Skip school holidays** (was M8, postponed 2026-11-06 since periods already cover the breaks):
+  Rijksoverheid feed, region as a site setting, cached yearly; see "Season periods".
 - **Notifications**: core has no notification mechanism yet; a core gap, not this extension's.
 
 ## Out of scope
@@ -322,7 +325,7 @@ is the place if this ever comes), club-wide tasks, guardian accounts, federation
 - [x] M5 Season periods: table + UI (coaches), `within_periods` generation.
 - [x] M6 "Needs people" surfacing on team page, sidebar and link page.
 - [x] M7 Translations (nl/en), moderation team preview lists tasks.
-- [ ] M8 (optional) Skip school holidays: Rijksoverheid feed, region site setting, cache.
+- [ ] ~~M8 Skip school holidays~~ postponed 2026-11-06: periods cover the breaks; moved to Backlog.
 
 ## Testing (Pest)
 
@@ -402,3 +405,17 @@ refuses all tokens, balance weight with whole-task enlistments across periods, o
   `k-core/lang/framework/nl/validation.php`) and readable `:attribute` names from the form labels
   (`Controllers/FieldNames`). Moderation team preview lists tasks with descriptions, the notes
   left through task links (with player and date), and periods.
+- 2026-11-06 — `season` schedule ("Hele seizoen (vaste rol)") for fixed roles: hidden month-end
+  occurrences (last one on `ends_on`), always taken on for all dates; points per month held, end
+  and leave rules as for other whole-task sign-ups. Left out of the weekly "needs people"
+  warning; the team page shows no next date for it.
+- 2026-11-06 — Migration `2026_11_06_000028`: `sm_tasks.staff_only` (shown on the link page as
+  "Staf deelt in", no taking on or backing out through the link) and `sm_task_enlistments.starts_on`
+  (defaults to the creation day). Period backfill ("Terugwerkend toekennen", toggle on add, button
+  on edit, idempotent) moves the start of the team's current season-long sign-ups back to the
+  period's start; single-date sign-ups can't be backfilled. Balance bar stacks earned points with
+  planned ones (upcoming sign-ups × weight) in a lighter shade.
+- 2026-11-06 — Season roles can be limited to periods (month counts when any of its days is in
+  one); `Team::periodOn()` labels matches with their period on the team page and match page.
+- 2026-11-06 — M8 (school holidays) postponed to the backlog: coaches' own periods already skip
+  the breaks.

@@ -95,3 +95,29 @@ it('shows parents the balance through the link only when the team allows it', fu
     $team->update(['tasks_balance_public' => true]);
     $this->get($player)->assertSee('Balance')->assertSee('1 point')->assertDontSee('15.00')->assertDontSee('Daan de Kok');
 });
+
+it('earns a fixed season role its weight per month held, until the holder stops', function () {
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $this->travelTo('2026-08-10 12:00');
+
+    $this->actingAs($coach)->post("/sports-management/{$team->id}/tasks", taskPayload([
+        'title' => 'Team coordinator', 'schedule' => 'season', 'enrolment' => 'per_occurrence', 'starts_on' => '2026-08-01', 'ends_on' => '2027-06-15', 'weight' => 3, 'max_people' => 1,
+    ]))->assertRedirect();
+    $task = \Kopling\SportsManagement\Task::sole();
+
+    expect($task->enrolment)->toBe(TaskEnrolment::WholeTask)
+        ->and($task->occurrences()->count())->toBe(11)
+        ->and($task->occurrences()->get()->last()->date->toDateString())->toBe('2027-06-15');
+
+    $this->post('/live/team/'.$team->fresh()->tasks_token.'/tasks/'.$daan->id, ['task_id' => $task->id])->assertRedirect();
+    $this->travelTo('2026-11-15 12:00');
+    expect(TaskBalance::for($team)->sole()['points'])->toBe(9);
+
+    $this->post('/live/team/'.$team->fresh()->tasks_token.'/tasks/'.$daan->id.'/leave/'.TaskEnlistment::sole()->id)->assertRedirect();
+    $this->travelTo('2027-03-01 12:00');
+    expect(TaskBalance::for($team)->sole()['points'])->toBe(9);
+
+    $this->actingAs($coach)->get("/sports-management/{$team->id}")->assertSee('Fixed role, 1 Aug 2026 – 15 Jun 2027');
+});
