@@ -9,6 +9,7 @@ use Kopling\SportsManagement\TaskEnlistment;
 use Kopling\SportsManagement\TaskEnlistmentSkip;
 use Kopling\SportsManagement\TaskEnrolment;
 use Kopling\SportsManagement\TaskSchedule;
+use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMatch;
 use phpseclib4\Crypt\RSA;
 
@@ -67,6 +68,34 @@ it('sets availability only for the players given', function () {
     smResult(smCall($this, writer($coach), 'set-availability', ['team_id' => $team->id, 'match_id' => $match->id, 'availability' => [$daan->id => 'absent']]));
 
     expect($match->availabilities()->pluck('status', 'team_member_id')->map->value->all())->toEqual([$jip->id => 'available', $daan->id => 'absent']);
+});
+
+it('sets the starting lineup before kick-off with the same limits as the field screen', function () {
+    $coach = coach();
+    $team = optedInTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO8', 'players_on_field' => 2, 'play_minutes' => 40, 'breaks' => 3])->id]);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $jip = rosterMember($team, 'Jip Vos');
+    $sam = rosterMember($team, 'Sam Bakker');
+    $match = plannedMatch($team, ['scheduled_at' => '2026-11-28 09:30']);
+    $match->availabilities()->create(['team_member_id' => $sam->id, 'status' => 'absent']);
+    $match->lineup()->create(['team_member_id' => $sam->id, 'zone' => 'F']);
+    $token = writer($coach);
+    $ids = ['team_id' => $team->id, 'match_id' => $match->id];
+
+    expect(smError(smCall($this, $token, 'set-lineup', $ids + ['lineup' => [['player_id' => $sam->id, 'zone' => 'F']]])))->toContain('absent')
+        ->and(smError(smCall($this, $token, 'set-lineup', $ids + ['lineup' => [['player_id' => $daan->id, 'zone' => 'K'], ['player_id' => $jip->id, 'zone' => 'K']]])))->toContain('one keeper')
+        ->and(smError(smCall($this, $token, 'set-lineup', $ids + ['lineup' => [['player_id' => $daan->id, 'zone' => 'X']]])))->toContain('use one of')
+        ->and(smError(smCall($this, $token, 'set-lineup', $ids + ['lineup' => [['player_id' => $daan->id, 'zone' => 'K'], ['player_id' => $jip->id, 'zone' => 'F'], ['player_id' => $sam->id, 'zone' => 'M']]])))->toContain('absent');
+
+    $result = smResult(smCall($this, $token, 'set-lineup', $ids + ['lineup' => [['player_id' => $daan->id, 'zone' => 'K'], ['player_id' => $jip->id, 'zone' => 'F']]]));
+
+    expect($result['lineup'])->toBe([['player' => 'Daan de Kok', 'zone' => 'K'], ['player' => 'Jip Vos', 'zone' => 'F']])
+        ->and($match->lineup()->pluck('zone', 'team_member_id')->map->value->all())->toEqual([$daan->id => 'K', $jip->id => 'F'])
+        ->and(smResult(smCall($this, $token, 'get-match', $ids))['zones'])->toHaveKeys(['K', 'D', 'M', 'F']);
+
+    $match->periods()->create(['sequence' => 1, 'type' => 'play']);
+    expect(smError(smCall($this, $token, 'set-lineup', $ids + ['lineup' => []])))->toContain('use substitute');
 });
 
 it('adds a player and takes one off the team, dropping their future tasks', function () {

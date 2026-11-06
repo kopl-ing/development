@@ -10,6 +10,7 @@ use Kopling\OAuth\Tokens;
 use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\TaskEnrolment;
 use Kopling\SportsManagement\Team;
+use Kopling\SportsManagement\TeamFormatPreset;
 use phpseclib4\Crypt\RSA;
 
 const SM = 'kopling-sports-management';
@@ -164,6 +165,20 @@ it('describes a played match with score and goal minutes', function () {
             ['minute' => 10, 'for' => 'us', 'points' => 1, 'scorer' => 'Daan de Kok'],
             ['minute' => 15, 'for' => 'opponent', 'points' => 1],
         ]);
+});
+
+it('gives the match format with its play periods, so lineups follow quarters instead of assumed halves', function () {
+    $coach = coach();
+    $team = optedInTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 50, 'breaks' => 3])->id]);
+    $match = plannedMatch($team, ['opponent_name' => 'FC Rivals', 'scheduled_at' => '2026-11-28 09:30', 'play_minutes' => 40]);
+    $token = smToken($coach);
+
+    $format = smResult(smCall($this, $token, 'get-team', ['team_id' => $team->id]))['format'];
+    expect($format)->toMatchArray(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 50, 'play_periods' => 4, 'minutes_per_period' => 12.5])
+        ->and($format['substitutions'])->toContain('any moment')
+        ->and(smResult(smCall($this, $token, 'get-match', ['team_id' => $team->id, 'match_id' => $match->id]))['format'])
+        ->toMatchArray(['play_minutes' => 40, 'play_periods' => 4, 'minutes_per_period' => 10]);
 });
 
 it('shows coaches the task planning and balance', function () {
