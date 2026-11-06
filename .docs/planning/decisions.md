@@ -1749,3 +1749,19 @@ play time or substitutions.
 **Status:** decided & implemented.
 
 ---
+
+## 2026-11-06 — Team tasks: stored occurrences, families sign up through links
+
+**Decision:** a team task (driving, setting up goals, trainer) produces stored occurrences — one
+per match, set date or repeating date — kept in step by `TaskOccurrences::sync()` and the
+`TeamMatch` save/delete hooks, matched by match or by date so a kept occurrence keeps its id.
+Families will sign up through secret per-team or per-player links, without accounts; "no guardian
+accounts" (sports-management plan, round 2) stands.
+
+**Why:** sign-ups need a stable row to point at when a match moves or a schedule is edited, which
+computed dates can't give. Links match how teams already coordinate (the group chat) and keep the
+roster free of contact data; claiming a roster `Person` with an account stays possible later.
+
+**Status:** occurrences implemented (M1); links planned (M2), see `sports-management-tasks-plan.md`.
+
+---
