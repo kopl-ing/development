@@ -235,3 +235,11 @@ it('names the match next to the date for match tasks, for parents and staff', fu
 
     $this->actingAs($coach)->get("/sports-management/{$team->id}/tasks")->assertSee('away at FC Rivals JO11-1')->assertSee('home vs VV Home');
 });
+
+it('gives every live page the team\'s sport, like the public match page, for layouts that use it', function () {
+    $team = tasksTeam(coach());
+    $daan = rosterMember($team, 'Daan de Kok');
+
+    $this->get(linkPath($team))->assertViewHas('sport', $team->sport);
+    $this->get(linkPath($team).'/'.$daan->id)->assertViewHas('sport', $team->sport);
+});

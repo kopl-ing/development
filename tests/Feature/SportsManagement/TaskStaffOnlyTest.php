@@ -62,3 +62,25 @@ it('backfills a past period for the current season-long sign-ups, once', functio
         ->assertRedirect()
         ->assertSessionHas('periods_status', 'No sign-ups needed backfilling.');
 });
+
+it('lets staff assign and remove people one by one on a season-long task from the team page, up to the maximum', function () {
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $jip = rosterMember($team, 'Jip Vos');
+    $role = datesTask($team, ['2026-11-30', '2026-12-31'], ['title' => 'Coordinator', 'enrolment' => TaskEnrolment::WholeTask, 'max_people' => 2]);
+    $page = "/sports-management/{$team->id}";
+    $assign = fn ($member) => $this->actingAs($coach)->from($page)->post("$page/tasks/{$role->id}/enlist", ['team_member_id' => $member->id]);
+
+    $this->actingAs($coach)->get($page)->assertSee("/tasks/{$role->id}/enlist", false);
+    $assign($daan)->assertRedirect($page);
+    $assign($jip)->assertRedirect($page);
+
+    $this->actingAs($coach)->get($page)->assertSee('Daan de Kok')->assertSee('Jip Vos')->assertDontSee("/tasks/{$role->id}/enlist", false);
+
+    $daans = TaskEnlistment::where('team_member_id', $daan->id)->sole();
+    $this->actingAs($coach)->from($page)->post("$page/tasks/enlistments/{$daans->id}/delete")->assertRedirect($page);
+    expect(TaskEnlistment::where('team_member_id', $jip->id)->exists())->toBeTrue()
+        ->and(TaskEnlistment::whereKey($daans->id)->exists())->toBeFalse();
+    $this->actingAs($coach)->get($page)->assertSee("/tasks/{$role->id}/enlist", false);
+});

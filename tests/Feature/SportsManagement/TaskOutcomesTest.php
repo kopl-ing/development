@@ -172,3 +172,16 @@ it('lets staff backfill or replace who did a past match task from the past tab',
 
     expect(balanceOf($team))->toBe(['Daan de Kok' => [0, 0, 0], 'Jip Vos' => [1, 0, 0]]);
 });
+
+it('shows count and min/max on past dates and hides assigning once a past date is full', function () {
+    $coach = coach();
+    $team = approvingTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $task = datesTask($team, ['2026-11-14'], ['title' => 'Drive', 'min_people' => 1, 'max_people' => 1]);
+    $url = "/sports-management/{$team->id}/tasks?filter=past";
+
+    $this->actingAs($coach)->get($url)->assertSee('0 / 1')->assertSee('1 person')->assertSee("/tasks/{$task->id}/enlist", false);
+
+    enlistOn($task, $daan, '2026-11-14');
+    $this->actingAs($coach)->get($url)->assertSee('1 / 1')->assertDontSee("/tasks/{$task->id}/enlist", false);
+});
