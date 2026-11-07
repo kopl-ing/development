@@ -244,6 +244,35 @@ it('gives every live page the team\'s sport, like the public match page, for lay
     $this->get(linkPath($team).'/'.$daan->id)->assertViewHas('sport', $team->sport);
 });
 
+it('groups a match\'s tasks under that match, ordered by kickoff, without week or day headings', function () {
+    $team = tasksTeam(coach());
+    $daan = rosterMember($team, 'Daan de Kok');
+    plannedMatch($team, ['scheduled_at' => '2026-11-14 09:30', 'opponent_name' => 'FC Early']);
+    plannedMatch($team, ['scheduled_at' => '2026-11-14 13:00', 'opponent_name' => 'FC Late']);
+    matchTask($team, attributes: ['title' => 'Drive']);
+    matchTask($team, attributes: ['title' => 'Fruit']);
+    datesTask($team, ['2026-11-10'], ['title' => 'Wash shirts']);
+    datesTask($team, ['2026-11-11'], ['title' => 'Line the pitch']);
+
+    $html = $this->get(linkPath($team).'/'.$daan->id)
+        ->assertSeeInOrder(['Wash shirts', 'Line the pitch', 'Away at FC Early', 'Drive', 'Fruit', 'Away at FC Late', 'Drive', 'Fruit'])
+        ->assertDontSee('Saturday 14 November</h2>', false)
+        ->getContent();
+
+    expect(substr_count($html, '<ul class="list">'))->toBe(3);
+});
+
+it('shows who actually does it, on behalf of the player, to parents and staff', function () {
+    $coach = coach();
+    $team = tasksTeam($coach);
+    $daan = rosterMember($team, 'Daan de Kok');
+    $task = datesTask($team, ['2026-11-28'], ['title' => 'Game leader']);
+    enlistOn($task, $daan, '2026-11-28', ['note' => 'Tim (brother)']);
+
+    $this->get(linkPath($team).'/'.$daan->id)->assertSeeInOrder(['Tim (brother)', 'for Daan K.'], false);
+    $this->actingAs($coach)->get("/sports-management/{$team->id}/tasks")->assertSeeInOrder(['Tim (brother)', 'for Daan de Kok'], false);
+});
+
 it('puts season roles and staff assignments collapsed at the bottom, and colours the counts', function () {
     $this->travelTo('2026-11-01 12:00');
     $team = tasksTeam(coach());
