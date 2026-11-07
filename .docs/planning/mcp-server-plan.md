@@ -2,8 +2,8 @@
 
 Status: M1–M5 built (2026-11-06), uncommitted.
 
-Since 2026-11-07 `sports-management` is no longer part of this repo: it lives in the Veldwissel app
-(`extensions/sports-management`), see decisions.md 2026-11-07. Its parts of this plan are kept as written.
+Since 2026-11-07 `sports-management` is no longer part of this repo (see decisions.md 2026-11-07).
+Its parts of this plan are kept as written.
 
 ## Goal
 
@@ -451,4 +451,4 @@ None at the moment.
 - 2026-11-06 — Admin permission renamed from `administer-teams` to `administer-teams-via-mcp`
   (migration `2026_11_06_000031` moves existing grants): it only ever granted the AI-assistant
   reach, while admins reach teams on the web through moderation anyway. A site can now withhold
-  AI reach to team data without touching moderation; Veldwissel does (its privacy page promises it).
+  AI reach to team data without touching moderation.

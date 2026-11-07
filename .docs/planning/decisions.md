@@ -1875,11 +1875,11 @@ touching moderation.
 (package name → directory). The classes autoload through the app's own PSR-4 map; the namespace
 is taken from the PSR-4 entry pointing into that directory (or the directory's own
 `composer.json`). The package name stays the key, so the extension id does not change, and a
-local entry replaces an installed package of the same name. `kopling/sports-management` moved
-this way into the Veldwissel app (`extensions/sports-management` there), together with its tests,
-its subsplit and its planning docs (`sports-management-*.md`).
+local entry replaces an installed package of the same name. `kopling/sports-management` left
+this repo this way, together with its tests, its subsplit and its planning docs
+(`sports-management-*.md`); it now lives inside the app that uses it.
 
-**Why:** the extension serves one product and changes with it, while Kopling stays a general
+**Why:** the extension serves one site and changes with it, while Kopling stays a general
 platform. An app-local extension needs no package of its own, no VCS repository and no subsplit,
 and keeping the package name means nothing stored by id (permissions, settings, migrations, MCP
 tool names, view overrides) has to be migrated.

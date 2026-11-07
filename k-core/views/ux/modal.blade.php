@@ -7,7 +7,7 @@
 {{-- grid-cols-1/grid-rows-1: daisyUI's implicit "auto" tracks collapse the box to its content, uncentered.
      No `.modal-backdrop` form on purpose: a mistap beside the box would throw away what was typed. --}}
 <dialog id="{{ $id }}" class="modal grid-cols-1 grid-rows-1" aria-label="{{ $label }}">
-    <div class="modal-box relative">
+    <div class="modal-box relative max-h-[calc(100dvh-4rem)]">
         <form method="dialog">
             <button class="btn btn-sm btn-circle btn-ghost absolute end-2 top-2" aria-label="{{ __('kopling-core::ux.close') }}">
                 <x-k::icon name="kopling-core::close" />
