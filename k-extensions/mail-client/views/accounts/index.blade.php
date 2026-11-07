@@ -28,12 +28,12 @@
 
                     <div class="divider my-0">{{ __('kopling-mail-client::messages.incoming_server') }}</div>
                     <x-k::form.input :data="['name' => 'incoming_host', 'label' => __('kopling-mail-client::messages.host'), 'value' => old('incoming_host')]" />
-                    <x-k::form.input :data="['name' => 'incoming_port', 'label' => __('kopling-mail-client::messages.port'), 'type' => 'number', 'value' => old('incoming_port', 993)]" />
+                    <x-k::form.input :data="['name' => 'incoming_port', 'label' => __('kopling-mail-client::messages.port'), 'type' => 'number', 'min' => 1, 'max' => 65535, 'value' => old('incoming_port', 993)]" />
                     <x-k::form.select :data="['name' => 'incoming_encryption', 'label' => __('kopling-mail-client::messages.encryption'), 'options' => ['ssl' => 'SSL/TLS', 'starttls' => 'STARTTLS', 'none' => __('kopling-mail-client::messages.encryption_none')], 'value' => old('incoming_encryption', 'ssl')]" />
 
                     <div class="divider my-0">{{ __('kopling-mail-client::messages.outgoing_server') }}</div>
                     <x-k::form.input :data="['name' => 'outgoing_host', 'label' => __('kopling-mail-client::messages.host'), 'value' => old('outgoing_host')]" />
-                    <x-k::form.input :data="['name' => 'outgoing_port', 'label' => __('kopling-mail-client::messages.port'), 'type' => 'number', 'value' => old('outgoing_port', 587)]" />
+                    <x-k::form.input :data="['name' => 'outgoing_port', 'label' => __('kopling-mail-client::messages.port'), 'type' => 'number', 'min' => 1, 'max' => 65535, 'value' => old('outgoing_port', 587)]" />
                     <x-k::form.select :data="['name' => 'outgoing_encryption', 'label' => __('kopling-mail-client::messages.encryption'), 'options' => ['ssl' => 'SSL/TLS', 'starttls' => 'STARTTLS', 'none' => __('kopling-mail-client::messages.encryption_none')], 'value' => old('outgoing_encryption', 'starttls')]" />
 
                     <div class="divider my-0">{{ __('kopling-mail-client::messages.credentials') }}</div>

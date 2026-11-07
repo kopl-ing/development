@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\DB;
 use Kopling\SportsManagement\HomeAway;
 use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\TaskBalance;
@@ -193,4 +194,19 @@ it('keeps write tools to coaches with the matching permission', function () {
     expect($names)->toContain(SM.'__add-player')->not->toContain(SM.'__plan-match');
 
     expect(smError(smCall($this, writer($ref), 'add-player', ['team_id' => $team->id, 'name' => 'X'])))->toContain('Only the team');
+});
+
+it('stores kick-off as the local wall-clock time given rather than UTC, and reports it back without an offset', function () {
+    $coach = coach();
+    $team = optedInTeam($coach);
+    $token = writer($coach);
+    $plan = ['team_id' => $team->id, 'opponent_name' => 'FC Rivals', 'home_away' => 'away'];
+
+    $planned = smResult(smCall($this, $token, 'plan-match', $plan + ['scheduled_at' => '2026-11-28T09:30']));
+
+    expect(config('app.timezone'))->toBe('UTC')
+        ->and(DB::table('sm_matches')->value('scheduled_at'))->toBe('2026-11-28 09:30:00')
+        ->and($planned['scheduled_at'])->toBe('2026-11-28T09:30')
+        ->and(smResult(smCall($this, $token, 'list-matches', ['team_id' => $team->id]))[0]['scheduled_at'])->toBe('2026-11-28T09:30')
+        ->and(smError(smCall($this, $token, 'plan-match', $plan + ['scheduled_at' => '2026-11-28T08:30:00Z'])))->toContain('scheduled');
 });

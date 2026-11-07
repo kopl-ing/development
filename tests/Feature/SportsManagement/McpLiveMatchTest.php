@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Kopling\SportsManagement\Position;
 use Kopling\SportsManagement\RefereeDuty;
+use Kopling\SportsManagement\TeamFormatPreset;
 use Kopling\SportsManagement\TeamMatch;
 use phpseclib4\Crypt\RSA;
 
@@ -151,4 +152,39 @@ it('hides the live tools from a token without the write scope or a person withou
     $viewer = coach('Viewer', 'viewer@example.test', ['access-sports-management']);
     expect($names(smToken($viewer, [SM.'::read', SM.'::write'])))
         ->toContain(SM.'__live-match')->not->toContain(SM.'__record-goal');
+});
+
+it('suggests swaps at the break that keep play time equal, leaving the keeper alone', function () {
+    $coach = coach();
+    $match = kickOffReady($coach, ['Keeper' => 'K', 'A' => 'D', 'B' => 'D', 'C' => 'M', 'D' => 'M', 'E' => 'F']);
+    $match->team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 60, 'breaks' => 3])->id]);
+    $bench = collect(['F', 'G', 'H'])->map(fn (string $name) => rosterMember($match->team, $name)->id);
+    $token = smToken($coach, [SM.'::read', SM.'::write']);
+    $ids = ['team_id' => $match->team_id, 'match_id' => $match->id];
+
+    expect(smError(smCall($this, $token, 'suggest-substitution', $ids)))->toContain('set-lineup');
+    smResult(smCall($this, $token, 'start-period', $ids + ['type' => 'play']));
+    $this->travel(10)->minutes();
+
+    $players = collect(smResult(smCall($this, $token, 'live-match', $ids)))->only(['on_field', 'bench'])->flatten(1)->keyBy('name');
+    expect($players['A'])->toMatchArray(['minutes_played' => 10, 'minutes_on_bench' => 0, 'stint_minutes' => 10, 'minutes_to_target' => 30])
+        ->and($players['F'])->toMatchArray(['minutes_played' => 0, 'minutes_on_bench' => 10, 'stint_minutes' => 10, 'minutes_to_target' => 40]);
+
+    $advice = smResult(smCall($this, $token, 'suggest-substitution', $ids));
+    expect($advice)->toMatchArray(['minute' => 10, 'rotation_play_minutes_per_player' => 37])
+        ->and($advice['next'])->toMatchArray(['at_minute' => 15, 'in_minutes' => 5, 'at_break' => true])
+        ->and(collect($advice['next']['swaps'])->pluck('on.id')->all())->toEqualCanonicalizing($bench->all())
+        ->and(collect($advice['next']['swaps'])->pluck('off.name')->all())->not->toContain('Keeper');
+
+    $this->travel(5)->minutes();
+    smResult(smCall($this, $token, 'start-period', $ids + ['type' => 'break']));
+    foreach (smResult(smCall($this, $token, 'suggest-substitution', $ids))['next']['swaps'] as $swap) {
+        smResult(smCall($this, $token, 'substitute', $ids + ['off_player_id' => $swap['off']['id'], 'on_player_id' => $swap['on']['id']]));
+    }
+
+    $this->travel(5)->minutes();
+    smResult(smCall($this, $token, 'start-period', $ids + ['type' => 'play']));
+    $next = smResult(smCall($this, $token, 'suggest-substitution', $ids))['next'];
+    expect($next)->toMatchArray(['at_minute' => 30, 'in_minutes' => 15, 'at_break' => true])
+        ->and($next['swaps'])->toHaveCount(3);
 });

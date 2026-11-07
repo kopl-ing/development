@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Once;
+use Kopling\Core\Extension\Manager;
 use Kopling\Core\People\Group;
+use Kopling\Core\Settings\EnabledExtensions;
 use Kopling\Core\People\Person as CorePerson;
 use Kopling\Mcp\ToolCall;
 use Kopling\OAuth\Person;
 use Kopling\OAuth\Tokens;
+use Kopling\SportsManagement\AvailabilityStatus;
 use Kopling\SportsManagement\StaffRole;
 use Kopling\SportsManagement\TaskEnrolment;
 use Kopling\SportsManagement\Team;
@@ -135,6 +139,19 @@ it('lets a site admin reach any team, opted in or hidden, and logs it for the ow
     $this->actingAs($other)->get("/sports-management/{$team->id}")->assertDontSee('AI assistant activity');
 });
 
+it('leaves the assistant activity off the team page while the MCP extension is disabled', function () {
+    $owner = coach();
+    $team = optedInTeam($owner);
+    smResult(smCall($this, smToken($owner), 'get-team', ['team_id' => $team->id]));
+    $this->actingAs($owner)->get("/sports-management/{$team->id}")->assertSee('AI assistant activity');
+
+    $ids = array_map(fn (string $package) => app(Manager::class)->id($package), array_keys(app(Manager::class)->extensions(includeDisabled: true)));
+    EnabledExtensions::disable('kopling-mcp', $ids);
+    Once::flush();
+
+    $this->actingAs($owner)->get("/sports-management/{$team->id}")->assertOk()->assertDontSee('AI assistant activity');
+});
+
 it('shows a referee only their own matches and no roster', function () {
     $coach = coach();
     $team = optedInTeam($coach);
@@ -235,4 +252,20 @@ it('lets only the team owner switch assistant access', function () {
     $this->actingAs($owner)->get("/sports-management/{$team->id}")->assertSee('name="mcp_enabled"', false);
     $this->actingAs($owner)->post("/sports-management/{$team->id}", $form)->assertRedirect();
     expect($team->fresh()->mcp_enabled)->toBeTrue();
+});
+
+it('gives the equal share of play and bench minutes over the players not marked absent', function () {
+    $coach = coach();
+    $team = optedInTeam($coach);
+    $team->update(['format_preset_id' => TeamFormatPreset::create(['name' => 'JO10', 'players_on_field' => 6, 'play_minutes' => 60, 'breaks' => 3])->id]);
+    $members = collect(range(1, 9))->map(fn (int $i) => rosterMember($team, "Player {$i}"));
+    $match = plannedMatch($team, ['scheduled_at' => '2026-11-28 09:30']);
+    $match->availabilities()->create(['team_member_id' => $members[0]->id, 'status' => AvailabilityStatus::Absent]);
+    $ids = ['team_id' => $team->id, 'match_id' => $match->id];
+    $token = smToken($coach, [SM.'::read', SM.'::write']);
+    $share = ['available_players' => 8, 'play_minutes_per_player' => 45, 'bench_minutes_per_player' => 15];
+
+    expect(smResult(smCall($this, $token, 'get-match', $ids))['equal_share'])->toBe($share)
+        ->and(smResult(smCall($this, $token, 'live-match', $ids))['equal_share'])->toBe($share)
+        ->and(smResult(smCall($this, $token, 'set-lineup', $ids + ['lineup' => []]))['equal_share'])->toBe($share);
 });

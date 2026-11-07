@@ -63,6 +63,7 @@
             'name' => 'poll_max_choices',
             'label' => __('kopling-poll::messages.max_choices'),
             'type' => 'number',
+            'min' => 1,
             'value' => $poll?->max_choices,
         ]" />
         <x-k::form.input :data="[
