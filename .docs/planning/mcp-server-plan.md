@@ -2,6 +2,9 @@
 
 Status: M1–M5 built (2026-11-06), uncommitted.
 
+Since 2026-11-07 `sports-management` is no longer part of this repo: it lives in the Veldwissel app
+(`extensions/sports-management`), see decisions.md 2026-11-07. Its parts of this plan are kept as written.
+
 ## Goal
 
 Let a person use an AI assistant (Claude, or any MCP client) on a Kopling site with their own

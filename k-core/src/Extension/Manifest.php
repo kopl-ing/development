@@ -27,7 +27,7 @@ class Manifest extends PackageManifest
             $packages = $installed['packages'] ?? $installed;
         }
 
-        $this->write((new Collection($packages))
+        $installed = (new Collection($packages))
             ->filter(fn ($package) => ($package['type'] ?? null) === 'kopling-extension')
             ->mapWithKeys(function ($package) {
                 $namespace = array_key_first($package['autoload']['psr-4'] ?? []);
@@ -38,8 +38,64 @@ class Manifest extends PackageManifest
                     'path' => $path,
                 ]];
             })
+            ->all();
+
+        $this->write((new Collection(array_merge($installed, $this->localExtensions())))
             ->filter(fn ($extension) => $extension['namespace'] && $extension['path'])
             ->all());
+    }
+
+    /**
+     * Extensions that live inside the app itself instead of `vendor/`, declared in its own
+     * composer.json as `"extra": {"kopling": {"extensions": {"vendor/name": "relative/dir"}}}`;
+     * their classes autoload through the app's own PSR-4 map, so Composer never lists them in
+     * installed.json. The package name is the key (and so the extension id), and a local
+     * extension replaces an installed package of the same name.
+     *
+     * @return array<string, array{namespace: ?string, path: ?string}>
+     */
+    protected function localExtensions(): array
+    {
+        if (! $this->files->exists($path = $this->basePath.'/composer.json')) {
+            return [];
+        }
+
+        $root = json_decode($this->files->get($path), true) ?? [];
+        $declared = $root['extra']['kopling']['extensions'] ?? [];
+        $extensions = [];
+
+        foreach ($declared as $package => $directory) {
+            $path = realpath($this->basePath.'/'.$directory) ?: null;
+
+            $extensions[$package] = [
+                'namespace' => $path ? $this->localNamespace($path, $root['autoload']['psr-4'] ?? []) : null,
+                'path' => $path,
+            ];
+        }
+
+        return $extensions;
+    }
+
+    /**
+     * @param  array<string, string|array<int, string>>  $rootPsr4
+     */
+    protected function localNamespace(string $path, array $rootPsr4): ?string
+    {
+        foreach ($rootPsr4 as $namespace => $directories) {
+            foreach ((array) $directories as $directory) {
+                $directory = realpath($this->basePath.'/'.$directory);
+
+                if ($directory && ($directory === $path || str_starts_with($directory, $path.DIRECTORY_SEPARATOR))) {
+                    return $namespace;
+                }
+            }
+        }
+
+        if ($this->files->exists($own = $path.'/composer.json')) {
+            return array_key_first(json_decode($this->files->get($own), true)['autoload']['psr-4'] ?? []);
+        }
+
+        return null;
     }
 
     /**

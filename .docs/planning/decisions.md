@@ -1868,3 +1868,27 @@ and leaves `administer-teams` free for a web admin role later. A site can withho
 touching moderation.
 
 ---
+
+## 2026-11-07 — An app can hold its own extensions; `sports-management` leaves the monorepo
+
+**Decision:** `Manifest` also reads `extra.kopling.extensions` from the app's own `composer.json`
+(package name → directory). The classes autoload through the app's own PSR-4 map; the namespace
+is taken from the PSR-4 entry pointing into that directory (or the directory's own
+`composer.json`). The package name stays the key, so the extension id does not change, and a
+local entry replaces an installed package of the same name. `kopling/sports-management` moved
+this way into the Veldwissel app (`extensions/sports-management` there), together with its tests,
+its subsplit and its planning docs (`sports-management-*.md`).
+
+**Why:** the extension serves one product and changes with it, while Kopling stays a general
+platform. An app-local extension needs no package of its own, no VCS repository and no subsplit,
+and keeping the package name means nothing stored by id (permissions, settings, migrations, MCP
+tool names, view overrides) has to be migrated.
+
+**Trade-off accepted:** a change in core that breaks `sports-management` no longer fails this
+repo's test suite; it shows up in the app's own suite. Core's compiled CSS no longer contains
+the extension's classes, so the app builds the extension's own CSS.
+
+**Status:** implemented (`Manifest::localExtensions()`, `tests/Unit/Extension/ManifestLocalExtensionsTest.php`).
+Earlier entries and `mcp-server-plan.md` still name `sports-management` as they were written.
+
+---
