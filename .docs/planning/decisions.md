@@ -1892,3 +1892,18 @@ the extension's classes, so the app builds the extension's own CSS.
 Earlier entries and `mcp-server-plan.md` still name `sports-management` as they were written.
 
 ---
+
+## 2026-11-11 — Sign-in, sign-up and recovery pages share one auth layout
+
+**Decision:** every page around signing in (login, register, access blocked, and an auth
+extension's own forgot/reset/verify pages) renders through `<x-k::portal.auth-layout page="..."
+title="...">`, which has three slots around its card: `kopling-core::auth.header`, `.aside` and
+`.footer` (`AuthLayout::HEADER`/`ASIDE`/`FOOTER`), and a `data-kopling-auth="<page>"` hook for CSS.
+
+**Why:** a site that wants its own look (logo, background, a picture beside the form) adds slot
+entries or overrides one view (`vendor/kopling-core/portal/auth-layout.blade.php`), instead of
+copying each page and silently missing later changes to them.
+
+**Status:** implemented (`tests/Feature/Ux/AuthLayoutTest.php`).
+
+---

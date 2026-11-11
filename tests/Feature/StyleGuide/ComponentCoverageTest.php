@@ -54,6 +54,8 @@ function coreUxComponentClasses(): \Illuminate\Support\Collection
         \Kopling\Core\Ux\Card\Control::class,
         \Kopling\Core\Ux\Portal\Layout::class,
         \Kopling\Core\Ux\Portal\Slot::class,
+        // A whole page (it wraps Portal\Layout), so it can't sit inside the style guide; the auth pages render it.
+        \Kopling\Core\Ux\Portal\AuthLayout::class,
     ];
 
     return collect(File::allFiles(base_path('k-core/src/Ux')))
