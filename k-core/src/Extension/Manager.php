@@ -71,7 +71,7 @@ class Manager
      *
      * @var array<int, string>
      */
-    public const CORE_COMPILED_BUNDLES = ['app', 'editor', 'emoji-picker', 'tag-input', 'icon-picker'];
+    public const CORE_COMPILED_BUNDLES = ['app', 'editor', 'emoji-picker', 'tag-input', 'icon-picker', 'date-range'];
 
     public function __construct(
         protected Manifest $manifest,

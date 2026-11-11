@@ -30,6 +30,7 @@
         "daisyui": "^5.6.16",
         "emoji-mart": "^5.6.0",
         "htmx.org": "4.0.0-beta5",
-        "playwright": "^1.62.1"
+        "playwright": "^1.62.1",
+        "vanilla-calendar-pro": "^3.4.0"
     }
 }

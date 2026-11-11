@@ -34,3 +34,20 @@
     --radius-box: 0.75rem;
     --radius-field: 0.5rem;
 }
+
+/* `<x-k::form.date-range>`'s `marked` days, a dot under the number (daisyUI's `.vc` styles the rest). */
+.vc [data-vc-date-btn].k-date-range-marked {
+    position: relative;
+}
+
+.vc [data-vc-date-btn].k-date-range-marked::after {
+    content: "";
+    position: absolute;
+    bottom: 0.15rem;
+    left: 50%;
+    width: 0.3rem;
+    height: 0.3rem;
+    border-radius: 999px;
+    background-color: currentColor;
+    transform: translateX(-50%);
+}
