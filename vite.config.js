@@ -31,7 +31,7 @@ export default defineConfig({
                 'k-core/resources/js/tag-input.js',
                 'k-core/resources/css/icon-picker.css',
                 'k-core/resources/js/icon-picker.js',
-                'k-core/resources/js/date-range.js',
+                'k-core/resources/js/calendar.js',
             ],
             refresh: [
                 'k-core/src/**/*.blade.php',

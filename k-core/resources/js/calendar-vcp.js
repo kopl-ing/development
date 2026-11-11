@@ -1,5 +1,9 @@
 import { annotations, Calendar } from 'vanilla-calendar-pro';
 
+// The month on screen when a field was swapped out, so an htmx re-render of the same field keeps it.
+const shownMonths = new Map();
+const REMEMBER_MS = 2000;
+
 function parse(value) {
     const [year, month, day] = value.split('-').map(Number);
 
@@ -28,18 +32,36 @@ function escape(text) {
     return node.innerHTML;
 }
 
-export function mount(root) {
-    const host = root.querySelector('[data-date-range-calendar]');
-    const result = root.querySelector('[data-date-range-result]');
-    const summary = root.querySelector('[data-date-range-summary]');
-    const clear = root.querySelector('[data-date-range-clear]');
-    const fields = root.querySelector('[data-date-range-fields]');
-    const start = root.querySelector('[data-date-range-start]');
-    const end = root.querySelector('[data-date-range-end]');
-    const required = start.required;
-    const locale = root.dataset.locale || document.documentElement.lang || 'en';
-    const format = new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+function baseOptions(root, locale) {
     const marked = JSON.parse(root.dataset.marked || '{}');
+    const options = { locale, firstWeekday: firstWeekday(locale), selectedWeekends: [] };
+
+    if (Object.keys(marked).length > 0) {
+        options.extensions = [annotations];
+        options.popups = Object.fromEntries(Object.entries(marked).map(([date, label]) => [
+            date,
+            { modifier: 'k-calendar-marked', html: escape(label) },
+        ]));
+    }
+
+    if (root.dataset.min) {
+        options.dateMin = root.dataset.min;
+    }
+
+    if (root.dataset.max) {
+        options.dateMax = root.dataset.max;
+    }
+
+    return options;
+}
+
+function range(root, format, notify) {
+    const result = root.querySelector('[data-calendar-result]');
+    const summary = root.querySelector('[data-calendar-summary]');
+    const clear = root.querySelector('[data-calendar-clear]');
+    const fields = root.querySelector('[data-calendar-fields]');
+    const start = root.querySelector('[data-calendar-start]');
+    const end = root.querySelector('[data-calendar-end]');
 
     if (end.value === '' || end.value < start.value) {
         end.value = start.value;
@@ -54,8 +76,6 @@ export function mount(root) {
             summary.textContent = format.formatRange(parse(start.value), parse(end.value));
         }
 
-        summary.classList.remove('text-error');
-
         if (clear) {
             clear.hidden = start.value === '';
         }
@@ -64,86 +84,180 @@ export function mount(root) {
     const write = (first, last) => {
         start.value = first;
         end.value = last;
-        start.dispatchEvent(new Event('change', { bubbles: true }));
-        end.dispatchEvent(new Event('change', { bubbles: true }));
         render();
+        notify();
     };
 
-    const options = {
-        locale,
-        firstWeekday: firstWeekday(locale),
-        selectionDatesMode: 'multiple-ranged',
-        enableEdgeDatesOnly: true,
-        selectedWeekends: [],
-        onClickDate(self) {
-            const dates = [...self.context.selectedDates].sort();
-            write(dates[0] ?? '', dates.at(-1) ?? '');
+    return {
+        summary,
+        options: {
+            selectionDatesMode: 'multiple-ranged',
+            enableEdgeDatesOnly: true,
+            selectedDates: start.value === '' ? [] : [start.value === end.value ? start.value : `${start.value}:${end.value}`],
+            onClickDate(self) {
+                const dates = [...self.context.selectedDates].sort();
+                write(dates[0] ?? '', dates.at(-1) ?? '');
+            },
+        },
+        first: () => start.value,
+        isEmpty: () => start.value === '',
+        start(calendar) {
+            const onClear = () => {
+                calendar.set({ selectedDates: [] }, { dates: true });
+                write('', '');
+            };
+
+            clear?.addEventListener('click', onClear);
+            start.required = false;
+            end.required = false;
+            fields.hidden = true;
+            result.hidden = false;
+            render();
+
+            return () => {
+                clear?.removeEventListener('click', onClear);
+                start.required = root.hasAttribute('data-required');
+                end.required = root.hasAttribute('data-required');
+                fields.hidden = false;
+                result.hidden = true;
+            };
         },
     };
+}
 
-    if (Object.keys(marked).length > 0) {
-        options.extensions = [annotations];
-        options.popups = Object.fromEntries(Object.entries(marked).map(([date, label]) => [
-            date,
-            { modifier: 'k-date-range-marked', html: escape(label) },
-        ]));
-    }
+function multiple(root, format, notify) {
+    const summary = root.querySelector('[data-calendar-summary]');
+    const rows = root.querySelector('[data-calendar-rows]');
+    const { name, dateLabel, timeLabel } = rows.dataset;
+    const withTime = rows.hasAttribute('data-time');
+    const times = new Map();
 
-    if (root.dataset.min) {
-        options.dateMin = root.dataset.min;
-    }
+    rows.querySelectorAll('[data-calendar-row]').forEach((row) => {
+        const date = row.querySelector('[data-calendar-date]').value;
 
-    if (root.dataset.max) {
-        options.dateMax = root.dataset.max;
-    }
+        if (date !== '') {
+            times.set(date, row.querySelector('[data-calendar-time]')?.value ?? '');
+        }
+    });
 
-    if (start.value !== '') {
-        const shown = parse(start.value);
-        options.selectedDates = [start.value === end.value ? start.value : `${start.value}:${end.value}`];
+    const keepTimes = () => rows.querySelectorAll('[data-calendar-time]').forEach((input) => {
+        times.set(input.closest('[data-calendar-row]').dataset.date, input.value);
+    });
+
+    const render = () => {
+        rows.replaceChildren(...[...times.keys()].sort().map((date, i) => {
+            const row = document.createElement('div');
+            row.className = 'flex flex-wrap items-center gap-2';
+            row.dataset.calendarRow = '';
+            row.dataset.date = date;
+
+            const label = document.createElement('span');
+            label.className = 'min-w-0 flex-1 text-sm';
+            label.textContent = format.format(parse(date));
+
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = withTime ? `${name}[${i}][date]` : `${name}[]`;
+            hidden.value = date;
+            hidden.dataset.calendarDate = '';
+            row.append(label, hidden);
+
+            if (withTime) {
+                const time = document.createElement('input');
+                time.type = 'time';
+                time.name = `${name}[${i}][time]`;
+                time.value = times.get(date) ?? '';
+                time.className = 'input w-32';
+                time.setAttribute('aria-label', `${timeLabel}, ${label.textContent}`);
+                time.dataset.calendarTime = '';
+                row.append(time);
+            } else {
+                label.setAttribute('aria-label', `${dateLabel}, ${label.textContent}`);
+            }
+
+            return row;
+        }));
+
+        summary.hidden = times.size > 0;
+        summary.textContent = summary.dataset.empty;
+    };
+
+    return {
+        summary,
+        options: {
+            selectionDatesMode: 'multiple',
+            enableDateToggle: true,
+            selectedDates: [...times.keys()],
+            onClickDate(self) {
+                keepTimes();
+                const selected = new Set(self.context.selectedDates);
+                [...times.keys()].filter((date) => !selected.has(date)).forEach((date) => times.delete(date));
+                selected.forEach((date) => times.has(date) || times.set(date, ''));
+                render();
+                notify();
+            },
+        },
+        first: () => [...times.keys()].sort()[0] ?? '',
+        isEmpty: () => times.size === 0,
+        start() {
+            render();
+
+            return () => {};
+        },
+    };
+}
+
+export function mount(root) {
+    const host = root.querySelector('[data-calendar-host]');
+    const locale = root.dataset.locale || document.documentElement.lang || 'en';
+    const format = new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    const notify = () => root.dispatchEvent(new Event('change', { bubbles: true }));
+    const mode = (root.dataset.mode === 'multiple' ? multiple : range)(root, format, notify);
+    const key = `${location.pathname}|${root.querySelector('input[name]')?.name}`;
+    const options = { ...baseOptions(root, locale), ...mode.options };
+    const remembered = shownMonths.get(key);
+    const shown = remembered && Date.now() - remembered.at < REMEMBER_MS
+        ? remembered.month
+        : (mode.first() !== '' ? parse(mode.first()) : null);
+
+    if (shown) {
         options.selectedMonth = shown.getMonth();
         options.selectedYear = shown.getFullYear();
     }
 
+    shownMonths.delete(key);
+
     const calendar = new Calendar(host, options);
     calendar.init();
+    host.hidden = false;
+    const stop = mode.start(calendar);
 
-    // Hidden required fields can't show the browser's own message, so the summary does instead.
+    // Hidden or replaced required fields can't show the browser's own message, so the summary does.
     const onSubmit = (event) => {
-        if (start.value === '') {
+        if (mode.isEmpty()) {
             event.preventDefault();
             event.stopImmediatePropagation();
-            summary.classList.add('text-error');
+            mode.summary.hidden = false;
+            mode.summary.classList.add('text-error');
             host.scrollIntoView({ block: 'nearest' });
         }
     };
 
-    const onClear = () => {
-        calendar.set({ selectedDates: [] }, { dates: true });
-        write('', '');
-    };
-
     const form = root.closest('form');
 
-    if (required) {
-        start.required = false;
-        end.required = false;
+    if (root.hasAttribute('data-required')) {
         form?.addEventListener('submit', onSubmit, true);
     }
 
-    clear?.addEventListener('click', onClear);
-    fields.hidden = true;
-    host.hidden = false;
-    result.hidden = false;
-    render();
+    const onChange = () => mode.summary.classList.remove('text-error');
+    root.addEventListener('change', onChange);
 
     return () => {
+        shownMonths.set(key, { at: Date.now(), month: new Date(calendar.context.selectedYear, calendar.context.selectedMonth, 1) });
+        root.removeEventListener('change', onChange);
         form?.removeEventListener('submit', onSubmit, true);
-        clear?.removeEventListener('click', onClear);
         calendar.destroy();
-        start.required = required;
-        end.required = required;
-        fields.hidden = false;
+        stop();
         host.hidden = true;
-        result.hidden = true;
     };
 }

@@ -27,10 +27,10 @@ export default defineConfig({
                 'tag-input-style': fileURLToPath(new URL('./k-core/resources/css/tag-input.css', import.meta.url)),
                 'icon-picker': fileURLToPath(new URL('./k-core/resources/js/icon-picker.js', import.meta.url)),
                 'icon-picker-style': fileURLToPath(new URL('./k-core/resources/css/icon-picker.css', import.meta.url)),
-                'date-range': fileURLToPath(new URL('./k-core/resources/js/date-range.js', import.meta.url)),
+                calendar: fileURLToPath(new URL('./k-core/resources/js/calendar.js', import.meta.url)),
             },
             output: {
-                // editor.js/emoji-picker.js/tag-input.js/date-range.js each dynamically import() their own
+                // editor.js/emoji-picker.js/tag-input.js/calendar.js each dynamically import() their own
                 // real payload so pages without a mount point, or whose picker nobody ever
                 // opened, never load it -- chunkFileNames keeps each split chunk's own name
                 // fixed/unhashed too, same reasoning entryFileNames already applies to the real

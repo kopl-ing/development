@@ -1,8 +1,8 @@
 // Same lazy split as tag-input.js, but as a custom element: connect/disconnect follow every htmx
 // swap and boosted navigation without listening to swap events.
-class DateRange extends HTMLElement {
+class KCalendar extends HTMLElement {
     async connectedCallback() {
-        const { mount } = await import('./date-range-calendar.js');
+        const { mount } = await import('./calendar-vcp.js');
 
         if (this.isConnected && !this.unmount) {
             this.unmount = mount(this);
@@ -15,6 +15,6 @@ class DateRange extends HTMLElement {
     }
 }
 
-if (!customElements.get('k-date-range')) {
-    customElements.define('k-date-range', DateRange);
+if (!customElements.get('k-calendar')) {
+    customElements.define('k-calendar', KCalendar);
 }
