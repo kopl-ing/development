@@ -50,6 +50,66 @@ it('lists people with their current groups', function () {
         ->assertSee('Moderators');
 });
 
+it('hides people without an email address unless asked for them', function () {
+    $operator = personWithManagePeople();
+    Person::create(['name' => 'Cleo', 'email' => 'cleo@example.test', 'password' => 'secret']);
+    Person::create(['name' => 'Guest Without Email']);
+
+    $this->actingAs($operator)->get('/admin/people')
+        ->assertOk()
+        ->assertSee('Cleo')
+        ->assertDontSee('Guest Without Email');
+
+    $this->actingAs($operator)->get('/admin/people?with_email=0')
+        ->assertOk()
+        ->assertSee('Cleo')
+        ->assertSee('Guest Without Email');
+});
+
+it('filters on any of the selected groups', function () {
+    $operator = personWithManagePeople();
+    $moderators = Group::create(['name' => 'Moderators']);
+    $editors = Group::create(['name' => 'Editors']);
+    Group::create(['name' => 'Others']);
+
+    Person::create(['name' => 'Mira', 'email' => 'mira@example.test', 'password' => 'secret'])->groups()->attach($moderators);
+    Person::create(['name' => 'Emil', 'email' => 'emil@example.test', 'password' => 'secret'])->groups()->attach($editors);
+    Person::create(['name' => 'Nora', 'email' => 'nora@example.test', 'password' => 'secret']);
+
+    $this->actingAs($operator)->get('/admin/people?'.http_build_query(['groups' => [$moderators->id, $editors->id]]))
+        ->assertOk()
+        ->assertSee('Mira')
+        ->assertSee('Emil')
+        ->assertDontSee('Nora');
+});
+
+it('says so when no one matches the filters', function () {
+    $operator = personWithManagePeople();
+    $empty = Group::create(['name' => 'Empty']);
+
+    $this->actingAs($operator)->get('/admin/people?'.http_build_query(['groups' => [$empty->id]]))
+        ->assertOk()
+        ->assertSee('No people match these filters.');
+});
+
+it('ignores malformed group filters', function () {
+    $operator = personWithManagePeople();
+
+    $this->actingAs($operator)->get('/admin/people?groups[a][b]=c&groups[]=unknown')
+        ->assertOk()
+        ->assertSee('Ada');
+});
+
+it('keeps the active filters after changing a person\'s groups', function () {
+    $operator = personWithManagePeople();
+    $target = Person::create(['name' => 'Cleo', 'email' => 'cleo@example.test', 'password' => 'secret']);
+
+    $this->actingAs($operator)
+        ->from('/admin/people?with_email=0')
+        ->post("/admin/people/{$target->id}/groups", ['groups' => []])
+        ->assertRedirect('/admin/people?with_email=0');
+});
+
 it('syncs a person\'s groups, attaching and detaching in one call', function () {
     $operator = personWithManagePeople();
     $target = Person::create(['name' => 'Cleo', 'email' => 'cleo@example.test', 'password' => 'secret']);

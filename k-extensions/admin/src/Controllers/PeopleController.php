@@ -18,11 +18,26 @@ use Kopling\Core\People\Person;
  */
 class PeopleController
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $groups = Group::orderBy('name')->get();
+        $withEmail = $request->boolean('with_email', true);
+        $selectedGroups = $groups->pluck('id')
+            ->filter(fn ($id) => $request->collect('groups')->contains($id))
+            ->values();
+
         return view('kopling-admin::people.index', [
-            'people' => Person::with('groups')->orderBy('name')->get(),
-            'groups' => Group::orderBy('name')->get(),
+            'people' => Person::with('groups')
+                ->when($withEmail, fn ($query) => $query->whereNotNull('email'))
+                ->when($selectedGroups->isNotEmpty(), fn ($query) => $query->whereHas(
+                    'groups',
+                    fn ($groupQuery) => $groupQuery->whereKey($selectedGroups),
+                ))
+                ->orderBy('name')
+                ->get(),
+            'groups' => $groups,
+            'withEmail' => $withEmail,
+            'selectedGroups' => $selectedGroups,
         ]);
     }
 
@@ -34,7 +49,7 @@ class PeopleController
     {
         $person->groups()->sync($request->input('groups', []));
 
-        return redirect()->route('kopling-admin::admin/people');
+        return back(fallback: route('kopling-admin::admin/people'));
     }
 
     /**
@@ -46,6 +61,6 @@ class PeopleController
 
         $person->delete();
 
-        return redirect()->route('kopling-admin::admin/people');
+        return back(fallback: route('kopling-admin::admin/people'));
     }
 }

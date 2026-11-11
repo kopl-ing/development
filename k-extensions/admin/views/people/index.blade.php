@@ -8,8 +8,26 @@
     <div class="max-w-3xl">
         <h1 class="text-2xl font-bold mb-6">{{ __('kopling-admin::messages.people') }}</h1>
 
+        <form method="GET" action="{{ route('kopling-admin::admin/people') }}" hx-boost="true" class="card card-border bg-base-100 mb-6">
+            <div class="card-body">
+                <x-k::form.toggle :data="[
+                    'name' => 'with_email',
+                    'label' => __('kopling-admin::messages.filter_with_email'),
+                    'value' => $withEmail,
+                ]" />
+                <x-k::form.multi-select :data="[
+                    'name' => 'groups',
+                    'label' => __('kopling-admin::messages.groups'),
+                    'description' => __('kopling-admin::messages.filter_groups_help'),
+                    'options' => $groups->pluck('name', 'id'),
+                    'value' => $selectedGroups,
+                ]" />
+                <button type="submit" class="btn btn-primary self-start">{{ __('kopling-admin::messages.filter') }}</button>
+            </div>
+        </form>
+
         @if ($people->isEmpty())
-            <p class="opacity-60">{{ __('kopling-admin::messages.no_people') }}</p>
+            <p class="opacity-60">{{ __('kopling-admin::messages.no_people_match') }}</p>
         @else
             <table class="table">
                 <thead>
