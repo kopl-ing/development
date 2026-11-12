@@ -80,3 +80,16 @@ it('renders the meta description when configured, omits the tag entirely otherwi
     expect(new Crawler($html)->filter('meta[name="description"]')->attr('content'))
         ->toBe('A friendly place to talk shop.');
 });
+
+it('renders the favicon links when configured, omits them otherwise', function () {
+    $html = $this->get('/')->assertOk()->getContent();
+
+    expect(new Crawler($html)->filter('link[rel="icon"]'))->toHaveCount(0);
+
+    Settings::set('kopling-core::community-favicon', '/images/icon.png');
+
+    $crawler = new Crawler($this->get('/')->assertOk()->getContent());
+
+    expect($crawler->filter('link[rel="icon"]')->attr('href'))->toBe(url('/images/icon.png'))
+        ->and($crawler->filter('link[rel="apple-touch-icon"]')->attr('href'))->toBe(url('/images/icon.png'));
+});

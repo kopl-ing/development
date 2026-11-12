@@ -112,6 +112,12 @@ class Core extends AbstractExtension implements CannotBeDisabled, ChangesEditor,
                     'above, once set.',
             ),
             new Field(
+                id: 'community-favicon',
+                label: 'Favicon URL',
+                component: Input::class,
+                description: 'Optional -- the browser tab icon on every portal\'s pages, e.g. "/images/logo.png".',
+            ),
+            new Field(
                 id: 'community-description',
                 label: 'Community description',
                 component: TextArea::class,

@@ -13,6 +13,10 @@
     <meta name="description" content="{{ $description }}">
 @endif
 <title>@yield('title', Settings::get('kopling-core::community-name', 'Kopling'))</title>
+@if ($favicon = Settings::get('kopling-core::community-favicon'))
+    <link rel="icon" href="{{ url($favicon) }}">
+    <link rel="apple-touch-icon" href="{{ url($favicon) }}">
+@endif
 {{-- `Vite::fonts()` -- renders nothing when the current install has no font manifest (a
      consumer that never used laravel-vite-plugin's font-loading feature), so this is safe to
      call unconditionally rather than gating it behind some "has fonts" check of our own. --}}

@@ -7,7 +7,7 @@ use Kopling\Core\Core;
 it('declares the community identity and the sign-up settings', function () {
     $fields = collect((new Core)->adminSettings())->keyBy('id');
 
-    expect($fields->keys()->all())->toBe(['community-name', 'community-logo', 'community-description', 'registration-enabled', 'login-path', 'registration-path', 'auth-redirect-path'])
+    expect($fields->keys()->all())->toBe(['community-name', 'community-logo', 'community-favicon', 'community-description', 'registration-enabled', 'login-path', 'registration-path', 'auth-redirect-path'])
         ->and($fields['login-path']->default)->toBe('login')
         ->and($fields['community-name']->component)->toBe('k::form.input')
         ->and($fields['community-logo']->component)->toBe('k::form.input')
@@ -17,7 +17,7 @@ it('declares the community identity and the sign-up settings', function () {
         ->and($fields['registration-path']->default)->toBe('register')
         ->and($fields['auth-redirect-path']->default)->toBeNull();
 
-    foreach (['community-name', 'community-logo', 'community-description'] as $id) {
+    foreach (['community-name', 'community-logo', 'community-favicon', 'community-description'] as $id) {
         expect($fields[$id]->default)->toBeNull();
     }
 });
