@@ -11,7 +11,9 @@ use Illuminate\View\Component;
  * Days picked in one calendar (Vanilla Calendar Pro). `mode` `range` submits a first and last day
  * as two `Y-m-d` fields; `multiple` submits loose days as `{name}[]`, or as `{name}[i][date]` and
  * `{name}[i][time]` with `time`. Without JS it renders those same fields as plain inputs.
- * `marked` (`['Y-m-d' => 'label']`) flags days worth seeing while choosing.
+ * `marked` (`['Y-m-d' => 'label']`) flags days worth seeing while choosing. A day can also hold a list of
+ * `['label' => ..., 'tone' => 'primary'|'success'|'warning'|'error'|'neutral', 'glow' => bool]`: each shows as its own dot
+ * (two at most), coloured by its tone (`neutral` is an open ring), with a soft halo when `glow` is set.
  */
 class Calendar extends Component
 {

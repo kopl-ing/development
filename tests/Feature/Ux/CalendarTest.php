@@ -46,6 +46,15 @@ it('encodes marked days for the calendar to read', function () {
     expect(json_decode(html_entity_decode($match[1] ?? ''), true))->toBe(['2026-12-22' => 'Match "A"']);
 });
 
+it('passes several toned items for one day through as they are', function () {
+    $marked = ['2026-12-22' => [['label' => 'Match', 'tone' => 'success', 'glow' => true], ['label' => 'Training', 'tone' => 'neutral']]];
+    $html = calendarHtml(['label' => 'Away', 'marked' => $marked]);
+
+    preg_match('/data-marked="([^"]+)"/', $html, $match);
+
+    expect(json_decode(html_entity_decode($match[1] ?? ''), true))->toBe($marked);
+});
+
 it('renders loose days as a sorted list plus one empty row', function () {
     $html = calendarHtml(['label' => 'Days', 'mode' => 'multiple', 'name' => 'days', 'value' => ['2026-12-24', '', '2026-12-20']]);
 

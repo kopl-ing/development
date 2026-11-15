@@ -38,10 +38,18 @@ function baseOptions(root, locale) {
 
     if (Object.keys(marked).length > 0) {
         options.extensions = [annotations];
-        options.popups = Object.fromEntries(Object.entries(marked).map(([date, label]) => [
-            date,
-            { modifier: 'k-calendar-marked', html: escape(label) },
-        ]));
+        options.popups = Object.fromEntries(Object.entries(marked).map(([date, value]) => {
+            const items = (Array.isArray(value) ? value : [{ label: value }]).filter((item) => item && item.label);
+            const tones = items.slice(0, 2).flatMap((item, i) => [
+                item.tone ? `k-calendar-dot${i + 1}-${item.tone}` : '',
+                item.glow ? `k-calendar-dot${i + 1}-glow` : '',
+            ]).filter(Boolean);
+
+            return [date, {
+                modifier: ['k-calendar-marked', items.length > 1 ? 'k-calendar-marked-two' : '', ...tones].filter(Boolean).join(' '),
+                html: items.map((item) => escape(item.label)).join('<br>'),
+            }];
+        }));
     }
 
     if (root.dataset.min) {

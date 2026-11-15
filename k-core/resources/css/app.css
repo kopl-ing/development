@@ -51,3 +51,60 @@
     background-color: currentColor;
     transform: translateX(-50%);
 }
+
+.vc [data-vc-date-btn].k-calendar-marked-two::after {
+    transform: translateX(-130%);
+}
+
+.vc [data-vc-date-btn].k-calendar-marked-two::before {
+    content: "";
+    position: absolute;
+    bottom: 0.15rem;
+    left: 50%;
+    width: 0.3rem;
+    height: 0.3rem;
+    border-radius: 999px;
+    background-color: currentColor;
+    transform: translateX(30%);
+}
+
+.vc [data-vc-date-btn].k-calendar-dot1-primary { --k-calendar-dot1: var(--color-primary); }
+.vc [data-vc-date-btn].k-calendar-dot2-primary { --k-calendar-dot2: var(--color-primary); }
+.vc [data-vc-date-btn].k-calendar-dot1-success { --k-calendar-dot1: var(--color-success); }
+.vc [data-vc-date-btn].k-calendar-dot1-warning { --k-calendar-dot1: var(--color-warning); }
+.vc [data-vc-date-btn].k-calendar-dot1-error { --k-calendar-dot1: var(--color-error); }
+.vc [data-vc-date-btn].k-calendar-dot2-success { --k-calendar-dot2: var(--color-success); }
+.vc [data-vc-date-btn].k-calendar-dot2-warning { --k-calendar-dot2: var(--color-warning); }
+.vc [data-vc-date-btn].k-calendar-dot2-error { --k-calendar-dot2: var(--color-error); }
+
+.vc [data-vc-date-btn].k-calendar-marked::after {
+    background-color: var(--k-calendar-dot1, currentColor);
+}
+
+.vc [data-vc-date-btn].k-calendar-marked-two::before {
+    background-color: var(--k-calendar-dot2, currentColor);
+}
+
+/* `neutral` is an open ring: an answer or choice still to come. */
+.vc [data-vc-date-btn].k-calendar-dot1-neutral::after,
+.vc [data-vc-date-btn].k-calendar-dot2-neutral::before {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px currentColor;
+}
+
+/* `glow`: a soft halo in the dot's own colour, primary for an open ring. */
+.vc [data-vc-date-btn].k-calendar-dot1-glow::after {
+    box-shadow: 0 0 5px 2px var(--k-calendar-dot1, var(--color-primary));
+}
+
+.vc [data-vc-date-btn].k-calendar-dot2-glow::before {
+    box-shadow: 0 0 5px 2px var(--k-calendar-dot2, var(--color-primary));
+}
+
+.vc [data-vc-date-btn].k-calendar-dot1-neutral.k-calendar-dot1-glow::after {
+    box-shadow: inset 0 0 0 1px currentColor, 0 0 5px 2px var(--color-primary);
+}
+
+.vc [data-vc-date-btn].k-calendar-dot2-neutral.k-calendar-dot2-glow::before {
+    box-shadow: inset 0 0 0 1px currentColor, 0 0 5px 2px var(--color-primary);
+}
